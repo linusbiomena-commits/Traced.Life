@@ -239,6 +239,8 @@ See §16 for the final run of this phase. New in Phase 5:
 4. Test-only issues: name tags with digits, branch-order dependence between tests, BOM stripped by `Response.text()`.
 
 ## 14. Known limitations
+- **Test harness (Windows):** after a run, an orphaned embedded-PostgreSQL worker can block the next browser run until it is stopped (`docs/TEST_STATUS.md`); proposed fix in Phase 7 (per-run data directory and port).
+- **Screenshots:** the MFA setup screenshot shows the secret of a throwaway test account in a database deleted after the run (no real account).
 - **Physical devices** (phones, tablets, USB scanners) are still untested; the admin portal was tested in Edge desktop and simulated 375 px only.
 - **Arabic** admin wording needs professional review (machine-assisted by the developer).
 - **Instructions:** published only provisionally in tests; no approved clinical content exists.
@@ -257,9 +259,7 @@ Repository visibility; approved identity-verification method; approved consent w
 | Unit + integration | **199 / 199** (154 earlier + 12 proxy + 33 admin) |
 | Portal checks | 62 shells up to date; 56 TRACED pages patched; no public page changed |
 | `npm audit` | 0 vulnerabilities |
-| Admin browser tests | **6 / 6** passed on the Phase 5 frontend before the last small changes (mobile table CSS, extra labels, page permission guard, added collection-staff browser check) |
-| Customer + staff browser tests | 16 / 16 at milestone 1; **not re-run on the final frontend** |
-| **Final full browser run** | **Blocked** by an orphaned embedded-PostgreSQL process from the previous run (needs the owner's permission to stop). Milestone 3 is committed locally and **not pushed** until this run passes. |
+| **Browser tests (final code)** | **22 / 22** (6 admin + 9 customer + 7 staff), Edge, about 2.0 min |
 
 ## 17. Completion
 **Phase 5: complete for the approved scope.** Engineering completion is about **65%** (Phases 0–5 ≈ 225 of ≈ 300–390 hours, by the Phase 0 estimates; business, legal and clinical approvals excluded).
