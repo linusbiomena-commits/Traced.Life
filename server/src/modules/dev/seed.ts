@@ -2,6 +2,7 @@ import type { Queryable } from '../../db/pool.ts';
 import { publishConsentDocument } from '../consents/consents.service.ts';
 import { PROVISIONAL_CONSENTS, PROVISIONAL_VERSION } from '../consents/provisional-content.ts';
 import type { ConsentType } from '../registrations/rules.ts';
+import { PROVISIONAL_INSTRUCTIONS, PROVISIONAL_INSTRUCTIONS_VERSION, publishInstructions } from '../collection/instructions.ts';
 
 // Development/test data only. Branch names are marked [DEV] so they can never be mistaken for real
 // locations. Real branches are created by admins (Phase 5). Never run against production.
@@ -29,6 +30,9 @@ export async function seedDevData(db: Queryable, env: string): Promise<{ branche
       await publishConsentDocument(db, { type, version: PROVISIONAL_VERSION, locale, ...byLocale[locale], status: 'provisional' });
       consents++;
     }
+  }
+  for (const locale of ['en', 'ar'] as const) {
+    await publishInstructions(db, { version: PROVISIONAL_INSTRUCTIONS_VERSION, locale, ...PROVISIONAL_INSTRUCTIONS[locale], status: 'provisional' });
   }
   return { branches, consents };
 }

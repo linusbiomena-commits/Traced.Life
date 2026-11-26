@@ -13,10 +13,17 @@ const PAGES = {
   registrations: () => import('./pages/registrations.js'),
   registration: () => import('./pages/registration.js'),
   'qr-info': () => import('./pages/qr-info.js'),
+  'staff-sign-in': () => import('./pages/staff-sign-in.js'),
+  'staff-dashboard': () => import('./pages/staff-dashboard.js'),
+  'staff-scan': () => import('./pages/staff-scan.js'),
+  'staff-history': () => import('./pages/staff-history.js'),
+  'staff-settings': () => import('./pages/staff-settings.js'),
+  'staff-accept-invite': () => import('./pages/accept-invite.js'),
+  'admin-accept-invite': () => import('./pages/accept-invite.js'),
 };
 
 const page = document.documentElement.dataset.page;
-const TOKEN_PAGES = new Set(['verify-email', 'reset-password']);
+const TOKEN_PAGES = new Set(['verify-email', 'reset-password', 'staff-accept-invite', 'admin-accept-invite']);
 
 if (TOKEN_PAGES.has(page)) {
   takeHashToken(); // capture and hide emailed tokens immediately

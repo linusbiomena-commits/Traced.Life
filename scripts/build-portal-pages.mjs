@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
-const VERSION = '20261126-p3'; // bump to bust browser caches of portal CSS/JS
+const VERSION = '20261126-p4'; // bump to bust browser caches of portal CSS/JS
 
 export const PAGES = [
   { id: 'dashboard', dir: 'account', title: { en: 'My account', ar: 'حسابي' } },
@@ -24,6 +24,13 @@ export const PAGES = [
   { id: 'registrations', dir: 'account/registrations', title: { en: 'My registrations', ar: 'تسجيلاتي' } },
   { id: 'registration', dir: 'account/registration', title: { en: 'Registration details', ar: 'تفاصيل التسجيل' } },
   { id: 'qr-info', dir: 'c', title: { en: 'TRACED collection QR code', ar: 'رمز QR لجمع عينة TRACED' } },
+  { id: 'staff-dashboard', dir: 'staff', title: { en: 'Staff portal', ar: 'بوابة الموظفين' } },
+  { id: 'staff-sign-in', dir: 'staff/sign-in', title: { en: 'Staff sign in', ar: 'تسجيل دخول الموظفين' } },
+  { id: 'staff-scan', dir: 'staff/scan', title: { en: 'Scan QR code', ar: 'مسح رمز QR' } },
+  { id: 'staff-history', dir: 'staff/history', title: { en: 'Collection history', ar: 'سجل جمع العينات' } },
+  { id: 'staff-settings', dir: 'staff/settings', title: { en: 'Staff settings', ar: 'إعدادات الموظف' } },
+  { id: 'staff-accept-invite', dir: 'staff/accept-invite', title: { en: 'Set up your account', ar: 'إعداد حسابك' } },
+  { id: 'admin-accept-invite', dir: 'admin/accept-invite', title: { en: 'Set up your account', ar: 'إعداد حسابك' } },
 ];
 
 const TEXT = {
@@ -87,6 +94,12 @@ function page(p, lang, logo) {
 }
 
 const check = process.argv.includes('--check');
+
+// Vendored open-source scanner library (served from this site; CSP allows only 'self').
+const VENDOR = [
+  ['node_modules/@zxing/browser/umd/zxing-browser.min.js', 'dist/portal/vendor/zxing-browser.min.js'],
+  ['node_modules/@zxing/browser/LICENSE', 'dist/portal/vendor/zxing-browser.LICENSE.txt'],
+];
 const logo = (await readFile(path.join(ROOT, 'scripts/portal/traced-logo.svg'), 'utf8')).trim();
 let stale = 0;
 for (const p of PAGES) {
@@ -106,6 +119,22 @@ for (const p of PAGES) {
       await mkdir(path.dirname(file), { recursive: true });
       await writeFile(file, html, 'utf8');
     }
+  }
+}
+for (const [from, to] of VENDOR) {
+  const src = await readFile(path.join(ROOT, from));
+  let current = null;
+  try {
+    current = await readFile(path.join(ROOT, to));
+  } catch {
+    /* missing */
+  }
+  if (current && current.equals(src)) continue;
+  stale++;
+  if (check) console.error(`out of date: ${to}`);
+  else {
+    await mkdir(path.dirname(path.join(ROOT, to)), { recursive: true });
+    await writeFile(path.join(ROOT, to), src);
   }
 }
 if (check && stale) process.exit(1);

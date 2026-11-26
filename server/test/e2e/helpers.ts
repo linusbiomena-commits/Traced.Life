@@ -6,7 +6,7 @@ import { expect, type Page } from '@playwright/test';
 
 export const PASSWORD = 'correct horse battery staple';
 export const MAIL_DIR = path.resolve('test-results/e2e-mail');
-export const SHOTS = path.resolve('docs/phase-3/screenshots');
+export const SHOTS = path.resolve('docs/phase-4/screenshots/customer');
 
 export const uniqueEmail = (prefix: string) => `${prefix}.${randomBytes(4).toString('hex')}@example.com`;
 
@@ -54,6 +54,9 @@ const L = {
 /** Creates an account through the UI, opens the emailed verification link and signs in. */
 export async function signUpAndSignIn(page: Page, lang: 'en' | 'ar', email: string) {
   const pre = lang === 'ar' ? '/ar' : '';
+  // Each test customer comes from its own address, so per-IP sign-up limits apply per customer.
+  const b = randomBytes(3);
+  await page.context().setExtraHTTPHeaders({ 'x-forwarded-for': `10.${b[0]}.${b[1]}.${b[2]}` });
   const l = L[lang];
   await page.goto(`${pre}/traced/account/sign-up/`);
   await page.getByLabel(l.email).fill(email);
@@ -76,5 +79,6 @@ export async function noHorizontalScroll(page: Page) {
 }
 
 export async function shot(page: Page, name: string, fullPage = true) {
+  if (fullPage) await page.evaluate(() => window.scrollTo(0, 0)); // keep the sticky header at the top
   await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage });
 }

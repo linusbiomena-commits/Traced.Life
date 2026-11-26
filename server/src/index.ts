@@ -8,7 +8,7 @@ import { startOutboxWorker } from './modules/mail/outbox.ts';
 import { createHttpApp } from './server.ts';
 
 const config = loadConfig();
-const db = createPool(config.databaseUrl);
+const db = createPool(config.databaseUrl, config.dbPoolMax);
 const mailer = createMailer({ transport: config.mailTransport, devDir: config.mailDevDir, resendApiKey: config.resendApiKey, mailFrom: config.mailFrom, replyTo: config.mailReplyTo });
 
 if (config.env === 'development') {

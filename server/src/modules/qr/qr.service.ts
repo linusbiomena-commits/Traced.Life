@@ -45,18 +45,6 @@ export async function issueCustomerQr(tx: Queryable, deps: Deps, registrationId:
   return token;
 }
 
-/** Revokes the active token (it can never validate again) and issues a new one. */
-export async function revokeAndReissueCustomerQr(
-  tx: Queryable, deps: Deps, registrationId: string, actorUserId: string | null, reason: string,
-): Promise<string> {
-  await tx.query(
-    `UPDATE customer_qr_tokens SET status = 'revoked', revoked_at = now(), revoked_by = $2, revoke_reason = $3
-      WHERE registration_id = $1 AND status = 'active'`,
-    [registrationId, actorUserId, reason.slice(0, 200)],
-  );
-  return issueCustomerQr(tx, deps, registrationId, actorUserId);
-}
-
 /** The active token for redisplay/download, decrypted on demand; null if none. */
 export async function activeCustomerToken(db: Queryable, deps: Deps, registrationId: string): Promise<string | null> {
   const { rows } = await db.query<{ token_enc: string }>(

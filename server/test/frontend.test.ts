@@ -45,8 +45,9 @@ describe('portal pages', () => {
   });
 
   it('portal pages: strict CSP, noindex, no third-party or inline scripts, correct language', () => {
-    const pages = ['dist/traced/account', 'dist/ar/traced/account', 'dist/traced/c', 'dist/ar/traced/c'].flatMap((d) => files(path.join(ROOT, d), '.html'));
-    expect(pages).toHaveLength(22);
+    const dirs = ['account', 'c', 'staff', 'admin'].flatMap((d) => [`dist/traced/${d}`, `dist/ar/traced/${d}`]);
+    const pages = dirs.flatMap((d) => files(path.join(ROOT, d), '.html'));
+    expect(pages).toHaveLength(36);
     for (const p of pages) {
       const html = readFileSync(p, 'utf8');
       const arabic = p.includes(`${path.sep}ar${path.sep}`);
@@ -67,7 +68,8 @@ describe('portal pages', () => {
       expect(src, name).not.toMatch(/\beval\(|new Function\(/);
       expect(src, name).not.toMatch(/console\.(log|info|debug|warn|error)/);
       expect(src, name).not.toMatch(/sessionStorage|indexedDB/);
-      for (const m of src.matchAll(/localStorage\.(?:setItem|getItem)\(([^,)]+)/g)) expect(m[1], name).toBe('LANG_KEY');
+      // Only the language preference and the staff member's selected branch id (no personal data).
+      for (const m of src.matchAll(/localStorage\.(?:setItem|getItem)\(([^,)]+)/g)) expect(['LANG_KEY', 'BRANCH_KEY'], name).toContain(m[1]);
     }
   });
 });

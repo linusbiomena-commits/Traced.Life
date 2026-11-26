@@ -18,7 +18,20 @@ const ACCESS = {
   registrations: 'verified',
   registration: 'verified',
   'qr-info': 'any',
+  // Staff portal (Phase 4): staff pages need an account with collection permissions.
+  'staff-sign-in': 'staff-guest',
+  'staff-dashboard': 'staff',
+  'staff-scan': 'staff',
+  'staff-history': 'staff',
+  'staff-settings': 'staff',
+  'staff-accept-invite': 'any',
+  'admin-accept-invite': 'any',
 };
+
+const STAFF_PAGES = new Set(['staff-sign-in', 'staff-dashboard', 'staff-scan', 'staff-history', 'staff-settings', 'staff-accept-invite']);
+
+/** UI routing only; every staff API call is authorised again on the server. */
+export const isStaff = (session) => Boolean(session?.permissions?.includes('collection.scan'));
 
 const LANG_KEY = 'linusbiomena-language'; // shared with the public site's language switch
 
@@ -39,19 +52,27 @@ export function rememberLanguage(value) {
 }
 
 export async function signOut() {
+  const staffPage = STAFF_PAGES.has(document.documentElement.dataset.page);
   try {
     await api('POST', '/auth/sign-out', {});
   } catch {
     /* already signed out */
   }
-  go(pageUrl('sign-in', { signedOut: '1' }));
+  go(pageUrl(staffPage ? 'staff-sign-in' : 'sign-in', { signedOut: '1' }));
 }
 
 function renderHeader(page, session) {
   const nav = document.getElementById('account-nav');
   if (!nav) return;
   const items = [h('a', { class: 'p-nav__home', href: lang === 'ar' ? '/ar/traced/' : '/traced/' }, t('nav.home'))];
-  if (session) {
+  if (STAFF_PAGES.has(page) && isStaff(session)) {
+    nav.setAttribute('aria-label', t('staff.nav.main'));
+    items.length = 0;
+    for (const [id, key] of [['staff-dashboard', 'staff.nav.dashboard'], ['staff-scan', 'staff.nav.scan'], ['staff-history', 'staff.nav.history'], ['staff-settings', 'staff.nav.settings']]) {
+      items.push(h('a', { href: pageUrl(id), 'aria-current': page === id ? 'page' : undefined }, t(key)));
+    }
+    items.push(h('button', { type: 'button', class: 'p-link', onclick: signOut }, t('nav.signOut')));
+  } else if (session) {
     items.push(h('a', { href: pageUrl('dashboard'), 'aria-current': page === 'dashboard' ? 'page' : undefined }, t('nav.dashboard')));
     items.push(h('button', { type: 'button', class: 'p-link', onclick: signOut }, t('nav.signOut')));
   } else if (page !== 'sign-in') {
@@ -71,7 +92,7 @@ export async function boot(page, loadPage) {
   // Follow the language the visitor chose on the public site.
   const pref = preferredLanguage();
   if ((pref === 'ar' && lang === 'en') || (pref === 'en' && lang === 'ar')) {
-    const token = page === 'verify-email' || page === 'reset-password' ? takeHashToken() : null;
+    const token = ['verify-email', 'reset-password', 'staff-accept-invite', 'admin-accept-invite'].includes(page) ? takeHashToken() : null;
     location.replace(counterpartPath() + location.search + (token ? `#token=${token}` : location.hash));
     return;
   }
@@ -89,6 +110,16 @@ export async function boot(page, loadPage) {
 
   const rule = ACCESS[page] || 'auth';
   const here = location.pathname + location.search;
+  if ((rule === 'guest' || rule === 'staff-guest') && session && isStaff(session)) {
+    return go(safeNext(new URLSearchParams(location.search).get('next')) || pageUrl('staff-dashboard'));
+  }
+  if (rule === 'staff' && !session) return go(pageUrl('staff-sign-in', { next: here }));
+  if (rule === 'staff' && !isStaff(session)) {
+    renderHeader(page, session);
+    mount(app, h('div', { class: 'p-narrow' }, h('h1', { class: 'p-h1' }, t('staff.forbidden.title')),
+      h('div', { class: 'p-card' }, alertBox('info', null, t('staff.forbidden.body')))));
+    return;
+  }
   if (rule === 'guest' && session) {
     const next = safeNext(new URLSearchParams(location.search).get('next'));
     return go(session.emailVerified ? next || pageUrl('dashboard') : pageUrl('verify-email'));

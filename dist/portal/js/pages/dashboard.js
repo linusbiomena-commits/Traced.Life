@@ -10,7 +10,8 @@ import { isCustomer, patientName, registrationItem, statusBadge, supportCard } f
 export default async function render({ app, session }) {
   if (!isCustomer(session)) {
     mount(app, h('div', { class: 'p-medium' }, pageHeading(t('dash.titleNoName')),
-      h('div', { class: 'p-card' }, alertBox('info', t('dash.staffTitle'), t('dash.staffBody')))));
+      h('div', { class: 'p-card p-stack' }, alertBox('info', t('dash.staffTitle'), t('dash.staffBody')),
+        session.permissions.includes('collection.scan') ? h('a', { class: 'p-btn p-btn--dark', href: pageUrl('staff-dashboard') }, t('dash.staffLink')) : null)));
     return;
   }
 

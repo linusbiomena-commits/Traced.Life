@@ -11,7 +11,7 @@ afterAll(async () => {
   await t.close();
 });
 
-const STAFF_KEYS = ['collectionInstructions', 'identityVerification', 'patientAge', 'patientGender', 'qrValid', 'sampleStatus', 'sampleType', 'trackingId'];
+const STAFF_KEYS = ['branch', 'canCollect', 'collectionInstructions', 'collectionSessionId', 'devVerificationAvailable', 'identityVerification', 'patientAge', 'patientGender', 'qrValid', 'sampleStatus', 'sampleType', 'trackingId'];
 
 /** Reads the QR from the customer's own PNG download and returns the token inside it. */
 async function tokenFromQr(c: Parameters<typeof getBinary>[1], registrationId: string) {
@@ -112,7 +112,7 @@ describe('staff QR validation service (for the Phase 4 scanner)', () => {
     expect(Object.keys(res.body).sort()).toEqual(STAFF_KEYS);
     expect(res.body).toMatchObject({
       qrValid: true, trackingId: registration.trackingId, patientAge: registration.patient.age, patientGender: 'female',
-      sampleType: 'hair', sampleStatus: 'awaiting_sample_collection', identityVerification: { status: 'not_available' },
+      sampleType: 'hair', sampleStatus: 'awaiting_sample_collection', identityVerification: { status: 'not_verified', method: null }, canCollect: false,
     });
     const json = JSON.stringify(res.body);
     for (const pii of ['Layla', 'Al-Harbi', 'Fatimah', email, '551234567', registration.patient.dateOfBirth, registration.id, token]) expect(json).not.toContain(pii);
@@ -146,12 +146,12 @@ describe('revocation and regeneration', () => {
     expect(fresh.token).not.toBe(old.token);
     expect(res.body.registration.trackingId).toBe(registration.trackingId); // tracking ID never changes
 
-    expect((await staff.c.post('/staff/qr/validate', { code: old.text })).body).toEqual({ qrValid: false, reason: 'REVOKED' });
+    expect((await staff.c.post('/staff/qr/validate', { code: old.text })).body).toEqual({ qrValid: false, reason: 'REPLACED' });
     expect((await staff.c.post('/staff/qr/validate', { code: fresh.text })).body.qrValid).toBe(true);
 
     const rows = (await t.db.query(`SELECT status FROM customer_qr_tokens WHERE registration_id = $1 ORDER BY created_at`, [registration.id])).rows.map((r) => r.status);
     expect(rows).toEqual(['revoked', 'active']);
-    await expect(t.db.query(`UPDATE customer_qr_tokens SET status = 'active', revoked_at = NULL WHERE registration_id = $1 AND status = 'revoked'`, [registration.id])).rejects.toThrow(/cannot be reactivated/);
+    await expect(t.db.query(`UPDATE customer_qr_tokens SET status = 'active', revoked_at = NULL WHERE registration_id = $1 AND status = 'revoked'`, [registration.id])).rejects.toThrow(/revoked QR token cannot change state/);
     await expect(t.db.query(`DELETE FROM customer_qr_tokens WHERE registration_id = $1`, [registration.id])).rejects.toThrow(/append-only/);
   });
 

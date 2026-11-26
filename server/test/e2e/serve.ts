@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { mkdir, rm } from 'node:fs/promises';
+import { mkdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { serve } from '@hono/node-server';
 import EmbeddedPostgres from 'embedded-postgres';
@@ -44,12 +44,18 @@ const config: Config = {
   tokenHmacKey: randomBytes(32),
   dataEncryptionKey: randomBytes(32),
   cookieSecure: false,
-  trustProxy: false,
+  trustProxy: true, // tests send a per-customer X-Forwarded-For (as Cloud Run's proxy would)
   mailTransport: 'dev',
   mailDevDir: MAIL_DIR,
   serveStatic: true,
+  devIdentityVerification: true,
 };
 const deps = { config, db, mailer: new DevFileMailer(MAIL_DIR) };
+// Lets the browser tests create invited staff accounts in this throwaway database.
+// Test-only, gitignored, deleted with the rest of test-results/.
+await writeFile(path.resolve('test-results/e2e-env.json'), JSON.stringify({
+  databaseUrl: url, tokenHmacKey: config.tokenHmacKey.toString('base64'), dataEncryptionKey: config.dataEncryptionKey.toString('base64'), appOrigin: config.appOrigin,
+}));
 const app = createHttpApp(deps);
 const stopOutbox = startOutboxWorker(deps, 2000);
 const server = serve({ fetch: app.fetch, port: PORT, hostname: '127.0.0.1' }, () => console.log(`e2e server ready on http://localhost:${PORT}`));

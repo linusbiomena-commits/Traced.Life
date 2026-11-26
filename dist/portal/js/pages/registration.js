@@ -43,6 +43,12 @@ export default async function render({ app, session }) {
   // ---- QR card: image, downloads, resend, replace -------------------------------------------
   function qrCard() {
     if (!r.qrCode?.available) {
+      if (r.collection) {
+        return section('qr-title', t('detail.qr'),
+          alertBox('success', null, t('detail.collected', { date: formatDateTime(r.collection.collectedAt), branch: branchName({ ...r.collection.branch }) })),
+          h('p', { class: 'p-muted p-small p-mt-s' }, t('detail.qrUsed')),
+          h('p', { class: 'p-mt-s' }, t('detail.trackingId'), ': ', h('span', { class: 'p-tracking-id', dir: 'ltr' }, r.trackingId)));
+      }
       return section('qr-title', t('detail.qr'), h('p', { class: 'p-muted' }, t('common.notAvailableYet')));
     }
     const status = h('div', { 'aria-live': 'polite' });
@@ -211,5 +217,18 @@ export default async function render({ app, session }) {
 
   draw(r);
   if (created) focusTitle();
+
+  // While the registration awaits collection, refresh quietly so the page updates on its own
+  // once staff confirm the collection (only when the tab is visible).
+  const poll = setInterval(async () => {
+    if (document.hidden || r.status !== 'awaiting_sample_collection') return;
+    try {
+      const fresh = (await api('GET', `/me/registrations/${r.id}`)).registration;
+      if (fresh.status !== r.status) draw(fresh);
+    } catch {
+      /* ignore transient errors; the next tick retries */
+    }
+  }, 20_000);
+  window.addEventListener('pagehide', () => clearInterval(poll));
   void session;
 }

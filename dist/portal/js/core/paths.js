@@ -12,6 +12,13 @@ export const PAGES = {
   registrations: 'account/registrations/',
   registration: 'account/registration/',
   'qr-info': 'c/',
+  'staff-dashboard': 'staff/',
+  'staff-sign-in': 'staff/sign-in/',
+  'staff-scan': 'staff/scan/',
+  'staff-history': 'staff/history/',
+  'staff-settings': 'staff/settings/',
+  'staff-accept-invite': 'staff/accept-invite/',
+  'admin-accept-invite': 'admin/accept-invite/',
 };
 
 export const isArabicPath = (path = location.pathname) => /^\/ar(?:\/|$)/.test(path);
@@ -32,7 +39,7 @@ export function counterpartPath(path = location.pathname) {
   return isArabicPath(path) ? path.replace(/^\/ar(?=\/|$)/, '') || '/' : `/ar${path}`;
 }
 
-const NEXT_RE = /^\/(?:ar\/)?traced\/account\/(?:[a-z-]+\/)?(?:\?id=[0-9a-f-]{36})?$/;
+const NEXT_RE = /^\/(?:ar\/)?traced\/(?:account|staff)\/(?:[a-z-]+\/)?(?:\?id=[0-9a-f-]{36})?$/;
 
 /** Only same-site portal paths are accepted as a post-sign-in destination (no open redirects). */
 export function safeNext(value) {

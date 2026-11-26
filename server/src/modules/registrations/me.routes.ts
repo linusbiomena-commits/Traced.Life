@@ -2,9 +2,9 @@ import { Hono } from 'hono';
 import { z } from 'zod';
 import { randomUUID } from 'node:crypto';
 import { actorFrom, type AppContext, type AppEnv, type Deps } from '../../context.ts';
-import { withTx } from '../../db/pool.ts';
 import { enqueueEmail, kickOutbox } from '../mail/outbox.ts';
-import { activeCustomerToken, qrUrl, renderQrPng, renderQrSvg, revokeAndReissueCustomerQr } from '../qr/qr.service.ts';
+import { activeCustomerToken, qrUrl, renderQrPng, renderQrSvg } from '../qr/qr.service.ts';
+import { replaceCustomerQr } from '../qr/lifecycle.ts';
 import { trackingIdForFilename } from '../tracking/tracking.ts';
 import { AppError, Errors } from '../../lib/errors.ts';
 import { check, parseBody } from '../../lib/validate.ts';
@@ -142,7 +142,7 @@ export function meRoutes(deps: Deps) {
 
   async function qrImage(c: AppContext, format: 'png' | 'svg') {
     const reg = await ownRegistration(c);
-    if (!reg.tracking_id || reg.status === 'cancelled' || reg.status === 'rejected') throw Errors.notFound();
+    if (!reg.tracking_id || (reg.status !== 'awaiting_sample_collection' && reg.status !== 'registration_completed')) throw Errors.notFound();
     const token = await activeCustomerToken(db, deps, reg.id);
     if (!token) throw Errors.notFound();
     const url = qrUrl(deps.config.appOrigin, c.get('session')!.locale, token);
@@ -165,7 +165,7 @@ export function meRoutes(deps: Deps) {
   r.post('/registrations/:id/resend-email', ...canRead, async (c) => {
     const s = c.get('session')!;
     const reg = await ownRegistration(c);
-    if (!reg.tracking_id || reg.status === 'cancelled' || reg.status === 'rejected') throw new AppError(409, 'QR_NOT_AVAILABLE', 'There is no active QR code for this registration.');
+    if (!reg.tracking_id || (reg.status !== 'awaiting_sample_collection' && reg.status !== 'registration_completed')) throw new AppError(409, 'QR_NOT_AVAILABLE', 'There is no active QR code for this registration.');
     await enforceRateLimits(db, [
       { key: `qr_resend:registration:${reg.id}`, limit: 3, windowSeconds: 3600 },
       { key: `qr_resend:user:${s.userId}`, limit: 10, windowSeconds: 86_400 },
@@ -182,18 +182,8 @@ export function meRoutes(deps: Deps) {
   r.post('/registrations/:id/qr/regenerate', ...canRead, async (c) => {
     const s = c.get('session')!;
     const reg = await ownRegistration(c);
-    if (reg.status !== 'registration_completed' && reg.status !== 'awaiting_sample_collection') {
-      throw new AppError(409, 'QR_LOCKED', 'The QR code can’t be replaced at this stage. Please contact support.');
-    }
     await enforceRateLimit(db, { key: `qr_regenerate:registration:${reg.id}`, limit: 3, windowSeconds: 86_400 });
-    await withTx(db, async (tx) => {
-      await revokeAndReissueCustomerQr(tx, deps, reg.id, s.userId, 'customer_requested');
-      await enqueueEmail(tx, deps, {
-        kind: 'registration_qr_resend', locale: s.locale, to: s.email, userId: s.userId, registrationId: reg.id,
-        dedupeKey: `registration_qr_regenerated:${reg.id}:${randomUUID()}`,
-      });
-      await audit(tx, { ...actorFrom(c), action: 'qr.regenerated', outcome: 'success', targetType: 'registration', targetId: reg.id, metadata: { reason: 'customer_requested' } });
-    });
+    await replaceCustomerQr(deps, { registrationId: reg.id, reason: 'customer_requested', regenerate: true, notify: true, meta: actorFrom(c) });
     void kickOutbox(deps);
     return c.json({ registration: await getOwnRegistration(db, s.userId, reg.id) });
   });

@@ -101,6 +101,8 @@ export async function setupTestApp() {
     mailTransport: 'memory',
     mailDevDir: '',
     serveStatic: false,
+    devIdentityVerification: true,
+    internalCronSecret: 'test-cron-secret-0123456789abcdef0123456789',
   };
   const mailer = new MemoryMailer();
   const deps: Deps = { config, db, mailer };

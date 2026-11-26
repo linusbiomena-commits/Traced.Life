@@ -41,7 +41,7 @@ describe('collection staff never receive customer personal data (every API route
     expect(routes.length).toBeGreaterThanOrEqual(20);
 
     // Endpoints that act only on the caller's own account are allowed to succeed.
-    const selfService = new Set(['GET /auth/me', 'GET /me/profile', 'GET /health', 'POST /auth/mfa/setup', 'POST /auth/verify-email/resend']);
+    const selfService = new Set(['GET /auth/me', 'GET /me/profile', 'GET /health', 'POST /auth/mfa/setup', 'POST /auth/verify-email/resend', 'GET /staff/me', 'GET /staff/history']);
     for (const { method, path } of routes) {
       if (path === '/auth/sign-out') continue; // would end the staff session mid-sweep
       const res = await staff.c.request(method, path, method === 'GET' ? undefined : {});

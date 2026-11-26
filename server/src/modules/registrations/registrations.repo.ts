@@ -54,7 +54,7 @@ function summary(r: Row) {
     trackingId: r.tracking_id,
     patient: { firstName: r.first_name, lastName: r.last_name, relationship: r.relationship, gender: r.gender, age: age(r.date_of_birth) },
     branch: { id: r.branch_id, nameEn: r.name_en, nameAr: r.name_ar, cityEn: r.city_en, cityAr: r.city_ar },
-    qrCode: r.tracking_id && r.status !== 'cancelled' && r.status !== 'rejected'
+    qrCode: r.tracking_id && (r.status === 'awaiting_sample_collection' || r.status === 'registration_completed')
       ? { available: true, svgUrl: `/api/v1/me/registrations/${r.id}/qr.svg`, pngUrl: `/api/v1/me/registrations/${r.id}/qr.png` }
       : { available: false },
   };
@@ -88,8 +88,12 @@ export async function getOwnRegistration(db: Queryable, userId: string, id: stri
   const locked = await db.query(
     `SELECT 1 FROM registrations WHERE patient_id = (SELECT patient_id FROM registrations WHERE id = $1)
         AND status <> ALL($2::text[]) LIMIT 1`, [id, PRE_COLLECTION_STATUSES]);
-  const active = r.status !== 'cancelled' && r.status !== 'rejected';
   const preCollection = r.status === 'registration_completed' || r.status === 'awaiting_sample_collection';
+  const active = preCollection; // a QR only authorises collection before the sample is taken
+  const sample = await db.query<{ collected_at: Date; name_en: string; name_ar: string; city_en: string; city_ar: string }>(
+    `SELECT s.collected_at, b.name_en, b.name_ar, b.city_en, b.city_ar
+       FROM samples s JOIN collection_branches b ON b.id = s.branch_id
+      WHERE s.registration_id = $1 AND s.status <> 'rejected'`, [id]);
   const base = summary(r);
   return {
     ...base,
@@ -106,7 +110,10 @@ export async function getOwnRegistration(db: Queryable, userId: string, id: stri
       : { available: false },
     email: email.rows[0] ? { status: email.rows[0].status, sentAt: email.rows[0].sent_at?.toISOString() ?? null } : null,
     canCorrectPatient: !locked.rowCount,
-    canRegenerateQr: preCollection && Boolean(qr.rows[0]),
+    canRegenerateQr: preCollection,
+    collection: sample.rows[0]
+      ? { collectedAt: sample.rows[0].collected_at.toISOString(), branch: { nameEn: sample.rows[0].name_en, nameAr: sample.rows[0].name_ar, cityEn: sample.rows[0].city_en, cityAr: sample.rows[0].city_ar } }
+      : null,
     canResendEmail: active && Boolean(qr.rows[0]),
   };
 }

@@ -23,6 +23,12 @@ const schema = z.object({
   MAIL_REPLY_TO: z.email().optional(),
   RESEND_API_KEY: z.string().regex(/^re_[A-Za-z0-9_]+$/, 'RESEND_API_KEY looks invalid').optional(),
   OUTBOX_INTERVAL_MS: z.coerce.number().int().min(1000).default(15000),
+  // Development/test only: lets staff simulate identity-verification outcomes. Refused in production.
+  DEV_IDENTITY_VERIFICATION: bool.default(false),
+  // Cloud Run: keep the per-instance pool small (Cloud SQL f1-micro allows few connections).
+  DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(5),
+  // Shared secret for the scheduled outbox run (Cloud Scheduler → /api/v1/internal/outbox/run).
+  INTERNAL_CRON_SECRET: z.string().min(32).optional(),
   SERVE_STATIC: bool.default(false),
 });
 
@@ -41,6 +47,9 @@ export type Config = {
   mailReplyTo?: string;
   resendApiKey?: string;
   outboxIntervalMs?: number;
+  devIdentityVerification?: boolean;
+  dbPoolMax?: number;
+  internalCronSecret?: string;
   serveStatic: boolean;
 };
 
@@ -60,6 +69,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     // Production must use a real provider; local capture transports are refused.
     if (e.MAIL_TRANSPORT !== 'resend') throw new Error('MAIL_TRANSPORT must be resend in production');
     if (e.SERVE_STATIC) throw new Error('SERVE_STATIC is for local development only');
+    if (e.DEV_IDENTITY_VERIFICATION) throw new Error('DEV_IDENTITY_VERIFICATION must never be enabled in production');
   }
   return {
     env: e.NODE_ENV,
@@ -76,6 +86,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     mailReplyTo: e.MAIL_REPLY_TO,
     resendApiKey: e.RESEND_API_KEY,
     outboxIntervalMs: e.OUTBOX_INTERVAL_MS,
+    devIdentityVerification: e.NODE_ENV !== 'production' && e.DEV_IDENTITY_VERIFICATION,
+    dbPoolMax: e.DB_POOL_MAX,
+    internalCronSecret: e.INTERNAL_CRON_SECRET,
     serveStatic: e.SERVE_STATIC,
   };
 }

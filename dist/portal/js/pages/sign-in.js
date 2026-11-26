@@ -31,6 +31,7 @@ export default function render({ app }) {
     try {
       const { user } = await api('POST', '/auth/sign-in', { email: email.input.value.trim(), password: password.input.value });
       const next = safeNext(params.get('next'));
+      if (user.permissions.includes('collection.scan')) return go(pageUrl('staff-dashboard')); // staff use their own portal
       go(user.emailVerified ? next || pageUrl('dashboard') : pageUrl('verify-email'));
     } catch (err) {
       setBusy(submit, false);

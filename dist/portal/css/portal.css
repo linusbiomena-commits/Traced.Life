@@ -274,3 +274,19 @@ html[dir="rtl"] .p-tracking-id { text-align: right; }
   .p-qr { width: min(240px, 70vw); height: auto; }
 }
 .p-card .p-review-section { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--color-line); }
+
+/* ---- Staff portal (Phase 4) ---------------------------------------------------------------- */
+.p-btn--lg { min-height: 56px; padding: 1rem 1.75rem; font-size: 1.0625rem; }
+.p-grid--stats { grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); }
+.p-stat { text-align: start; }
+.p-stat__value { font-family: var(--font-serif); font-size: 2.25rem; line-height: 1; color: var(--color-dark-secondary); margin-bottom: .5rem; }
+html[lang^="ar"] .p-stat__value { font-family: Tahoma, Arial, sans-serif; font-weight: 700; }
+.p-scanner { position: relative; margin-top: 1rem; border-radius: var(--radius-m); overflow: hidden; background: #000; aspect-ratio: 4 / 3; max-height: 60vh; }
+.p-scanner__video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.p-scanner__guide { position: absolute; inset: 15%; border: 3px solid rgba(255, 255, 255, .9); border-radius: 18px; box-shadow: 0 0 0 9999px rgba(0, 0, 0, .25); pointer-events: none; }
+.p-dev-panel { border: 2px dashed var(--color-tertiary-70); background: #fdf6ea; border-radius: var(--radius-m); padding: 1rem; }
+.p-dl--strong dd { font-size: 1.0625rem; font-weight: 500; }
+.p-filters { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); align-items: end; }
+.p-filters .p-field + .p-field { margin-top: 0; }
+.p-filters .p-actions { margin-top: 0; grid-column: 1 / -1; }
+.p-btn[disabled][aria-busy="true"] { opacity: .85; }

@@ -10,6 +10,8 @@ import { auditRoutes } from './modules/audit/audit.routes.ts';
 import { authRoutes } from './modules/auth/auth.routes.ts';
 import { meRoutes } from './modules/registrations/me.routes.ts';
 import { staffRoutes } from './modules/qr/staff.routes.ts';
+import { adminQrRoutes } from './modules/qr/admin-qr.routes.ts';
+import { internalRoutes } from './modules/mail/internal.routes.ts';
 
 export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {
   const requestId = c.get('requestId');
@@ -58,8 +60,10 @@ export function createApi(deps: Deps): Hono<AppEnv> {
   });
   api.route('/auth', authRoutes(deps));
   api.route('/admin', auditRoutes(deps));
+  api.route('/admin', adminQrRoutes(deps));
   api.route('/me', meRoutes(deps));
   api.route('/staff', staffRoutes(deps));
+  api.route('/internal', internalRoutes(deps));
 
   api.onError(errorHandler);
   return api;
