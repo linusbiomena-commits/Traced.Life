@@ -17,6 +17,7 @@ const ACCESS = {
   register: 'verified',
   registrations: 'verified',
   registration: 'verified',
+  'qr-info': 'any',
 };
 
 const LANG_KEY = 'linusbiomena-language'; // shared with the public site's language switch

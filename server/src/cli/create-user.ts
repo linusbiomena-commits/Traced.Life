@@ -3,6 +3,7 @@ import { loadConfig } from '../config.ts';
 import { createPool } from '../db/pool.ts';
 import { createStaffAccount } from '../modules/accounts/accounts.service.ts';
 import { createMailer } from '../modules/mail/mailer.ts';
+import { enqueueEmail, processOutbox } from '../modules/mail/outbox.ts';
 import { isRoleKey, STAFF_SIDE_ROLES, type RoleKey } from '../modules/rbac/catalogue.ts';
 
 // Bootstrap a staff-side account (e.g. the first super admin) from the command line:
@@ -34,7 +35,7 @@ if (values.locale !== 'en' && values.locale !== 'ar') {
 
 const config = loadConfig();
 const db = createPool(config.databaseUrl, 1);
-const mailer = createMailer(config.mailTransport, config.mailDevDir);
+const mailer = createMailer({ transport: config.mailTransport, devDir: config.mailDevDir, resendApiKey: config.resendApiKey, mailFrom: config.mailFrom, replyTo: config.mailReplyTo });
 try {
   const { userId, setupLink } = await createStaffAccount(
     { config, db, mailer },
@@ -45,7 +46,9 @@ try {
       meta: { actorUserId: null, actorRole: 'system_cli', ip: null, userAgent: 'create-user-cli', requestId: null },
     },
   );
-  await mailer.send({ to: values.email.trim().toLowerCase(), template: 'account_setup', locale: values.locale, data: { link: setupLink } });
+  const deps = { config, db, mailer };
+  await enqueueEmail(db, deps, { kind: 'account_setup', locale: values.locale, to: values.email.trim().toLowerCase(), userId, data: { link: setupLink } });
+  await processOutbox(deps);
   console.log(`Created account ${userId} with role(s): ${roles.join(', ')}. A setup link was sent.`);
 } catch (err) {
   console.error((err as Error).message);

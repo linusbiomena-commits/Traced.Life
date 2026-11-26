@@ -17,7 +17,7 @@ const auditCount = async (action: string, outcome?: string) =>
 describe('sign-up and email verification', () => {
   it('creates a customer, emails a verification link, and verifies it once', async () => {
     const c = t.client();
-    const res = await c.post('/auth/sign-up', { email: '  New.User@Example.com ', password: GOOD_PASSWORD, locale: 'ar' });
+    const res = await c.post('/auth/sign-up', { confirmAdult: true, email: '  New.User@Example.com ', password: GOOD_PASSWORD, locale: 'ar' });
     expect(res.status).toBe(202);
     expect(res.body).toEqual({ status: 'verification_sent' });
 
@@ -34,25 +34,24 @@ describe('sign-up and email verification', () => {
 
   it('gives the same answer for an existing email (no account enumeration) and warns the owner', async () => {
     const { email } = await t.customer();
-    const res = await t.client().post('/auth/sign-up', { email, password: 'a different long password' });
+    const res = await t.client().post('/auth/sign-up', { confirmAdult: true, email, password: 'a different long password' });
     expect(res.status).toBe(202);
     expect(res.body).toEqual({ status: 'verification_sent' });
-    await new Promise((r) => setImmediate(r));
-    expect(t.mailer.lastTo(email, 'account_exists')).toBeDefined();
+    expect(await t.waitForMail(email, 'account_exists')).toBeDefined();
   });
 
   it('rejects weak passwords, unknown fields and malformed input', async () => {
     const c = t.client();
-    expect((await c.post('/auth/sign-up', { email: 'weak@example.com', password: 'short' })).body.error.code).toBe('WEAK_PASSWORD');
-    expect((await c.post('/auth/sign-up', { email: 'weak@example.com', password: 'weakpassword-weak@example' })).body.error).toMatchObject({ code: 'WEAK_PASSWORD' });
-    expect((await c.post('/auth/sign-up', { email: 'x@example.com', password: GOOD_PASSWORD, role: 'admin' })).body.error.code).toBe('VALIDATION_FAILED');
-    expect((await c.post('/auth/sign-up', { email: 'not-an-email', password: GOOD_PASSWORD })).status).toBe(422);
+    expect((await c.post('/auth/sign-up', { confirmAdult: true, email: 'weak@example.com', password: 'short' })).body.error.code).toBe('WEAK_PASSWORD');
+    expect((await c.post('/auth/sign-up', { confirmAdult: true, email: 'weak@example.com', password: 'weakpassword-weak@example' })).body.error).toMatchObject({ code: 'WEAK_PASSWORD' });
+    expect((await c.post('/auth/sign-up', { confirmAdult: true, email: 'x@example.com', password: GOOD_PASSWORD, role: 'admin' })).body.error.code).toBe('VALIDATION_FAILED');
+    expect((await c.post('/auth/sign-up', { confirmAdult: true, email: 'not-an-email', password: GOOD_PASSWORD })).status).toBe(422);
     expect((await c.post('/auth/sign-up', undefined, { raw: '{bad json' })).body.error.code).toBe('INVALID_JSON');
   });
 
   it('rejects expired verification tokens', async () => {
     const c = t.client();
-    await c.post('/auth/sign-up', { email: 'expired@example.com', password: GOOD_PASSWORD });
+    await c.post('/auth/sign-up', { confirmAdult: true, email: 'expired@example.com', password: GOOD_PASSWORD });
     const token = await t.tokenFromMail('expired@example.com', 'verify_email');
     await t.db.query(`UPDATE auth_tokens SET expires_at = now() - interval '1 second' WHERE purpose = 'verify_email'`);
     expect((await c.post('/auth/verify-email', { token })).status).toBe(400);
@@ -61,7 +60,7 @@ describe('sign-up and email verification', () => {
   it('resending a verification email invalidates the previous link', async () => {
     const c = t.client();
     const email = 'resend@example.com';
-    await c.post('/auth/sign-up', { email, password: GOOD_PASSWORD });
+    await c.post('/auth/sign-up', { confirmAdult: true, email, password: GOOD_PASSWORD });
     const first = await t.tokenFromMail(email, 'verify_email');
     await c.post('/auth/sign-in', { email, password: GOOD_PASSWORD });
     expect((await c.get('/auth/me')).body.user.emailVerified).toBe(false);
@@ -221,8 +220,7 @@ describe('password reset and change', () => {
     expect((await c.get('/auth/me')).status).toBe(401);
     expect((await t.client().post('/auth/sign-in', { email, password: GOOD_PASSWORD })).status).toBe(401);
     expect((await t.client().post('/auth/sign-in', { email, password: 'a brand new long password' })).status).toBe(200);
-    await new Promise((r) => setImmediate(r));
-    expect(t.mailer.lastTo(email, 'password_changed')).toBeDefined();
+    expect(await t.waitForMail(email, 'password_changed')).toBeDefined();
   });
 
   it('a newer reset link invalidates older ones', async () => {

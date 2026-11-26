@@ -1,22 +1,24 @@
 /// <reference lib="dom" />
 import { expect, test } from '@playwright/test';
-import { dobFor, mailLink, noHorizontalScroll, PASSWORD, shot, signUpAndSignIn, uniqueEmail } from './helpers.ts';
+import { readFile } from 'node:fs/promises';
+import { decodeQrPng } from '../helpers/registration.ts';
+import { dobFor, latestMailFile, mailLink, noHorizontalScroll, PASSWORD, shot, signUpAndSignIn, uniqueEmail } from './helpers.ts';
 
 test.describe('existing TRACED site', () => {
   test('header and footer link to the customer account in English and Arabic; nothing else changes', async ({ page }) => {
     await page.goto('/traced/');
     const nav = page.locator('header nav').first();
-    await expect(nav.locator('a[data-traced-account-link][href$="/traced/account/"]')).toHaveText('Account');
+    await expect(nav.locator('a[data-traced-account-link][href$="/traced/account/"]')).toHaveText('My Account');
     await expect(nav.locator('a[data-traced-account-link][href$="/traced/account/"]')).toHaveAttribute('href', '/traced/account/');
     // Existing items keep their order; the language switch is still added at the end.
-    await expect(nav.locator(':scope > ul > li')).toHaveText(['Shop', 'Learn', 'Account', 'العربية'], { useInnerText: true });
+    await expect(nav.locator(':scope > ul > li')).toHaveText(['Shop', 'Learn', 'My Account', 'العربية'], { useInnerText: true });
     await expect(page.locator('footer a[href="/traced/account/"]')).toHaveCount(1);
     await expect(page.locator('a[href*="account.traced.life"]')).toHaveCount(0);
     await shot(page, '01-traced-home-header-en', false);
 
     await page.goto('/ar/traced/');
     const arNav = page.locator('header nav').first();
-    await expect(arNav.locator('a[data-traced-account-link][href$="/traced/account/"]')).toHaveText('الحساب');
+    await expect(arNav.locator('a[data-traced-account-link][href$="/traced/account/"]')).toHaveText('حسابي');
     await expect(arNav.locator('a[data-traced-account-link][href$="/traced/account/"]')).toHaveAttribute('href', '/ar/traced/account/');
     await shot(page, '02-traced-home-header-ar', false);
 
@@ -41,7 +43,7 @@ test('English: sign up, verify, sign in, empty dashboard, register a child, conf
   await page.goto('/traced/account/sign-up/');
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.locator('.p-error-summary')).toBeFocused();
-  await expect(page.locator('.p-error-summary li')).toHaveCount(2);
+  await expect(page.locator('.p-error-summary li')).toHaveCount(3); // email, password, 18+ confirmation
   await page.getByLabel('Email address', { exact: true }).fill(email);
   await page.getByLabel('Password', { exact: true }).fill('short');
   await page.getByRole('button', { name: 'Create account' }).click();
@@ -50,6 +52,7 @@ test('English: sign up, verify, sign in, empty dashboard, register a child, conf
   await shot(page, '03-sign-up-validation-en');
 
   await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
+  await page.getByLabel('I confirm that I am 18 years of age or older.').check();
   await page.getByRole('button', { name: 'Create account' }).click();
   await expect(page.getByRole('heading', { name: 'Check your email' })).toBeVisible();
   await shot(page, '04-sign-up-check-email-en');
@@ -72,7 +75,7 @@ test('English: sign up, verify, sign in, empty dashboard, register a child, conf
   await page.waitForURL('**/traced/account/');
   await expect(page.getByRole('heading', { name: 'No registrations yet' })).toBeVisible();
   await expect(page.getByRole('heading', { name: 'My QR codes' })).toBeVisible();
-  await expect(page.getByText('QR codes aren’t available yet.', { exact: false })).toBeVisible();
+  await expect(page.getByText('Your QR codes will appear here after you register.')).toBeVisible();
   await shot(page, '05-dashboard-empty-en');
 
   // Registration — step 1
@@ -136,26 +139,52 @@ test('English: sign up, verify, sign in, empty dashboard, register a child, conf
   await shot(page, '11-register-review-en');
   await page.getByRole('button', { name: 'Submit registration' }).click();
 
-  // Confirmation: honest about tracking ID / QR not being available yet
+  // Confirmation: tracking ID, QR code, downloads, resend, instructions
   await page.waitForURL(/\/traced\/account\/registration\/\?id=[0-9a-f-]{36}$/);
-  await expect(page.getByRole('heading', { name: 'Registration submitted' })).toBeVisible();
-  await expect(page.getByText('Your tracking ID and QR code will be issued once this feature is available', { exact: false })).toBeVisible();
-  await expect(page.locator('main')).toContainText('Not issued yet');
-  await expect(page.locator('main')).toContainText('Registration completed');
-  await expect(page.locator('main')).not.toContainText('TRC-SA-');
+  await expect(page.getByRole('heading', { name: 'Registration successful' })).toBeVisible();
+  const trackingId = (await page.locator('.p-tracking-id').textContent())!.trim();
+  expect(trackingId).toMatch(/^TRC-SA-(0[1-9]|1[0-2])\/\d{2}-\d{5}$/);
+  const qrImg = page.getByRole('img', { name: `QR code for tracking ID ${trackingId}` });
+  await expect(qrImg).toBeVisible();
+  expect(await qrImg.evaluate((img: HTMLImageElement) => img.complete && img.naturalWidth > 0)).toBe(true);
+  await expect(page.locator('main')).toContainText('Awaiting sample collection');
+  await expect(page.locator('main')).toContainText('[DEV] Riyadh sample branch');
+  await expect(page.getByRole('heading', { name: 'Collection instructions' })).toBeVisible();
+  await expect(page.locator('main')).not.toContainText('Not issued yet');
   await shot(page, '12-registration-confirmation-en');
+
+  // QR download (PNG) decodes to a QR URL with a customer token — and nothing personal.
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('link', { name: 'Download QR (PNG)' }).click()]);
+  expect(download.suggestedFilename()).toBe(`TRACED-${trackingId.replace('/', '-')}.png`);
+  const qrText = decodeQrPng(await readFile((await download.path())!))!;
+  expect(qrText).toMatch(/^http:\/\/localhost:8791\/traced\/c\/#c1_[A-Za-z0-9_-]{43}$/);
+
+  // The confirmation email was delivered (test mailer) with the tracking ID and the same QR.
+  const mailHtml = await readFile(await latestMailFile(email, 'registration_confirmation', '.html'), 'utf8');
+  expect(mailHtml).toContain(trackingId);
+  expect(mailHtml).not.toContain('Layla');
+  await page.goto(`file:///${(await latestMailFile(email, 'registration_confirmation', '.html')).replace(/\\/g, '/')}`);
+  await shot(page, '15-email-registration-confirmation-en');
+  await page.goBack();
+
+  // Resend the QR email.
+  await page.getByRole('button', { name: 'Email me the QR code again' }).click();
+  await expect(page.getByText(`We’re emailing the QR code to ${email}.`)).toBeVisible();
+  await latestMailFile(email, 'registration_qr_resend', '.html');
 
   // My registrations
   await page.getByRole('link', { name: 'Back to my registrations' }).click();
   await expect(page.locator('.p-item')).toHaveCount(1);
   await expect(page.locator('.p-item')).toContainText('Layla Al-Harbi');
   await expect(page.locator('.p-item')).toContainText('Female');
-  await expect(page.locator('.p-item')).toContainText('Tracking ID not issued yet');
+  await expect(page.locator('.p-item')).toContainText(trackingId);
   await shot(page, '13-my-registrations-en');
 
   // Dashboard now lists it
   await page.goto('/traced/account/');
   await expect(page.getByRole('heading', { name: 'Welcome, Fatimah' })).toBeVisible();
+  await expect(page.locator('.p-qr-row')).toContainText(trackingId);
+  await expect(page.locator('.p-qr-row img')).toBeVisible();
   await shot(page, '14-dashboard-with-registration-en');
 });
 
@@ -166,7 +195,8 @@ test('Arabic: right-to-left interface, Arabic messages, register myself with an 
   await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
   await page.getByRole('button', { name: 'إنشاء الحساب' }).click();
   await expect(page.locator('.p-error-summary')).toContainText('يرجى تصحيح ما يلي');
-  await shot(page, '15-sign-up-validation-ar');
+  await expect(page.locator('.p-error-summary')).toContainText('يجب أن يكون عمرك 18 عامًا أو أكثر لإنشاء حساب.');
+  await shot(page, '16a-sign-up-validation-ar');
 
   await signUpAndSignIn(page, 'ar', email);
   await expect(page.getByRole('heading', { name: 'لا توجد تسجيلات بعد' })).toBeVisible();
@@ -197,10 +227,17 @@ test('Arabic: right-to-left interface, Arabic messages, register myself with an 
   await expect(page.locator('main')).toContainText('050 123 4567');
   await page.getByRole('button', { name: 'إرسال التسجيل' }).click();
   await page.waitForURL(/\/ar\/traced\/account\/registration\/\?id=/);
-  await expect(page.getByRole('heading', { name: 'تم إرسال التسجيل' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'تم التسجيل بنجاح' })).toBeVisible();
+  await expect(page.locator('.p-tracking-id')).toHaveText(/^TRC-SA-/);
+  await expect(page.locator('img.p-qr')).toBeVisible();
   await expect(page.locator('main')).toContainText('عمر الصالح');
   await expect(page.locator('main')).toContainText('اكتمل التسجيل');
   await shot(page, '19-registration-confirmation-ar');
+  const arMail = await latestMailFile(email, 'registration_confirmation', '.html');
+  expect(await readFile(arMail, 'utf8')).toContain('dir="rtl"');
+  await page.goto(`file:///${arMail.replace(/\\/g, '/')}`);
+  await shot(page, '25-email-registration-confirmation-ar');
+  await page.goBack();
 
   // Language switch keeps the same page.
   await page.getByRole('link', { name: 'Switch to English' }).click();
@@ -343,6 +380,25 @@ test.describe('mobile (375 × 812)', () => {
 
     await signUpAndSignIn(page, 'en', uniqueEmail('mobile.flow'));
     await shot(page, '23-mobile-dashboard-en');
+    const regId = await page.evaluate(async () => {
+      const me = await (await fetch('/api/v1/auth/me')).json();
+      const form = await (await fetch('/api/v1/me/registration-form?locale=en')).json();
+      const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date());
+      const dob = `${Number(today.slice(0, 4)) - 6}-03-15`;
+      const res = await fetch('/api/v1/me/registrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': me.csrfToken, 'Idempotency-Key': crypto.randomUUID() },
+        body: JSON.stringify({ relationship: 'child', patient: { firstName: 'Sara', lastName: 'Qahtani', dateOfBirth: dob, gender: 'female' },
+          contact: { fullName: 'Mona Qahtani', phone: '0559990000' }, branchId: form.branches[0].id, consentDocumentIds: form.consents.map((c: { id: string }) => c.id) }),
+      });
+      return (await res.json()).registration.id as string;
+    });
+    for (const p of [`/traced/account/registration/?id=${regId}`, `/ar/traced/account/registration/?id=${regId}`]) {
+      await page.goto(p);
+      await page.locator('img.p-qr').waitFor();
+      await noHorizontalScroll(page);
+    }
+    await shot(page, '26-mobile-registration-qr-ar');
     for (const p of ['/traced/account/', '/traced/account/settings/', '/traced/account/registrations/', '/traced/account/register/', '/ar/traced/account/', '/ar/traced/account/register/', '/traced/account/verify-email/']) {
       await page.goto(p);
       await page.waitForLoadState('load'); await page.locator('header').first().waitFor({ state: 'attached' });

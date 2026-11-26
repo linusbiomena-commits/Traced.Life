@@ -1,14 +1,19 @@
 import { Hono } from 'hono';
 import { z } from 'zod';
-import { actorFrom, type AppEnv, type Deps } from '../../context.ts';
+import { randomUUID } from 'node:crypto';
+import { actorFrom, type AppContext, type AppEnv, type Deps } from '../../context.ts';
+import { withTx } from '../../db/pool.ts';
+import { enqueueEmail, kickOutbox } from '../mail/outbox.ts';
+import { activeCustomerToken, qrUrl, renderQrPng, renderQrSvg, revokeAndReissueCustomerQr } from '../qr/qr.service.ts';
+import { trackingIdForFilename } from '../tracking/tracking.ts';
 import { AppError, Errors } from '../../lib/errors.ts';
 import { check, parseBody } from '../../lib/validate.ts';
-import { enforceRateLimit } from '../../middleware/rate-limit.ts';
+import { enforceRateLimit, enforceRateLimits } from '../../middleware/rate-limit.ts';
 import { requirePermission, requireSession, requireVerifiedEmail } from '../../middleware/rbac.ts';
 import { audit } from '../audit/audit.service.ts';
 import { currentConsentDocuments } from '../consents/consents.service.ts';
 import { getOwnRegistration, listActiveBranches, listOwnRegistrations } from './registrations.repo.ts';
-import { createRegistration } from './registrations.service.ts';
+import { correctPatientForRegistration, createRegistration } from './registrations.service.ts';
 import { AGE_OF_MAJORITY, isValidName, MIN_DATE_OF_BIRTH, normaliseName, normaliseSaudiMobile, riyadhToday } from './rules.ts';
 
 const name = (max: number) =>
@@ -104,7 +109,8 @@ export function meRoutes(deps: Deps) {
     }
     const body = await parseBody(c, registrationBody);
     await enforceRateLimit(db, { key: `registration:user:${s.userId}`, limit: 20, windowSeconds: 3600 });
-    const result = await createRegistration(deps, { userId: s.userId, email: s.email }, key, body, actorFrom(c));
+    const result = await createRegistration(deps, { userId: s.userId, email: s.email, locale: s.locale }, key, body, actorFrom(c));
+    if (!result.replayed) void kickOutbox(deps); // deliver the confirmation email now (retries run in the background)
     const registration = await getOwnRegistration(db, s.userId, result.id);
     return c.json({ registration, replayed: result.replayed }, result.replayed ? 200 : 201);
   });
@@ -119,6 +125,86 @@ export function meRoutes(deps: Deps) {
     const registration = await getOwnRegistration(db, c.get('session')!.userId, id);
     if (!registration) throw Errors.notFound(); // someone else's id looks exactly like a missing one
     return c.json({ registration });
+  });
+
+  // ---- QR codes, emails and corrections for one of the customer's own registrations -------
+  /** Loads the caller's own registration (tracking ID, status, locale needs) or 404s. */
+  async function ownRegistration(c: AppContext) {
+    const id = c.req.param('id') ?? '';
+    if (!z.uuid().safeParse(id).success) throw Errors.notFound();
+    const { rows } = await db.query<{ id: string; tracking_id: string | null; status: string }>(
+      'SELECT id, tracking_id, status FROM registrations WHERE id = $1 AND account_user_id = $2',
+      [id, c.get('session')!.userId],
+    );
+    if (!rows[0]) throw Errors.notFound(); // someone else's registration looks exactly like a missing one
+    return rows[0];
+  }
+
+  async function qrImage(c: AppContext, format: 'png' | 'svg') {
+    const reg = await ownRegistration(c);
+    if (!reg.tracking_id || reg.status === 'cancelled' || reg.status === 'rejected') throw Errors.notFound();
+    const token = await activeCustomerToken(db, deps, reg.id);
+    if (!token) throw Errors.notFound();
+    const url = qrUrl(deps.config.appOrigin, c.get('session')!.locale, token);
+    const download = c.req.query('download') === '1';
+    const filename = `TRACED-${trackingIdForFilename(reg.tracking_id)}.${format}`;
+    c.header('Cache-Control', 'no-store, private');
+    c.header('Content-Disposition', `${download ? 'attachment' : 'inline'}; filename="${filename}"`);
+    c.header('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'");
+    if (format === 'png') {
+      c.header('Content-Type', 'image/png');
+      return c.body(new Uint8Array(await renderQrPng(url)));
+    }
+    c.header('Content-Type', 'image/svg+xml; charset=utf-8');
+    return c.body(await renderQrSvg(url));
+  }
+
+  r.get('/registrations/:id/qr.png', ...canRead, (c) => qrImage(c, 'png'));
+  r.get('/registrations/:id/qr.svg', ...canRead, (c) => qrImage(c, 'svg'));
+
+  r.post('/registrations/:id/resend-email', ...canRead, async (c) => {
+    const s = c.get('session')!;
+    const reg = await ownRegistration(c);
+    if (!reg.tracking_id || reg.status === 'cancelled' || reg.status === 'rejected') throw new AppError(409, 'QR_NOT_AVAILABLE', 'There is no active QR code for this registration.');
+    await enforceRateLimits(db, [
+      { key: `qr_resend:registration:${reg.id}`, limit: 3, windowSeconds: 3600 },
+      { key: `qr_resend:user:${s.userId}`, limit: 10, windowSeconds: 86_400 },
+    ]);
+    await enqueueEmail(db, deps, {
+      kind: 'registration_qr_resend', locale: s.locale, to: s.email, userId: s.userId, registrationId: reg.id,
+      dedupeKey: `registration_qr_resend:${reg.id}:${randomUUID()}`,
+    });
+    await audit(db, { ...actorFrom(c), action: 'registration.email_resent', outcome: 'success', targetType: 'registration', targetId: reg.id });
+    void kickOutbox(deps);
+    return c.json({ status: 'email_queued' }, 202);
+  });
+
+  r.post('/registrations/:id/qr/regenerate', ...canRead, async (c) => {
+    const s = c.get('session')!;
+    const reg = await ownRegistration(c);
+    if (reg.status !== 'registration_completed' && reg.status !== 'awaiting_sample_collection') {
+      throw new AppError(409, 'QR_LOCKED', 'The QR code can’t be replaced at this stage. Please contact support.');
+    }
+    await enforceRateLimit(db, { key: `qr_regenerate:registration:${reg.id}`, limit: 3, windowSeconds: 86_400 });
+    await withTx(db, async (tx) => {
+      await revokeAndReissueCustomerQr(tx, deps, reg.id, s.userId, 'customer_requested');
+      await enqueueEmail(tx, deps, {
+        kind: 'registration_qr_resend', locale: s.locale, to: s.email, userId: s.userId, registrationId: reg.id,
+        dedupeKey: `registration_qr_regenerated:${reg.id}:${randomUUID()}`,
+      });
+      await audit(tx, { ...actorFrom(c), action: 'qr.regenerated', outcome: 'success', targetType: 'registration', targetId: reg.id, metadata: { reason: 'customer_requested' } });
+    });
+    void kickOutbox(deps);
+    return c.json({ registration: await getOwnRegistration(db, s.userId, reg.id) });
+  });
+
+  r.patch('/registrations/:id/patient', ...canRead, async (c) => {
+    const s = c.get('session')!;
+    const reg = await ownRegistration(c);
+    const body = await parseBody(c, z.strictObject({ patient: registrationBody.shape.patient, reason: z.string().trim().max(500).optional() }));
+    await enforceRateLimit(db, { key: `patient_correct:user:${s.userId}`, limit: 20, windowSeconds: 3600 });
+    const changed = await correctPatientForRegistration(deps, s.userId, reg.id, body.patient, body.reason ?? null, actorFrom(c));
+    return c.json({ changed: changed ?? [], registration: await getOwnRegistration(db, s.userId, reg.id) });
   });
 
   return r;

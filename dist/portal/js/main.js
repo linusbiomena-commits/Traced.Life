@@ -12,6 +12,7 @@ const PAGES = {
   register: () => import('./pages/register.js'),
   registrations: () => import('./pages/registrations.js'),
   registration: () => import('./pages/registration.js'),
+  'qr-info': () => import('./pages/qr-info.js'),
 };
 
 const page = document.documentElement.dataset.page;
@@ -24,4 +25,6 @@ if (TOKEN_PAGES.has(page)) {
     if (/token=/.test(location.hash)) location.reload();
   });
 }
+// The QR landing page must never keep (or send) the scanned token: drop the #fragment at once.
+if (page === 'qr-info' && location.hash) history.replaceState(null, '', location.pathname);
 if (PAGES[page]) boot(page, PAGES[page]);

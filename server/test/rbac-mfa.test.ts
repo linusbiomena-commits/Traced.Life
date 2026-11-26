@@ -14,7 +14,7 @@ const cli = { actorUserId: null, actorRole: 'system_cli', ip: null, userAgent: n
 
 describe('staff-side accounts', () => {
   it('cannot be created through public sign-up: sign-up always yields a customer', async () => {
-    const res = await t.client().post('/auth/sign-up', { email: 'wannabe@example.com', password: GOOD_PASSWORD, roles: ['admin'] });
+    const res = await t.client().post('/auth/sign-up', { confirmAdult: true, email: 'wannabe@example.com', password: GOOD_PASSWORD, roles: ['admin'] });
     expect(res.status).toBe(422);
   });
 

@@ -17,8 +17,12 @@ const schema = z.object({
   DATA_ENCRYPTION_KEY: key32('DATA_ENCRYPTION_KEY'),
   COOKIE_SECURE: bool.default(true),
   TRUST_PROXY: bool.default(false),
-  MAIL_TRANSPORT: z.enum(['dev', 'memory']).default('dev'),
+  MAIL_TRANSPORT: z.enum(['dev', 'memory', 'resend']).default('dev'),
   MAIL_DEV_DIR: z.string().default('.dev-mail'),
+  MAIL_FROM: z.string().max(200).optional(),
+  MAIL_REPLY_TO: z.email().optional(),
+  RESEND_API_KEY: z.string().regex(/^re_[A-Za-z0-9_]+$/, 'RESEND_API_KEY looks invalid').optional(),
+  OUTBOX_INTERVAL_MS: z.coerce.number().int().min(1000).default(15000),
   SERVE_STATIC: bool.default(false),
 });
 
@@ -31,8 +35,12 @@ export type Config = {
   dataEncryptionKey: Buffer;
   cookieSecure: boolean;
   trustProxy: boolean;
-  mailTransport: 'dev' | 'memory';
+  mailTransport: 'dev' | 'memory' | 'resend';
   mailDevDir: string;
+  mailFrom?: string;
+  mailReplyTo?: string;
+  resendApiKey?: string;
+  outboxIntervalMs?: number;
   serveStatic: boolean;
 };
 
@@ -43,13 +51,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     throw new Error(`Invalid configuration:\n${problems}`);
   }
   const e = parsed.data;
+  if (e.MAIL_TRANSPORT === 'resend' && (!e.RESEND_API_KEY || !e.MAIL_FROM)) {
+    throw new Error('MAIL_TRANSPORT=resend requires RESEND_API_KEY and MAIL_FROM');
+  }
   if (e.NODE_ENV === 'production') {
     if (!e.COOKIE_SECURE) throw new Error('COOKIE_SECURE must be true in production');
     if (!e.APP_ORIGIN.startsWith('https://')) throw new Error('APP_ORIGIN must be https in production');
-    // No real email provider exists until Phase 3, so production cannot start yet by design.
-    if (e.MAIL_TRANSPORT === 'dev' || e.MAIL_TRANSPORT === 'memory') {
-      throw new Error('A production email transport is required (added in Phase 3)');
-    }
+    // Production must use a real provider; local capture transports are refused.
+    if (e.MAIL_TRANSPORT !== 'resend') throw new Error('MAIL_TRANSPORT must be resend in production');
     if (e.SERVE_STATIC) throw new Error('SERVE_STATIC is for local development only');
   }
   return {
@@ -63,6 +72,10 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     trustProxy: e.TRUST_PROXY,
     mailTransport: e.MAIL_TRANSPORT,
     mailDevDir: e.MAIL_DEV_DIR,
+    mailFrom: e.MAIL_FROM,
+    mailReplyTo: e.MAIL_REPLY_TO,
+    resendApiKey: e.RESEND_API_KEY,
+    outboxIntervalMs: e.OUTBOX_INTERVAL_MS,
     serveStatic: e.SERVE_STATIC,
   };
 }

@@ -9,6 +9,7 @@ import { migrate } from '../../src/db/migrate.ts';
 import { createPool } from '../../src/db/pool.ts';
 import { seedDevData } from '../../src/modules/dev/seed.ts';
 import { DevFileMailer } from '../../src/modules/mail/mailer.ts';
+import { startOutboxWorker } from '../../src/modules/mail/outbox.ts';
 import { createHttpApp } from '../../src/server.ts';
 
 // Throwaway full stack for browser tests: fresh UTF-8 PostgreSQL, migrations, [DEV] seed data,
@@ -48,13 +49,16 @@ const config: Config = {
   mailDevDir: MAIL_DIR,
   serveStatic: true,
 };
-const app = createHttpApp({ config, db, mailer: new DevFileMailer(MAIL_DIR) });
+const deps = { config, db, mailer: new DevFileMailer(MAIL_DIR) };
+const app = createHttpApp(deps);
+const stopOutbox = startOutboxWorker(deps, 2000);
 const server = serve({ fetch: app.fetch, port: PORT, hostname: '127.0.0.1' }, () => console.log(`e2e server ready on http://localhost:${PORT}`));
 
 let stopping = false;
 async function stop() {
   if (stopping) return;
   stopping = true;
+  stopOutbox();
   server.close();
   await db.end().catch(() => {});
   await stopEmbeddedPostgres(pg, dataDir).catch(() => {});

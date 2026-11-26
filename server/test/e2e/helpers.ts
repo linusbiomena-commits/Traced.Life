@@ -6,7 +6,7 @@ import { expect, type Page } from '@playwright/test';
 
 export const PASSWORD = 'correct horse battery staple';
 export const MAIL_DIR = path.resolve('test-results/e2e-mail');
-export const SHOTS = path.resolve('docs/phase-2/screenshots');
+export const SHOTS = path.resolve('docs/phase-3/screenshots');
 
 export const uniqueEmail = (prefix: string) => `${prefix}.${randomBytes(4).toString('hex')}@example.com`;
 
@@ -26,6 +26,18 @@ export async function mailLink(to: string, template: string): Promise<string> {
   throw new Error(`no ${template} email for ${to}`);
 }
 
+/** Path of the newest dev-mail file (.html preview or .txt) of a template sent to an address. */
+export async function latestMailFile(to: string, template: string, ext: '.html' | '.txt'): Promise<string> {
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const files = (await readdir(MAIL_DIR).catch(() => [] as string[])).filter((f) => f.includes(`-${template}-`) && f.endsWith('.txt')).sort().reverse();
+    for (const f of files) {
+      if ((await readFile(path.join(MAIL_DIR, f), 'utf8')).includes(`To: ${to}\n`)) return path.join(MAIL_DIR, f.replace(/\.txt$/, ext));
+    }
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  throw new Error(`no ${template} email for ${to}`);
+}
+
 /** YYYY-MM-DD for someone `years` years and `months` months old today (Asia/Riyadh). */
 export function dobFor(years: number, months = 0): string {
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date());
@@ -35,8 +47,8 @@ export function dobFor(years: number, months = 0): string {
 }
 
 const L = {
-  en: { email: 'Email address', password: 'Password', create: 'Create account', signIn: 'Sign in' },
-  ar: { email: 'البريد الإلكتروني', password: 'كلمة المرور', create: 'إنشاء الحساب', signIn: 'تسجيل الدخول' },
+  en: { email: 'Email address', password: 'Password', create: 'Create account', signIn: 'Sign in', adult: 'I confirm that I am 18 years of age or older.' },
+  ar: { email: 'البريد الإلكتروني', password: 'كلمة المرور', create: 'إنشاء الحساب', signIn: 'تسجيل الدخول', adult: 'أؤكد أن عمري 18 عامًا أو أكثر.' },
 };
 
 /** Creates an account through the UI, opens the emailed verification link and signs in. */
@@ -46,6 +58,7 @@ export async function signUpAndSignIn(page: Page, lang: 'en' | 'ar', email: stri
   await page.goto(`${pre}/traced/account/sign-up/`);
   await page.getByLabel(l.email).fill(email);
   await page.getByLabel(l.password, { exact: true }).fill(PASSWORD);
+  await page.getByLabel(l.adult).check();
   await page.getByRole('button', { name: l.create }).click();
   await expect(page.locator('#page-title')).toBeVisible();
   await page.goto(await mailLink(email, 'verify_email'));

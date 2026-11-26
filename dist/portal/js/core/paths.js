@@ -11,6 +11,7 @@ export const PAGES = {
   register: 'account/register/',
   registrations: 'account/registrations/',
   registration: 'account/registration/',
+  'qr-info': 'c/',
 };
 
 export const isArabicPath = (path = location.pathname) => /^\/ar(?:\/|$)/.test(path);

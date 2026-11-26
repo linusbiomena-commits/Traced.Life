@@ -76,6 +76,22 @@ export function choiceGroup({ legend, name, options, value, inline = false }) {
   return api;
 }
 
+/** A required checkbox (e.g. a confirmation) that works with validate(). */
+export function checkboxField({ label, name }) {
+  const id = nextId(name);
+  const errorId = `${id}-error`;
+  const input = h('input', { type: 'checkbox', id, name, required: true, 'aria-describedby': errorId });
+  const error = h('p', { class: 'p-error', id: errorId, hidden: true });
+  const wrap = h('div', { class: 'p-field p-mt-m' }, h('label', { class: 'p-check', for: id }, input, h('span', {}, label)), error);
+  const f = {
+    wrap, input, error, label,
+    setError(msg) { error.textContent = msg; error.hidden = false; input.setAttribute('aria-invalid', 'true'); },
+    clearError() { error.hidden = true; error.textContent = ''; input.removeAttribute('aria-invalid'); },
+  };
+  input.addEventListener('change', () => f.clearError());
+  return f;
+}
+
 function withErrors(f) {
   const base = f.hintId;
   f.setError = (msg) => {

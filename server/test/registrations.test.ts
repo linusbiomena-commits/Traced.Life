@@ -88,7 +88,7 @@ describe('rules: age, dates, phone numbers', () => {
 describe('registration form data', () => {
   it('requires a verified email', async () => {
     const c = t.client();
-    await c.post('/auth/sign-up', { email: 'unverified.reg@example.com', password: GOOD_PASSWORD });
+    await c.post('/auth/sign-up', { confirmAdult: true, email: 'unverified.reg@example.com', password: GOOD_PASSWORD });
     await c.post('/auth/sign-in', { email: 'unverified.reg@example.com', password: GOOD_PASSWORD });
     expect((await c.get('/me/registration-form')).body.error.code).toBe('EMAIL_NOT_VERIFIED');
   });
@@ -110,24 +110,24 @@ describe('registration form data', () => {
 });
 
 describe('creating registrations', () => {
-  it('registers a child: separate patient, guardian consent recorded, status history, audit, no tracking ID yet', async () => {
+  it('registers a child: separate patient, guardian consent, tracking ID + QR issued, status history, audit', async () => {
     const { c, userId, email } = await t.customer();
     const body = await validBody(c);
     const res = await submit(c, body);
     expect(res.status).toBe(201);
     const reg = res.body.registration;
     expect(reg).toMatchObject({
-      status: 'registration_completed',
-      trackingId: null,
+      status: 'awaiting_sample_collection',
+      trackingId: expect.stringMatching(/^TRC-SA-(0[1-9]|1[0-2])\/\d{2}-\d{5}$/),
       product: 'traced',
       sampleType: 'hair',
       collectionCountry: 'SA',
       patient: { firstName: 'Layla', lastName: 'Al-Harbi', relationship: 'child', gender: 'female', age: { years: 7, months: 1 } },
       contact: { fullName: 'Fatimah Al-Harbi', email, phone: '+966551234567' },
-      qrCode: { available: false },
+      qrCode: { available: true },
     });
     expect(reg.consents.map((x: { type: string }) => x.type).sort()).toEqual(['accuracy_declaration', 'guardian_authorization', 'privacy_policy', 'sample_collection_consent']);
-    expect(reg.statusHistory).toEqual([{ status: 'registration_completed', at: expect.any(String) }]);
+    expect(reg.statusHistory.map((h: { status: string }) => h.status)).toEqual(['registration_completed', 'awaiting_sample_collection']);
 
     const db = await t.db.query(`SELECT r.account_user_id, p.account_user_id AS patient_owner, p.relationship,
         (SELECT count(*)::int FROM consent_records WHERE registration_id = r.id) AS consents
@@ -216,11 +216,11 @@ describe('creating registrations', () => {
     const id = (await submit(c, await validBody(c))).body.registration.id;
     await expect(t.db.query(`UPDATE registrations SET tracking_id = 'TMP-123', tracking_period = '2611', tracking_seq = 1 WHERE id = $1`, [id])).rejects.toThrow(/check constraint/);
     await expect(t.db.query(`UPDATE registrations SET tracking_id = 'TRC-SA-13/26-00001', tracking_period = '2611', tracking_seq = 1 WHERE id = $1`, [id])).rejects.toThrow(/check constraint/);
-    await expect(t.db.query(`UPDATE registrations SET tracking_id = 'TRC-SA-11/26-00001' WHERE id = $1`, [id])).rejects.toThrow(/check constraint/);
+    await expect(t.db.query(`UPDATE registrations SET tracking_id = 'TRC-SA-01/25-00001' WHERE id = $1`, [id])).rejects.toThrow(/check constraint/); // must match period/seq
     const client = await t.db.connect();
     try {
       await client.query('BEGIN');
-      await client.query(`UPDATE registrations SET tracking_id = 'TRC-SA-11/26-00001', tracking_period = '2611', tracking_seq = 1 WHERE id = $1`, [id]);
+      await client.query(`UPDATE registrations SET tracking_id = 'TRC-SA-01/25-00001', tracking_period = '2501', tracking_seq = 1 WHERE id = $1`, [id]);
     } finally {
       await client.query('ROLLBACK');
       client.release();
@@ -296,7 +296,7 @@ describe('ownership and privacy', () => {
     const { c } = await t.customer();
     await submit(c, await validBody(c));
     const item = (await c.get('/me/registrations')).body.items[0];
-    expect(Object.keys(item).sort()).toEqual(['branch', 'createdAt', 'id', 'patient', 'status', 'trackingId']);
+    expect(Object.keys(item).sort()).toEqual(['branch', 'createdAt', 'id', 'patient', 'qrCode', 'status', 'trackingId']);
     expect(Object.keys(item.patient).sort()).toEqual(['age', 'firstName', 'gender', 'lastName', 'relationship']);
   });
 

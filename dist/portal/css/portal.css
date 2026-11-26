@@ -256,3 +256,21 @@ fieldset[aria-invalid="true"] .p-choice { border-color: var(--color-error); }
 /* Headings/main receive programmatic focus for screen readers; no visible ring for that. */
 h1[tabindex="-1"]:focus, main[tabindex="-1"]:focus { box-shadow: none; outline: none; }
 .p-error-summary { margin-bottom: 1.25rem; }
+
+/* ---- QR codes (Phase 3) ------------------------------------------------------------------ */
+.p-qr-layout { display: grid; grid-template-columns: auto 1fr; gap: 1.5rem; align-items: start; }
+.p-qr-frame { background: var(--color-white); border: 1px solid var(--color-line); border-radius: var(--radius-m); padding: .75rem; }
+.p-qr { width: 240px; height: 240px; }
+.p-tracking-id { font-family: "Courier New", Courier, monospace; font-size: 1.375rem; font-weight: 600; letter-spacing: .03em; color: var(--color-dark-secondary); unicode-bidi: isolate; }
+html[dir="rtl"] .p-tracking-id { text-align: right; }
+.p-steps-list { margin: 0; padding-inline-start: 1.25rem; display: grid; gap: .5rem; }
+.p-qr-row { display: flex; gap: 1rem; align-items: center; }
+.p-qr-thumb { flex: none; border: 1px solid var(--color-line); border-radius: var(--radius-s); padding: .25rem; background: var(--color-white); }
+.p-qr-thumb img { width: 72px; height: 72px; }
+@media (max-width: 640px) {
+  .p-qr-layout { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .p-qr-layout .p-actions { justify-content: center; }
+  html[dir="rtl"] .p-tracking-id { text-align: center; }
+  .p-qr { width: min(240px, 70vw); height: auto; }
+}
+.p-card .p-review-section { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--color-line); }

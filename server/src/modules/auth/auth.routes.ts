@@ -50,7 +50,8 @@ export function authRoutes(deps: Deps) {
 
   // ---- Sign-up (customers only; staff and admins are created by invitation) -----------------
   r.post('/sign-up', async (c) => {
-    const body = await parseBody(c, z.strictObject({ email: emailField, password: passwordField, locale: localeField.default('en') }));
+    // Account holders must be adults (approved decision): the box must be ticked; recorded with a timestamp.
+    const body = await parseBody(c, z.strictObject({ email: emailField, password: passwordField, locale: localeField.default('en'), confirmAdult: z.literal(true) }));
     await enforceRateLimits(db, [
       { key: `signup:ip:${ipKey(c)}`, limit: 10, windowSeconds: 3600 },
       { key: `signup:email:${emailKey(body.email)}`, limit: 3, windowSeconds: 3600 },
@@ -66,7 +67,7 @@ export function authRoutes(deps: Deps) {
         const exists = await tx.query('SELECT 1 FROM users WHERE email = $1', [body.email]);
         if (exists.rowCount) return null;
         const { rows } = await tx.query<{ id: string }>(
-          `INSERT INTO users (email, password_hash, locale, password_changed_at) VALUES ($1, $2, $3, now()) RETURNING id`,
+          `INSERT INTO users (email, password_hash, locale, password_changed_at, adult_confirmed_at) VALUES ($1, $2, $3, now(), now()) RETURNING id`,
           [body.email, passwordHash, body.locale],
         );
         const userId = rows[0]!.id;

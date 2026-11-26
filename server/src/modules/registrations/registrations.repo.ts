@@ -1,5 +1,6 @@
 import type { Queryable } from '../../db/pool.ts';
 import { ageParts, riyadhToday } from './rules.ts';
+import { PRE_COLLECTION_STATUSES } from './registrations.service.ts';
 
 // Customer-facing reads. Every query is scoped by account_user_id: a customer can only ever load
 // their own rows, and someone else's registration id behaves exactly like a non-existent one.
@@ -53,6 +54,9 @@ function summary(r: Row) {
     trackingId: r.tracking_id,
     patient: { firstName: r.first_name, lastName: r.last_name, relationship: r.relationship, gender: r.gender, age: age(r.date_of_birth) },
     branch: { id: r.branch_id, nameEn: r.name_en, nameAr: r.name_ar, cityEn: r.city_en, cityAr: r.city_ar },
+    qrCode: r.tracking_id && r.status !== 'cancelled' && r.status !== 'rejected'
+      ? { available: true, svgUrl: `/api/v1/me/registrations/${r.id}/qr.svg`, pngUrl: `/api/v1/me/registrations/${r.id}/qr.png` }
+      : { available: false },
   };
 }
 
@@ -75,6 +79,17 @@ export async function getOwnRegistration(db: Queryable, userId: string, id: stri
     'SELECT to_status, created_at FROM registration_status_history WHERE registration_id = $1 ORDER BY id',
     [id],
   );
+  const qr = await db.query<{ created_at: Date }>(
+    `SELECT created_at FROM customer_qr_tokens WHERE registration_id = $1 AND status = 'active'`, [id]);
+  const email = await db.query<{ status: string; sent_at: Date | null; created_at: Date }>(
+    `SELECT status, sent_at, created_at FROM email_outbox
+      WHERE registration_id = $1 AND kind IN ('registration_confirmation', 'registration_qr_resend')
+      ORDER BY created_at DESC LIMIT 1`, [id]);
+  const locked = await db.query(
+    `SELECT 1 FROM registrations WHERE patient_id = (SELECT patient_id FROM registrations WHERE id = $1)
+        AND status <> ALL($2::text[]) LIMIT 1`, [id, PRE_COLLECTION_STATUSES]);
+  const active = r.status !== 'cancelled' && r.status !== 'rejected';
+  const preCollection = r.status === 'registration_completed' || r.status === 'awaiting_sample_collection';
   const base = summary(r);
   return {
     ...base,
@@ -86,8 +101,13 @@ export async function getOwnRegistration(db: Queryable, userId: string, id: stri
     branch: { ...base.branch, code: r.branch_code, addressEn: r.address_en, addressAr: r.address_ar },
     consents: consents.rows.map((c) => ({ type: c.type, version: c.version, title: c.title, locale: c.locale, provisional: c.status !== 'approved', acceptedAt: c.accepted_at.toISOString() })),
     statusHistory: history.rows.map((h) => ({ status: h.to_status, at: h.created_at.toISOString() })),
-    // Issued in Phase 3. Reported honestly as unavailable until then.
-    qrCode: { available: false },
+    qrCode: qr.rows[0] && active
+      ? { available: true, issuedAt: qr.rows[0].created_at.toISOString(), pngUrl: `/api/v1/me/registrations/${id}/qr.png`, svgUrl: `/api/v1/me/registrations/${id}/qr.svg` }
+      : { available: false },
+    email: email.rows[0] ? { status: email.rows[0].status, sentAt: email.rows[0].sent_at?.toISOString() ?? null } : null,
+    canCorrectPatient: !locked.rowCount,
+    canRegenerateQr: preCollection && Boolean(qr.rows[0]),
+    canResendEmail: active && Boolean(qr.rows[0]),
   };
 }
 

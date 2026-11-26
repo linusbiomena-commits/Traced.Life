@@ -1,5 +1,5 @@
 // Adds the customer-account entry to the existing TRACED pages, touching nothing else:
-//  1. Header navigation: an "Account" / "الحساب" item after "Learn", using the "Shop" link's
+//  1. Header navigation: a "My Account" / "حسابي" item after "Learn", using the "Shop" link's
 //     CSS classes so it inherits the site's styling. On phones it shows a person icon instead
 //     of text (traced-account-nav.css) so the header bar keeps its original width.
 //     The link sits one level deeper than the other items, so the site's language-switch.js
@@ -31,7 +31,7 @@ async function* htmlFiles(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (entry.name === 'account') continue; // the portal's own pages
+      if (entry.name === 'account' || entry.name === 'c') continue; // the portal's own pages
       yield* htmlFiles(full);
     } else if (entry.name === 'index.html') yield full;
   }
@@ -39,17 +39,19 @@ async function* htmlFiles(dir) {
 
 export function patch(html, arabic) {
   const pre = arabic ? '/ar' : '';
+  const label = arabic ? 'حسابي' : 'My Account'; // approved labels; phones show the person icon
   let out = html.split(OLD_ACCOUNT_URL).join(`${pre}/traced/account/`);
   if (!out.includes(MARKER)) {
     const navStart = out.indexOf('<nav aria-label=', out.indexOf('<header'));
     const navEnd = out.indexOf('</nav>', navStart);
     const cls = FIRST_NAV_LINK_CLASS.exec(out.slice(navStart, navEnd));
     if (navStart < 0 || navEnd < 0 || !cls) throw new Error('header navigation not found');
-    const label = arabic ? 'الحساب' : 'Account';
     const item = `<li class="shrink h-full"><div class="traced-account-nav__wrap"><a ${MARKER} href="${pre}/traced/account/" class="${cls[1]}">${PERSON_ICON}<span class="body2 traced-account-nav__label">${label}</span></a></div></li>\n`;
     const ulEnd = out.lastIndexOf('</ul>', navEnd);
     out = `${out.slice(0, ulEnd)}${item} ${out.slice(ulEnd)}`;
   }
+  // Keep the label current on pages patched by an earlier version of this script.
+  out = out.replace(/(<span class="body2 traced-account-nav__label">)[^<]*(<\/span>)/, `$1${label}$2`);
   if (!out.includes(CSS_LINK)) {
     const m = LANGUAGE_CSS_LINK.exec(out);
     if (!m) throw new Error('language-switch.css link not found');

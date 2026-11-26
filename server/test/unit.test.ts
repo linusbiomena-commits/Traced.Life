@@ -111,6 +111,6 @@ describe('config', () => {
   it('refuses unsafe production settings', () => {
     expect(() => loadConfig({ ...base, NODE_ENV: 'production', COOKIE_SECURE: 'false' })).toThrow(/COOKIE_SECURE/);
     expect(() => loadConfig({ ...base, NODE_ENV: 'production', APP_ORIGIN: 'http://insecure.example' })).toThrow(/https/);
-    expect(() => loadConfig({ ...base, NODE_ENV: 'production' })).toThrow(/email transport/);
+    expect(() => loadConfig({ ...base, NODE_ENV: 'production' })).toThrow(/MAIL_TRANSPORT must be resend/);
   });
 });

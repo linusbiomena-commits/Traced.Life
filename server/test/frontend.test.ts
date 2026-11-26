@@ -45,8 +45,8 @@ describe('portal pages', () => {
   });
 
   it('portal pages: strict CSP, noindex, no third-party or inline scripts, correct language', () => {
-    const pages = [...files(path.join(ROOT, 'dist/traced/account'), '.html'), ...files(path.join(ROOT, 'dist/ar/traced/account'), '.html')];
-    expect(pages).toHaveLength(20);
+    const pages = ['dist/traced/account', 'dist/ar/traced/account', 'dist/traced/c', 'dist/ar/traced/c'].flatMap((d) => files(path.join(ROOT, d), '.html'));
+    expect(pages).toHaveLength(22);
     for (const p of pages) {
       const html = readFileSync(p, 'utf8');
       const arabic = p.includes(`${path.sep}ar${path.sep}`);

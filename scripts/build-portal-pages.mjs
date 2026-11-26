@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
-const VERSION = '20261126-p2b'; // bump to bust browser caches of portal CSS/JS
+const VERSION = '20261126-p3'; // bump to bust browser caches of portal CSS/JS
 
 export const PAGES = [
   { id: 'dashboard', dir: 'account', title: { en: 'My account', ar: 'حسابي' } },
@@ -23,6 +23,7 @@ export const PAGES = [
   { id: 'register', dir: 'account/register', title: { en: 'New TRACED registration', ar: 'تسجيل جديد في TRACED' } },
   { id: 'registrations', dir: 'account/registrations', title: { en: 'My registrations', ar: 'تسجيلاتي' } },
   { id: 'registration', dir: 'account/registration', title: { en: 'Registration details', ar: 'تفاصيل التسجيل' } },
+  { id: 'qr-info', dir: 'c', title: { en: 'TRACED collection QR code', ar: 'رمز QR لجمع عينة TRACED' } },
 ];
 
 const TEXT = {

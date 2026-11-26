@@ -39,9 +39,19 @@ export default async function render({ app, session }) {
           statusBadge(r.status))))
       : h('p', { class: 'p-muted p-mt-m' }, t('dash.trackingEmpty')));
 
+  const withQr = items.filter((r) => r.qrCode?.available);
   const qr = h('section', { class: 'p-card', 'aria-labelledby': 'qr-title' },
-    h('div', { class: 'p-row p-row--between' }, h('h2', { class: 'p-h2', id: 'qr-title' }, t('dash.qrTitle')), h('span', { class: 'p-badge p-badge--muted' }, t('common.notAvailableYet'))),
-    h('p', { class: 'p-muted p-mt-s' }, t('dash.qrBody')));
+    h('h2', { class: 'p-h2', id: 'qr-title' }, t('dash.qrTitle')),
+    h('p', { class: 'p-muted p-mt-s' }, withQr.length ? t('dash.qrBodyActive') : t('dash.qrEmpty')),
+    withQr.length
+      ? h('ul', { class: 'p-list p-mt-m' }, withQr.slice(0, 4).map((r) => h('li', { class: 'p-qr-row' },
+          h('a', { href: pageUrl('registration', { id: r.id }), class: 'p-qr-thumb' },
+            h('img', { src: r.qrCode.svgUrl, width: '72', height: '72', alt: t('detail.qrAlt', { id: r.trackingId }) })),
+          h('div', {},
+            h('p', { class: 'p-item__title' }, patientName(r.patient)),
+            h('p', { class: 'p-small p-ltr' }, r.trackingId),
+            h('p', { class: 'p-small p-mt-s' }, h('a', { href: `${r.qrCode.pngUrl}?download=1`, download: '' }, t('dash.downloadQr')))))))
+      : null);
 
   const profileCard = h('section', { class: 'p-card', 'aria-labelledby': 'profile-title' },
     h('h2', { class: 'p-h2', id: 'profile-title' }, t('dash.profile')),

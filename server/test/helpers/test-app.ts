@@ -9,6 +9,8 @@ import { createStaffAccount } from '../../src/modules/accounts/accounts.service.
 import { matchTotp } from '../../src/modules/auth/mfa.ts';
 import { seedDevData } from '../../src/modules/dev/seed.ts';
 import { MemoryMailer } from '../../src/modules/mail/mailer.ts';
+import { kickOutbox, processOutbox } from '../../src/modules/mail/outbox.ts';
+import { flushBackgroundMail } from '../../src/modules/mail/send.ts';
 import type { RoleKey } from '../../src/modules/rbac/catalogue.ts';
 import { TOTP, Secret } from 'otpauth';
 
@@ -107,11 +109,25 @@ export async function setupTestApp() {
   let ipCounter = 0;
   const client = (ip?: string) => new TestClient(app, ip ?? `198.51.100.${(ipCounter++ % 250) + 1}`);
 
+  /** Finishes every background enqueue and delivers everything due (deterministic for tests). */
+  const settleMail = async () => {
+    await flushBackgroundMail();
+    await kickOutbox(deps);
+    await processOutbox(deps);
+  };
+
+  /** Newest delivered email of a kind to an address, after all pending email has been processed. */
+  const waitForMail = async (to: string, template: string) => {
+    await settleMail();
+    const mail = mailer.lastTo(to, template as never);
+    if (!mail) throw new Error(`no ${template} email delivered to ${to}`);
+    return mail;
+  };
+
   /** Token from the most recent email of a given kind to an address. */
   const tokenFromMail = async (to: string, template: string): Promise<string> => {
-    await new Promise((r) => setImmediate(r)); // background sends
-    const mail = mailer.lastTo(to, template as never);
-    const token = mail?.data.link?.match(/#token=([A-Za-z0-9_-]+)/)?.[1];
+    const mail = await waitForMail(to, template);
+    const token = mail.data.link?.match(/#token=([A-Za-z0-9_-]+)/)?.[1];
     if (!token) throw new Error(`no ${template} token mailed to ${to}`);
     return token;
   };
@@ -119,7 +135,7 @@ export async function setupTestApp() {
   /** Signs up, verifies email and signs in a customer. */
   const customer = async (email = `cust_${randomBytes(4).toString('hex')}@example.com`) => {
     const c = client();
-    const up = await c.post('/auth/sign-up', { email, password: GOOD_PASSWORD });
+    const up = await c.post('/auth/sign-up', { confirmAdult: true, email, password: GOOD_PASSWORD });
     if (up.status !== 202) throw new Error(`sign-up failed: ${JSON.stringify(up.body)}`);
     await c.post('/auth/verify-email', { token: await tokenFromMail(email, 'verify_email') });
     const signIn = await c.post('/auth/sign-in', { email, password: GOOD_PASSWORD });
@@ -160,7 +176,7 @@ export async function setupTestApp() {
     await a.end();
   };
 
-  return { app, db, mailer, config, deps, client, tokenFromMail, customer, staff, mfaStaff, close };
+  return { app, db, mailer, config, deps, client, tokenFromMail, waitForMail, settleMail, customer, staff, mfaStaff, close };
 }
 
 /** Current TOTP code, optionally offset by whole 30-second steps. */
