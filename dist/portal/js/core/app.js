@@ -40,6 +40,17 @@ const ACCESS = {
   'admin-emails': 'admin',
   'admin-audit': 'admin',
   'admin-settings': 'admin',
+  // Phase 6: physical samples (staff), laboratory portal, admin custody pages.
+  'sample-info': 'any',
+  'staff-samples': 'staff',
+  'staff-label': 'staff',
+  'lab-sign-in': 'lab-guest',
+  'lab-dashboard': 'lab',
+  'lab-scan': 'lab',
+  'lab-history': 'lab',
+  'admin-samples': 'admin',
+  'admin-sample': 'admin',
+  'admin-sample-label': 'admin',
 };
 
 // Admin navigation: each item appears only for a permission the account holds. The server checks
@@ -47,6 +58,7 @@ const ACCESS = {
 export const ADMIN_NAV = [
   ['admin-dashboard', 'admin.nav.dashboard', ['stats.read']],
   ['admin-registrations', 'admin.nav.registrations', ['registration.read_full']],
+  ['admin-samples', 'admin.nav.samples', ['registration.read_full']],
   ['admin-staff', 'admin.nav.staff', ['staff.manage', 'admin.manage']],
   ['admin-branches', 'admin.nav.branches', ['branch.manage']],
   ['admin-instructions', 'admin.nav.instructions', ['instructions.draft']],
@@ -60,6 +72,8 @@ const ADMIN_PAGE_PERMS = {
   'admin-registration': ['registration.read_full'],
   'admin-customer': ['registration.read_full'],
   'admin-staff-member': ['staff.manage', 'admin.manage'],
+  'admin-sample': ['registration.read_full'],
+  'admin-sample-label': ['registration.read_full'],
 };
 const ADMIN_PERMS = ['stats.read', 'registration.read_full', 'staff.manage', 'admin.manage', 'branch.manage', 'instructions.draft', 'email.manage', 'audit.read'];
 const ADMIN_PAGES = new Set(Object.keys(ACCESS).filter((p) => p.startsWith('admin-') && p !== 'admin-accept-invite'));
@@ -75,11 +89,14 @@ export function adminHome(session) {
   return pageUrl(first ? first[0] : 'admin-settings');
 }
 
-const STAFF_PAGES = new Set(['staff-sign-in', 'staff-dashboard', 'staff-scan', 'staff-history', 'staff-settings', 'staff-accept-invite']);
+const STAFF_PAGES = new Set(['staff-sign-in', 'staff-dashboard', 'staff-scan', 'staff-samples', 'staff-label', 'staff-history', 'staff-settings', 'staff-accept-invite']);
+const LAB_PAGES = new Set(['lab-sign-in', 'lab-dashboard', 'lab-scan', 'lab-history']);
 
 /** UI routing only; every staff API call is authorised again on the server. */
 export const isStaff = (session) => Boolean(session?.permissions?.includes('collection.scan'));
 const isCustomer = (session) => Boolean(session?.roles?.includes('customer'));
+/** Laboratory operators (admins also hold the lab permission but use the admin portal). */
+export const isLab = (session) => Boolean(session?.permissions?.includes('custody.record_lab'));
 
 /**
  * The one place that decides where a signed-in account belongs (UI routing only; the server
@@ -89,10 +106,11 @@ const isCustomer = (session) => Boolean(session?.roles?.includes('customer'));
  */
 export function homeFor(session, next) {
   const safe = safeNext(next);
-  const area = safe ? /^\/(?:ar\/)?traced\/(account|staff|admin)\//.exec(safe)?.[1] : null;
+  const area = safe ? /^\/(?:ar\/)?traced\/(account|staff|admin|lab)\//.exec(safe)?.[1] : null;
   const keep = (a) => (area === a ? safe : null);
   if (isAdmin(session)) return needsMfa(session) ? pageUrl('admin-mfa', keep('admin') ? { next: safe } : undefined) : keep('admin') || adminHome(session);
   if (isStaff(session)) return keep('staff') || pageUrl('staff-dashboard');
+  if (isLab(session)) return needsMfa(session) ? pageUrl('admin-mfa', keep('lab') ? { next: safe } : undefined) : keep('lab') || pageUrl('lab-dashboard');
   if (isCustomer(session)) return session.emailVerified ? keep('account') || pageUrl('dashboard') : pageUrl('verify-email');
   return null;
 }
@@ -125,12 +143,13 @@ export async function signOut() {
   const current = document.documentElement.dataset.page;
   const staffPage = STAFF_PAGES.has(current);
   const adminPage = ADMIN_PAGES.has(current);
+  const labPage = LAB_PAGES.has(current);
   try {
     await api('POST', '/auth/sign-out', {});
   } catch {
     /* already signed out */
   }
-  go(pageUrl(adminPage ? 'admin-sign-in' : staffPage ? 'staff-sign-in' : 'sign-in', { signedOut: '1' }));
+  go(pageUrl(adminPage ? 'admin-sign-in' : labPage ? 'lab-sign-in' : staffPage ? 'staff-sign-in' : 'sign-in', { signedOut: '1' }));
 }
 
 function renderHeader(page, session) {
@@ -144,10 +163,17 @@ function renderHeader(page, session) {
       if (can(session, ...perms)) items.push(h('a', { href: pageUrl(id), 'aria-current': page === id || page.startsWith(`${id}-`) || (id === 'admin-registrations' && ['admin-registration', 'admin-customer'].includes(page)) ? 'page' : undefined }, t(key)));
     }
     items.push(h('button', { type: 'button', class: 'p-link', onclick: signOut }, t('nav.signOut')));
+  } else if (LAB_PAGES.has(page) && isLab(session) && !needsMfa(session)) {
+    nav.setAttribute('aria-label', t('lab.nav.main'));
+    items.length = 0;
+    for (const [id, key] of [['lab-dashboard', 'lab.nav.dashboard'], ['lab-scan', 'lab.nav.scan'], ['lab-history', 'lab.nav.history']]) {
+      items.push(h('a', { href: pageUrl(id), 'aria-current': page === id ? 'page' : undefined }, t(key)));
+    }
+    items.push(h('button', { type: 'button', class: 'p-link', onclick: signOut }, t('nav.signOut')));
   } else if (STAFF_PAGES.has(page) && isStaff(session)) {
     nav.setAttribute('aria-label', t('staff.nav.main'));
     items.length = 0;
-    for (const [id, key] of [['staff-dashboard', 'staff.nav.dashboard'], ['staff-scan', 'staff.nav.scan'], ['staff-history', 'staff.nav.history'], ['staff-settings', 'staff.nav.settings']]) {
+    for (const [id, key] of [['staff-dashboard', 'staff.nav.dashboard'], ['staff-scan', 'staff.nav.scan'], ['staff-samples', 'staff.nav.samples'], ['staff-history', 'staff.nav.history'], ['staff-settings', 'staff.nav.settings']]) {
       items.push(h('a', { href: pageUrl(id), 'aria-current': page === id ? 'page' : undefined }, t(key)));
     }
     items.push(h('button', { type: 'button', class: 'p-link', onclick: signOut }, t('nav.signOut')));
@@ -191,9 +217,26 @@ export async function boot(page, loadPage) {
   const here = location.pathname + location.search;
   const nextParam = safeNext(new URLSearchParams(location.search).get('next'));
   // Sign-in pages: a signed-in account goes to its own portal.
-  if ((rule === 'guest' || rule === 'staff-guest' || rule === 'admin-guest') && session) {
+  if ((rule === 'guest' || rule === 'staff-guest' || rule === 'admin-guest' || rule === 'lab-guest') && session) {
     const home = homeFor(session, nextParam);
     if (home) return go(home);
+  }
+  if (rule === 'admin-mfa' && session && !isAdmin(session) && isLab(session)) {
+    // Laboratory operators share the two-step verification page.
+    if (!needsMfa(session)) return go(homeFor(session, nextParam));
+    renderHeader(page, session);
+    const mod = await loadPage();
+    return mod.default({ app, session, page });
+  }
+  if (rule === 'lab') {
+    if (!session) return go(pageUrl('lab-sign-in', { next: here }));
+    if (!isLab(session)) {
+      renderHeader(page, session);
+      mount(app, h('div', { class: 'p-narrow' }, h('h1', { class: 'p-h1' }, t('lab.forbidden.title')),
+        h('div', { class: 'p-card' }, alertBox('info', null, t('lab.forbidden.body')))));
+      return;
+    }
+    if (needsMfa(session)) return go(pageUrl('admin-mfa', { next: here }));
   }
   if (rule === 'admin' || rule === 'admin-mfa') {
     if (!session) return go(pageUrl('admin-sign-in', rule === 'admin' ? { next: here } : undefined));
@@ -224,7 +267,7 @@ export async function boot(page, loadPage) {
       h('div', { class: 'p-card' }, alertBox('info', null, t('staff.forbidden.body')))));
     return;
   }
-  if ((rule === 'guest' || rule === 'staff-guest' || rule === 'admin-guest') && session) {
+  if ((rule === 'guest' || rule === 'staff-guest' || rule === 'admin-guest' || rule === 'lab-guest') && session) {
     // Signed in, but the role has no portal (homeFor returned null): sign-in page with a notice.
     session.noPortal = true;
   }

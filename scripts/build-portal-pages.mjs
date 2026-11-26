@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
-const VERSION = '20261126-p5'; // bump to bust browser caches of portal CSS/JS
+const VERSION = '20261126-p6'; // bump to bust browser caches of portal CSS/JS
 
 export const PAGES = [
   { id: 'dashboard', dir: 'account', title: { en: 'My account', ar: 'حسابي' } },
@@ -44,6 +44,16 @@ export const PAGES = [
   { id: 'admin-emails', dir: 'admin/emails', title: { en: 'Email delivery', ar: 'تسليم البريد الإلكتروني' } },
   { id: 'admin-audit', dir: 'admin/audit', title: { en: 'Audit log', ar: 'سجل التدقيق' } },
   { id: 'admin-settings', dir: 'admin/settings', title: { en: 'Admin settings', ar: 'إعدادات المسؤول' } },
+  { id: 'sample-info', dir: 's', title: { en: 'TRACED sample label', ar: 'ملصق عينة TRACED' } },
+  { id: 'staff-samples', dir: 'staff/samples', title: { en: 'Samples', ar: 'العينات' } },
+  { id: 'staff-label', dir: 'staff/label', title: { en: 'Sample label', ar: 'ملصق العينة' } },
+  { id: 'lab-dashboard', dir: 'lab', title: { en: 'Laboratory portal', ar: 'بوابة المختبر' } },
+  { id: 'lab-sign-in', dir: 'lab/sign-in', title: { en: 'Laboratory sign in', ar: 'تسجيل دخول المختبر' } },
+  { id: 'lab-scan', dir: 'lab/scan', title: { en: 'Scan sample', ar: 'مسح العينة' } },
+  { id: 'lab-history', dir: 'lab/history', title: { en: 'Laboratory history', ar: 'سجل المختبر' } },
+  { id: 'admin-samples', dir: 'admin/samples', title: { en: 'Samples', ar: 'العينات' } },
+  { id: 'admin-sample', dir: 'admin/sample', title: { en: 'Sample record', ar: 'سجل العينة' } },
+  { id: 'admin-sample-label', dir: 'admin/sample-label', title: { en: 'Sample label', ar: 'ملصق العينة' } },
 ];
 
 const TEXT = {

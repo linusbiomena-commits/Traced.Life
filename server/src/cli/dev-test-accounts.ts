@@ -27,6 +27,7 @@ export const TEST_ACCOUNTS: TestAccount[] = [
   { key: 'admin', email: 'admin.local@example.com', roles: ['admin'], name: 'Local Admin' },
   { key: 'super_admin', email: 'superadmin.local@example.com', roles: ['super_admin'], name: 'Local Super Admin' },
   { key: 'auditor', email: 'auditor.local@example.com', roles: ['auditor'], name: 'Local Auditor' },
+  { key: 'lab_operator', email: 'lab.local@example.com', roles: ['lab_operator'], name: 'Local Laboratory Operator' },
 ];
 
 /** Throws unless this is clearly a local development setup. */
@@ -121,7 +122,7 @@ async function main() {
     }
     await processOutbox({ config, db, mailer }, 50); // also saved to the dev mail folder
     console.log(`\nLinks expire (set-up 72 h, password reset 30 min) and work once. Re-run this command for fresh ones.`);
-    console.log('Admin, super admin and auditor accounts must set up two-step verification at first sign-in.');
+    console.log('Admin, super admin, auditor and laboratory accounts must set up two-step verification at first sign-in.');
   } finally {
     await db.end();
   }

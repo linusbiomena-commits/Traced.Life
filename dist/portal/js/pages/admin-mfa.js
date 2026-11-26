@@ -2,7 +2,7 @@ import { api } from '../core/api.js';
 import { h, mount } from '../core/dom.js';
 import { t } from '../core/i18n.js';
 import { go, safeNext } from '../core/paths.js';
-import { adminHome, signOut } from '../core/app.js';
+import { homeFor, signOut } from '../core/app.js';
 import { alertBox, errorMessage, field, focusTitle, pageHeading, setBusy } from '../core/ui.js';
 
 // Two-step verification for privileged roles (required by the server for admin, super admin,
@@ -12,7 +12,7 @@ export default function render({ app, session }) {
   const next = safeNext(new URLSearchParams(location.search).get('next'));
   const done = async () => {
     const me = await api('GET', '/auth/me');
-    go(next || adminHome(me.user));
+    go(homeFor(me.user, next) || next);
   };
   const shell = (...children) => mount(app, h('div', { class: 'p-narrow' },
     h('p', { class: 'p-badge p-badge--muted' }, t('admin.portal')), h('div', { class: 'p-mt-s' }, children),

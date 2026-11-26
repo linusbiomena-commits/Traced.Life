@@ -13,15 +13,16 @@ Customer registration, secure QR and chain-of-custody platform for TRACED (Linus
 | 2 | Customer portal (EN/AR, RTL, responsive), five-step registration, consents, ownership, duplicate-submit protection, account navigation patch | `phase-2-report.md` |
 | 3 | Tracking ID engine, 256-bit QR (PNG/SVG), replace/revoke, public QR landing, bilingual email + outbox, patient correction history | `phase-3-report.md` |
 | 4 | Staff portal, camera/USB/manual scanner, age/gender-only scan result, identity framework (dev simulation only), versioned instructions, transactional collection, admin QR revocation API, Cloud Scheduler outbox endpoint | `phase-4-report.md` |
+| 6 | Physical sample IDs `TRC-SA-MM/YY-XXXXX-SXX`, sample QR, labels, append-only custody, staff packaging/dispatch, laboratory portal, rejection + recollection, customer timeline, admin custody; migration 0009 | `phase-6-report.md` |
 | 5 | Trusted-proxy fix; admin portal (MFA, dashboard, audited search/records, transfers, cancellation, corrections, customer lock, QR, staff, branches, instruction drafts/publish, email monitor, audit viewer, operational CSV); migration 0008 | `phase-5-report.md` |
 
 ## 3. Current phase
-Phase 5 and Stage A (manual-testing preparation, login links, role routing) are complete. **Phase 6 (physical sample labels and chain of custody) is approved and in progress**; plan `docs/phase-6-plan.md`, decisions A22. Manual testing guide: `docs/manual-testing.md`.
+Phases 0–6 and Stage A are complete. **Phase 7 (security hardening and production readiness) awaits approval**; plan in `docs/phase-6-report.md` §18. Manual testing guide (all portals incl. laboratory and a full synthetic journey): `docs/manual-testing.md`.
 
 ## 4. Architecture
 - Local: one Node process serves the API (`/api/v1`) and the static site from `dist/` on :8787; embedded PostgreSQL on :54329 (`npm run dev:db`).
 - Production target (not provisioned): Vercel static site; Cloud Run API in me-central2; Cloud SQL PostgreSQL; Secret Manager; Cloud Scheduler calls `POST /api/v1/internal/outbox/run`. Details: `docs/architecture.md`.
-- Database: migrations 0001–0008 (0008 = admin portal). Key tables: users/roles/permissions/sessions/auth_tokens, audit_logs, collection_branches, patients, registrations (+ status history), consent_documents/records, patient_revisions, tracking_sequences, customer_qr_tokens, staff_branch_assignments, email_outbox, collection_instructions, collection_sessions, identity_verifications, samples, registration_branch_transfers, collection_instruction_drafts.
+- Database: migrations 0001–0009 (0008 = admin portal, 0009 = custody). Key tables: users/roles/permissions/sessions/auth_tokens, audit_logs, collection_branches, patients, registrations (+ status history), consent_documents/records, patient_revisions, tracking_sequences, customer_qr_tokens, staff_branch_assignments, email_outbox, collection_instructions, collection_sessions, identity_verifications, samples, registration_branch_transfers, collection_instruction_drafts, sample_qr_tokens, custody_events, sample_label_prints, recollection_authorizations.
 
 ## 5. Major technical decisions
 See `docs/DECISIONS.md` (approved vs proposed vs unresolved).
@@ -30,7 +31,7 @@ See `docs/DECISIONS.md` (approved vs proposed vs unresolved).
 See `docs/TEST_STATUS.md` (Phase 5 final run).
 
 ## 7. Roadmap
-6 Physical sample labels and chain of custody (reuse `samples`; plan `docs/phase-6-plan.md`) → 7 Security hardening (audit roles and checkpoints, OWASP, device validation, load and backup tests) → 8 Production provisioning and deployment (explicit approval only).
+7 Security hardening (audit roles and checkpoints, OWASP, device validation, load and backup tests) → 8 Production provisioning and deployment (explicit approval only).
 
 ## 8. Production blockers
 1. GitHub repository is **public** (recommend private; owner action).

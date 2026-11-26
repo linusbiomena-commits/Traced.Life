@@ -7,7 +7,7 @@ import { adminPage, auditActionLabel, control, input, ltr, qs, roleLabel, select
 
 // Audit log viewer (audit.read). Read-only. Viewers without personal-data permission (auditors)
 // receive entries with IP addresses, emails and free-text reasons already removed by the server.
-const PREFIXES = ['auth', 'registration', 'customer', 'patient', 'qr', 'sample', 'staff', 'branch', 'instructions', 'email', 'report', 'audit', 'authz'];
+const PREFIXES = ['auth', 'registration', 'customer', 'patient', 'qr', 'sample', 'custody', 'staff', 'branch', 'instructions', 'email', 'report', 'audit', 'authz'];
 
 export default async function render({ app, session }) {
   const full = can(session, 'registration.read_full');

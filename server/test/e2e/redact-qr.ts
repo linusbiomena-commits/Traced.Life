@@ -17,11 +17,11 @@ export function findQr(png: PNG) {
 }
 
 /**
- * Content that must never be published: customer QR links/tokens, MFA enrolment links and any
+ * Content that must never be published: customer and physical-sample QR links/tokens, MFA enrolment links and any
  * one-time token. (jsQR occasionally "decodes" noise in dense text; such false positives are
  * skipped rather than painted over, so evidence screenshots stay readable.)
  */
-export const SENSITIVE_QR = /\/traced\/c\/|c1_|otpauth:|token=/i;
+export const SENSITIVE_QR = /\/traced\/[cs]\/|\b[cs]1_|otpauth:|token=/i; // customer (c1_) and physical-sample (s1_) QR tokens
 
 /** Paints over every decodable sensitive QR code in a PNG file. Returns how many were redacted. */
 export async function redactQrCodes(file: string): Promise<number> {
@@ -84,4 +84,22 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
     total += n;
   }
   console.log(`done: ${total} QR code(s) redacted in ${process.argv.length - 2} file(s)`);
+}
+
+/**
+ * Takes a screenshot in memory and saves it with a few retries (on Windows, sync/antivirus tools
+ * occasionally hold a PNG open for a moment), then redacts any sensitive QR code in it.
+ */
+export async function saveScreenshot(page: { screenshot: (o: { fullPage: boolean }) => Promise<Buffer> }, file: string, fullPage = true): Promise<void> {
+  const image = await page.screenshot({ fullPage });
+  for (let attempt = 0; ; attempt++) {
+    try {
+      await writeFile(file, image);
+      break;
+    } catch (err) {
+      if (attempt >= 5) throw err;
+      await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
+    }
+  }
+  await redactQrCodes(file);
 }

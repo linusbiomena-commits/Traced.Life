@@ -1,5 +1,11 @@
 # TRACED: Changelog
 
+## 2026-11-26: Phase 6, physical sample identification and chain of custody
+- Migration **0009**: sample IDs `TRC-SA-MM/YY-XXXXX-SXX` (reuses `samples.sample_code`, per-registration sequence, immutable), `sample_qr_tokens` (`s1_`), append-only `custody_events`, `sample_label_prints`, `recollection_authorizations`, status email kinds.
+- Collection creates the sample ID, sample QR and initial custody event; staff Samples page (package, ready, dispatch) and printable labels (50×30 default; audited reprints); **laboratory portal** (`/traced/lab/`, MFA, no patient data): receipt with condition, accept/reject, analysis, report available; admin custody list/record, appended corrections, recollection authorisation (new customer QR, fresh collection → `-S02`); customer timeline; optional status emails (`CUSTOMER_STATUS_EMAILS`).
+- Fixed: idempotent replay under concurrency; label CSS colliding with form labels; reprint button label; invisible character in the screenshot-redaction pattern (now also covers sample tokens).
+- Tests: 216 unit + 27 browser.
+
 ## 2026-11-26: Stage A, manual-testing preparation and login improvements
 - Customer sign-in page: discreet **Staff Login | Admin Login** links (Arabic دخول الموظفين | دخول الإدارة).
 - One shared `homeFor()` routes every role to its own portal from any sign-in page; `next` links are honoured only inside the account's own area; customer-only pages send staff/admins to their portal; roles without a portal get a clear notice.

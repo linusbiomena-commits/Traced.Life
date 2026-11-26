@@ -192,7 +192,12 @@ export default async function render({ app, session }) {
             [t('reg.branch'), branchName(r.branch)],
           ]),
           h('h3', { class: 'p-h3 p-mt-m' }, t('detail.history')),
-          h('ol', { class: 'p-timeline p-mt-s' }, r.statusHistory.map((s) => h('li', {}, statusLabel(s.status), ' · ', h('span', { class: 'p-muted p-small' }, formatDateTime(s.at)))))),
+          // Phase 6: simplified sample journey (dates only), falling back to status history.
+          r.timeline && r.timeline.length
+            ? h('ol', { class: 'p-timeline p-mt-s' }, r.timeline.map((s) => h('li', {}, t(`timeline.${s.step}`), ' · ', h('span', { class: 'p-muted p-small' }, formatDateTime(s.at)))))
+            : h('ol', { class: 'p-timeline p-mt-s' }, r.statusHistory.map((s) => h('li', {}, statusLabel(s.status), ' · ', h('span', { class: 'p-muted p-small' }, formatDateTime(s.at))))),
+          r.timeline?.some((s) => s.step === 'sample_issue') && !r.timeline.some((s) => s.step === 'recollection_required') ? alertBox('info', null, t('timeline.issueNote')) : null,
+          r.timeline?.at(-1)?.step === 'recollection_required' ? alertBox('info', null, t('timeline.recollectNote')) : null),
         section('instructions-title', t('detail.instructions'),
           h('ol', { class: 'p-steps-list' }, [1, 2, 3].map((n) => h('li', {}, t(`instr.${n}`))))),
         patientCard(),

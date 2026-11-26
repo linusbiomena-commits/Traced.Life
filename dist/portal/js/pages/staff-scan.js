@@ -207,7 +207,10 @@ export default async function render({ app }) {
       h('h2', { class: 'p-h2', id: 'done-title' }, t('done.title')),
       alertBox('success', null, t('done.body', { id: c.trackingId, branch: branchLabel(c.branch) })),
       h('p', { class: 'p-muted p-small' }, formatDateTime(c.collectedAt)),
-      h('div', { class: 'p-actions' }, againButton(), h('a', { class: 'p-btn p-btn--ghost', href: pageUrl('staff-dashboard') }, t('staff.nav.dashboard')))));
+      c.sample ? h('p', {}, `${t('label.sampleId')}: `, h('strong', { class: 'p-ltr', dir: 'ltr' }, c.sample.sampleId)) : null,
+      h('div', { class: 'p-actions' },
+        c.sample ? h('a', { class: 'p-btn p-btn--dark', href: pageUrl('staff-label', { id: c.sample.id }) }, t('sample.printLabel')) : null,
+        againButton(), h('a', { class: 'p-btn p-btn--ghost', href: pageUrl('staff-dashboard') }, t('staff.nav.dashboard')))));
     focusStage();
   }
 

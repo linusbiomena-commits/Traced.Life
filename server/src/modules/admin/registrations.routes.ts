@@ -107,7 +107,7 @@ export async function adminRegistrationDetail(deps: Deps, id: string) {
     db.query(`SELECT q.status, q.created_at, q.revoked_at, q.revoke_reason, q.used_at, q.last_validated_at, cu.email AS created_by_email, ru.email AS revoked_by_email
                 FROM customer_qr_tokens q LEFT JOIN users cu ON cu.id = q.created_by LEFT JOIN users ru ON ru.id = q.revoked_by
                WHERE q.registration_id = $1 ORDER BY q.created_at`, [id]),
-    db.query(`SELECT s.status, s.collected_at, s.sample_code, b.code, b.name_en, b.name_ar, u.email AS staff_email, u.full_name AS staff_name,
+    db.query(`SELECT s.id AS sample_row_id, s.status, s.collected_at, s.sample_code, b.code, b.name_en, b.name_ar, u.email AS staff_email, u.full_name AS staff_name,
                      ci.version AS instructions_version, ci.status AS instructions_status, v.method, v.status AS idv_status
                 FROM samples s JOIN collection_branches b ON b.id = s.branch_id JOIN users u ON u.id = s.collected_by
                 JOIN collection_instructions ci ON ci.id = s.instructions_id JOIN identity_verifications v ON v.id = s.identity_verification_id
@@ -151,7 +151,7 @@ export async function adminRegistrationDetail(deps: Deps, id: string) {
       })),
     },
     collection: sample.rows.map((s) => ({
-      status: s.status, collectedAt: iso(s.collected_at), sampleCode: s.sample_code, branch: { code: s.code, nameEn: s.name_en, nameAr: s.name_ar },
+      id: s.sample_row_id, status: s.status, collectedAt: iso(s.collected_at), sampleCode: s.sample_code, branch: { code: s.code, nameEn: s.name_en, nameAr: s.name_ar },
       collectedBy: { email: s.staff_email, name: s.staff_name }, instructionsVersion: s.instructions_version, instructionsProvisional: s.instructions_status !== 'approved',
       identityVerification: { method: s.method, status: s.idv_status },
     })),

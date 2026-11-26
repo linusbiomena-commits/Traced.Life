@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { expect, type Page } from '@playwright/test';
-import { redactQrCodes } from './redact-qr.ts';
+import { saveScreenshot } from './redact-qr.ts';
 
 export const PASSWORD = 'correct horse battery staple';
 export const MAIL_DIR = path.resolve('test-results/e2e-mail');
@@ -81,6 +81,5 @@ export async function noHorizontalScroll(page: Page) {
 
 export async function shot(page: Page, name: string, fullPage = true) {
   if (fullPage) await page.evaluate(() => window.scrollTo(0, 0)); // keep the sticky header at the top
-  await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage });
-  await redactQrCodes(path.join(SHOTS, `${name}.png`)); // never commit a decodable QR token
+  await saveScreenshot(page, path.join(SHOTS, `${name}.png`), fullPage); // retries + QR redaction
 }

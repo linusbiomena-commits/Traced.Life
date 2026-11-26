@@ -25,12 +25,13 @@ Update `docs/HANDOVER.md` after every meaningful milestone (a module, a migratio
 
 ## 4. Non-negotiable rules
 - **Existing public TRACED pages:** preserve branding, content, animations and EN/AR/RTL. The only permitted changes are the account-link patch (`scripts/patch-traced-account-links.mjs`). `npm run check:portal` must pass.
+- **Laboratory privacy (Phase 6):** the lab portal and lab API return no patient identity, age, gender or contact data, only operational sample data. Sample labels carry no personal data. Scanning a sample QR never changes custody; every transition is an explicit, server-validated action in `server/src/modules/custody/custody.service.ts`.
 - **Collection-staff privacy:** staff may receive only the patient's **age and gender** plus operational data (tracking ID, sample type, branch, QR validity, status, identity-verification status, instructions, timestamps, custody info). Never send names, email, phone, DOB, national ID/Iqama, nationality, address, or account-holder or guardian data. Enforce this with **server-side response allowlists**, in every endpoint, statistic, error and log.
 - **Customers** see only their own data. **Admins** see personal data only through permission-checked, audited endpoints. **Auditors** do not get patient personal data. PII exports need `report.export_pii`.
 - **Tracking ID** `TRC-SA-MM/YY-XXXXX` (Asia/Riyadh, monthly atomic sequence). Preserve the engine. It is not a credential.
 - **QR tokens:** 256-bit random, never logged, never contain personal data or the tracking ID.
 - **Client IP:** never trust the leftmost `X-Forwarded-For`; use `server/src/lib/client-ip.ts` and `TRUSTED_PROXY_HOPS`.
-- **Migrations:** never edit an applied migration; add a new numbered one (latest: 0008). Allocate the tracking ID before any audit write; the lock order is registration → patient → session/token → audit.
+- **Migrations:** never edit an applied migration; add a new numbered one (latest: 0009). Allocate the tracking ID before any audit write; the lock order is registration → patient → session/token → audit.
 - **Provisional content** (consent text, collection instructions, identity verification) is not approved for production. Production config refuses provisional content and `DEV_IDENTITY_VERIFICATION`.
 - **Committed evidence:** screenshots must never show decodable QR tokens, MFA secrets or recovery codes. The E2E `shot` helpers redact QR codes automatically (`server/test/e2e/redact-qr.ts`), and a test enforces it.
 - **Windows E2E:** never stop the dev database (`postgres.exe -D …\.dev-db\data`). An orphaned test `io_worker` (parent gone) no longer blocks runs; stop it only with the owner's OK.

@@ -33,6 +33,16 @@ const PAGES = {
   'admin-emails': () => import('./pages/admin-emails.js'),
   'admin-audit': () => import('./pages/admin-audit.js'),
   'admin-settings': () => import('./pages/admin-settings.js'),
+  'sample-info': () => import('./pages/sample-info.js'),
+  'staff-samples': () => import('./pages/staff-samples.js'),
+  'staff-label': () => import('./pages/sample-label.js'),
+  'lab-dashboard': () => import('./pages/lab-dashboard.js'),
+  'lab-sign-in': () => import('./pages/lab-sign-in.js'),
+  'lab-scan': () => import('./pages/lab-scan.js'),
+  'lab-history': () => import('./pages/lab-history.js'),
+  'admin-samples': () => import('./pages/admin-samples.js'),
+  'admin-sample': () => import('./pages/admin-sample.js'),
+  'admin-sample-label': () => import('./pages/sample-label.js'),
 };
 
 const page = document.documentElement.dataset.page;
@@ -46,5 +56,5 @@ if (TOKEN_PAGES.has(page)) {
   });
 }
 // The QR landing page must never keep (or send) the scanned token: drop the #fragment at once.
-if (page === 'qr-info' && location.hash) history.replaceState(null, '', location.pathname);
+if ((page === 'qr-info' || page === 'sample-info') && location.hash) history.replaceState(null, '', location.pathname);
 if (PAGES[page]) boot(page, PAGES[page]);

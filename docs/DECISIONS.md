@@ -26,11 +26,13 @@ Last updated: 2026-11-26 (Phase 5 approved and implemented). Only **Approved** i
 | A20 | Phase 5 finalised (owner, 2026-11-26); committed evidence must never contain decodable QR tokens, MFA secrets or recovery codes | Owner, 2026-11-26 |
 | A21 | Stage A: Staff/Admin login links on the customer sign-in page; local test accounts only via one-time links (no stored passwords, MFA unchanged) | Owner, 2026-11-26 |
 | A22 | Phase 6 approved: physical sample ID `TRC-SA-MM/YY-XXXXX-SXX` (keeps the registration tracking ID); separate secure sample QR; scans never change status by themselves; 50×30 mm configurable label without personal data; append-only custody events with a server-enforced matrix; packaging/dispatch by branch staff; **no transport portal** (dispatch record + independent lab receipt); minimal lab-operator portal with MFA and no patient identity; rejection with provisional reason categories; admin-authorised recollection with new sample ID/QR and fresh identity verification; customer timeline; admin custody management; no report upload or LIS integration | Owner, 2026-11-26 |
+| A23 | Phase 6 implementation choices: sample ID reuses `samples.sample_code`; `in_transit` reserved (no transport accounts, no fabricated custody); recollection issues a new customer QR (spent QR never reactivated); customer status emails behind `CUSTOMER_STATUS_EMAILS` (off until wording approved); report availability is status-only | Phase 6 |
 | A19 | Client IP: count trusted proxy hops from the right (`TRUSTED_PROXY_HOPS`, optional CIDRs / proxy secret); production must set it explicitly | Phase 5 milestone 1 |
 
 ## Proposed / awaiting approval
 | # | Item | Notes |
 |---|---|---|
+| P1 | Phase 7 scope (security hardening, PII exports, audit hardening, load/backup tests, device validation) | `docs/phase-6-report.md` §18 |
 | P2 | Make GitHub repo `linusbiomena-commits/Traced.Life` **private** | Currently public; recommended |
 | P3 | Identity-verification method per scenario (adult, child + guardian, dependent) | `docs/identity-verification.md`; production collection blocked until decided |
 | P5 | API routing: Vercel rewrite vs. direct Saudi-hosted API domain | `docs/architecture.md` §2 |

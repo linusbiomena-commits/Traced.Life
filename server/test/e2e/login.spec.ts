@@ -9,7 +9,7 @@ import { createStaffAccount } from '../../src/modules/accounts/accounts.service.
 import { MemoryMailer } from '../../src/modules/mail/mailer.ts';
 import type { RoleKey } from '../../src/modules/rbac/catalogue.ts';
 import { noHorizontalScroll, PASSWORD, signUpAndSignIn, uniqueEmail } from './helpers.ts';
-import { redactQrCodes } from './redact-qr.ts';
+import { saveScreenshot } from './redact-qr.ts';
 
 // Stage A (before Phase 6): staff/admin login links on the customer sign-in page and role-based
 // redirection from every sign-in page.
@@ -17,8 +17,7 @@ const SHOTS = path.resolve('docs/phase-6/screenshots');
 mkdirSync(SHOTS, { recursive: true });
 const shot = async (page: Page, name: string) => {
   await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage: true });
-  await redactQrCodes(path.join(SHOTS, `${name}.png`)); // never commit a decodable QR token
+  await saveScreenshot(page, path.join(SHOTS, `${name}.png`)); // retries + QR redaction
 };
 const ip = () => { const b = randomBytes(3); return `10.${b[0]}.${b[1]}.${b[2]}`; };
 
@@ -143,13 +142,14 @@ test('role-based redirection from every sign-in page; `next` links into another 
   await ap.page.waitForURL('**/traced/admin/two-step/**');
   await ap.ctx.close();
 
-  // A role without a portal yet (lab operator, until Phase 6) gets a clear notice, not a broken page.
+  // Lab operators (Phase 6) sign in on any page and go to two-step verification, then the lab portal.
   const lab = await account(['lab_operator']);
   const lp = await freshPage(browser);
   await activate(lp.page, lab.token);
   await signInAt(lp.page, '/traced/account/sign-in/', lab.email);
-  await expect(lp.page.getByText('No portal for this account yet')).toBeVisible();
-  await lp.page.goto('/traced/account/');
-  await expect(lp.page.getByRole('heading', { name: 'No portal for this account yet' })).toBeVisible();
+  await lp.page.waitForURL('**/traced/admin/two-step/**');
+  expect(decodeURIComponent(lp.page.url())).not.toContain('/traced/account/');
+  await lp.page.goto('/traced/lab/');
+  await lp.page.waitForURL('**/traced/admin/two-step/**'); // MFA enforced for the lab portal too
   await lp.ctx.close();
 });

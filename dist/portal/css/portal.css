@@ -321,3 +321,26 @@ html[lang^="ar"] .p-stat__value { font-family: Tahoma, Arial, sans-serif; font-w
 .p-signin-links { color: var(--color-muted); }
 .p-signin-links a { color: var(--color-muted); }
 .p-signin-links a:hover { color: var(--color-dark-secondary); }
+
+/* ---- Phase 6: physical sample labels (configurable sizes; printed via the browser) -------- */
+.p-slabel-preview { display: flex; justify-content: center; padding: 1rem; background: var(--color-light); border-radius: var(--radius-m); }
+.p-slabel { display: flex; align-items: center; gap: 1.2mm; background: #fff; color: #000; border: 1px dashed var(--color-border); padding: 1.2mm; box-sizing: border-box; font-family: Arial, Helvetica, sans-serif; overflow: hidden; }
+.p-slabel--50x30 { width: 50mm; height: 30mm; page: label-50x30; }
+.p-slabel--50x25 { width: 50mm; height: 25mm; page: label-50x25; }
+.p-slabel--62x29 { width: 62mm; height: 29mm; page: label-62x29; }
+.p-slabel__qr { width: 19mm; height: 19mm; flex: none; }
+.p-slabel--50x25 .p-slabel__qr { width: 17mm; height: 17mm; }
+.p-slabel__text { min-width: 0; }
+.p-slabel__text p { margin: 0; line-height: 1.2; }
+.p-slabel__brand { font-weight: 700; font-size: 7pt; letter-spacing: .06em; }
+.p-slabel__id { font-weight: 700; font-size: 5.6pt; word-break: break-all; margin-top: .6mm !important; }
+.p-slabel__line { font-size: 5.2pt; word-break: break-all; }
+@page label-50x30 { size: 50mm 30mm; margin: 0; }
+@page label-50x25 { size: 50mm 25mm; margin: 0; }
+@page label-62x29 { size: 62mm 29mm; margin: 0; }
+@media print {
+  body * { visibility: hidden; }
+  .p-slabel-preview, .p-slabel-preview * { visibility: visible; }
+  .p-slabel-preview { position: absolute; inset-block-start: 0; inset-inline-start: 0; padding: 0; background: none; }
+  .p-slabel { border: 0; }
+}

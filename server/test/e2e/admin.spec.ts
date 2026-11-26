@@ -10,16 +10,19 @@ import { createStaffAccount } from '../../src/modules/accounts/accounts.service.
 import { MemoryMailer } from '../../src/modules/mail/mailer.ts';
 import type { RoleKey } from '../../src/modules/rbac/catalogue.ts';
 import { mailLink, noHorizontalScroll, PASSWORD, signUpAndSignIn, uniqueEmail } from './helpers.ts';
-import { redactQrCodes } from './redact-qr.ts';
+import { saveScreenshot } from './redact-qr.ts';
 
 const SHOTS = path.resolve('docs/phase-5/screenshots');
 mkdirSync(SHOTS, { recursive: true });
 const shot = async (page: Page, name: string, fullPage = true) => {
   if (fullPage) await page.evaluate(() => window.scrollTo(0, 0));
-  await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage });
-  await redactQrCodes(path.join(SHOTS, `${name}.png`)); // never commit a decodable QR token
+  await saveScreenshot(page, path.join(SHOTS, `${name}.png`), fullPage); // retries + QR redaction
 };
 const totp = (secret: string) => new TOTP({ algorithm: 'SHA1', digits: 6, period: 30, secret: Secret.fromBase32(secret.replace(/\s/g, '')) }).generate();
+// Every extra browser context a test opens is closed afterwards: leftover pages keep polling in
+// the shared browser process and slow later camera tests down.
+const opened: import('@playwright/test').BrowserContext[] = [];
+test.afterEach(async () => { await Promise.all(opened.splice(0).map((c) => c.close().catch(() => {}))); });
 const ip = () => { const b = randomBytes(3); return `10.${b[0]}.${b[1]}.${b[2]}`; };
 
 function e2eDb() {
@@ -48,6 +51,7 @@ async function invite(roles: RoleKey[], name: string, locale: 'en' | 'ar' = 'en'
 async function adminPage(browser: Browser, roles: RoleKey[], name: string, lang: 'en' | 'ar' = 'en') {
   const { email, setupLink } = await invite(roles, name, lang);
   const ctx = await browser.newContext();
+  opened.push(ctx);
   await ctx.setExtraHTTPHeaders({ 'x-forwarded-for': ip() });
   const page = await ctx.newPage();
   const token = /#token=([A-Za-z0-9_-]+)/.exec(setupLink)![1];
@@ -69,6 +73,7 @@ async function adminPage(browser: Browser, roles: RoleKey[], name: string, lang:
 /** A customer with a child registration at DEV-RUH-01. */
 async function customerRegistration(browser: Browser, firstName: string) {
   const ctx = await browser.newContext();
+  opened.push(ctx);
   const page = await ctx.newPage();
   const email = uniqueEmail('cust');
   await signUpAndSignIn(page, 'en', email);
@@ -136,6 +141,7 @@ test('access control in the browser: customers and collection staff get “No ac
   // Collection staff: the admin portal is closed to them in the browser and at the API.
   const staff = await invite(['collection_staff'], 'Staff Only');
   const sctx = await browser.newContext();
+  opened.push(sctx);
   await sctx.setExtraHTTPHeaders({ 'x-forwarded-for': ip() });
   const sp = await sctx.newPage();
   await sp.goto(staff.setupLink);
@@ -328,6 +334,7 @@ test('Arabic admin portal is right-to-left and Arabic; mobile admin pages fit th
   await ctx.close();
 
   const mobile = await browser.newContext({ viewport: { width: 375, height: 812 }, isMobile: true });
+  opened.push(mobile);
   await mobile.setExtraHTTPHeaders({ 'x-forwarded-for': ip() });
   const m = await adminPage(browser, ['admin'], 'Mobile Admin');
   const cookies = await m.ctx.cookies();

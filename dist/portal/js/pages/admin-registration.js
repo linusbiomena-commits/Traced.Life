@@ -119,8 +119,8 @@ function draw(app, { registration: r, permissions, activeBranches }) {
       ]), h('p', { class: 'p-mt-s' }, h('a', { href: pageUrl('admin-customer', { id: a.id }) }, t('admin.regd.openCustomer'))))),
     card(t('admin.regd.contactSnapshot'), dl([[t('field.fullName'), r.contact.fullName], [t('field.email'), ltr(r.contact.email)], [t('field.phone'), ltr(r.contact.phone)]])),
     card(t('admin.regd.collection'), r.collection.length
-      ? table([t('admin.col.time'), t('admin.col.branch'), t('admin.regd.collectedBy'), t('admin.regd.instructions'), t('admin.regd.identity'), t('admin.col.status')],
-        r.collection.map((s) => [when(s.collectedAt), branchText(s.branch), s.collectedBy.name ? `${s.collectedBy.name} (${s.collectedBy.email})` : s.collectedBy.email,
+      ? table([t('admin.col.time'), t('label.sampleId'), t('admin.col.branch'), t('admin.regd.collectedBy'), t('admin.regd.instructions'), t('admin.regd.identity'), t('admin.col.status')],
+        r.collection.map((s) => [when(s.collectedAt), s.id ? h('a', { href: pageUrl('admin-sample', { id: s.id }) }, ltr(s.sampleCode)) : '–', branchText(s.branch), s.collectedBy.name ? `${s.collectedBy.name} (${s.collectedBy.email})` : s.collectedBy.email,
           `${s.instructionsVersion}${s.instructionsProvisional ? ` · ${t('admin.instr.provisional')}` : ''}`, `${t(`id.status.${s.identityVerification.status}`)} · ${t(`admin.idMethod.${s.identityVerification.method}`)}`, t(`admin.sampleStatus.${s.status}`)]))
       : h('p', { class: 'p-muted' }, t('admin.regd.notCollected')),
       r.identityVerifications.length ? h('div', { class: 'p-mt-m' }, h('h3', { class: 'p-h3' }, t('admin.regd.identityEvents')),

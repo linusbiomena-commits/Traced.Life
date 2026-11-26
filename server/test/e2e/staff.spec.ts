@@ -9,13 +9,12 @@ import { decodeQrPng } from '../helpers/registration.ts';
 import { writeBlankCamera, writeQrCamera } from './fake-camera.ts';
 import { noHorizontalScroll, PASSWORD, signUpAndSignIn, uniqueEmail } from './helpers.ts';
 import path from 'node:path';
-import { redactQrCodes } from './redact-qr.ts';
+import { saveScreenshot } from './redact-qr.ts';
 
 const SHOTS = path.resolve('docs/phase-4/screenshots');
 const shot = async (page: Page, name: string, fullPage = true) => {
   if (fullPage) await page.evaluate(() => window.scrollTo(0, 0)); // sticky header would otherwise be captured mid-page
-  await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage });
-  await redactQrCodes(path.join(SHOTS, `${name}.png`)); // never commit a decodable QR token
+  await saveScreenshot(page, path.join(SHOTS, `${name}.png`), fullPage); // retries + QR redaction
 };
 
 /** Creates an invited staff account in the E2E database (as the CLI / Phase 5 admin portal would). */
