@@ -6,7 +6,8 @@
 export type Locale = 'en' | 'ar';
 export type TemplateName =
   | 'verify_email' | 'account_exists' | 'reset_password' | 'password_changed' | 'account_setup'
-  | 'registration_confirmation' | 'registration_qr_resend' | 'registration_branch_changed';
+  | 'registration_confirmation' | 'registration_qr_resend' | 'registration_branch_changed'
+  | 'sample_received' | 'report_available' | 'recollection_required';
 
 export const SUPPORT_EMAIL = 'LinusBio@karama.tech';
 export const SUPPORT_PHONE = '+966 55 141 5599';
@@ -110,6 +111,16 @@ const COPY: Record<TemplateName, (locale: Locale, d: Record<string, string>) => 
     : { subject: `Your collection branch has changed – ${d.trackingId ?? ''}`, preheader: 'Please visit the new branch for your sample collection.', heading: 'Collection branch changed',
         blocks: [{ kind: 'p', text: 'Your TRACED registration has been moved to a different collection branch. Your tracking ID and QR code have not changed.' }, { kind: 'tracking', label: 'Tracking ID', value: d.trackingId ?? '' },
           { kind: 'info', title: 'New collection branch', lines: [d.branchName, d.branchCity, d.branchAddress].filter((x): x is string => Boolean(x)) }], action: 'View registration' },
+  // Phase 6 status emails: tracking ID and a link only, no patient or sample details.
+  sample_received: (l, d) => l === 'ar'
+    ? { subject: `وصلت عينتك إلى المختبر – ${d.trackingId ?? ''}`, preheader: 'سنُبلغك عند توفر التقرير.', heading: 'وصلت عينتك إلى المختبر', blocks: [{ kind: 'p', text: 'استلم المختبر عينتك. يمكنك متابعة حالتها من حسابك.' }, { kind: 'tracking', label: 'رقم التتبع', value: d.trackingId ?? '' }], action: 'عرض التسجيل' }
+    : { subject: `Your sample has reached the laboratory – ${d.trackingId ?? ''}`, preheader: 'We will let you know when your report is available.', heading: 'Sample received by the laboratory', blocks: [{ kind: 'p', text: 'The laboratory has received your sample. You can follow its progress in your account.' }, { kind: 'tracking', label: 'Tracking ID', value: d.trackingId ?? '' }], action: 'View registration' },
+  report_available: (l, d) => l === 'ar'
+    ? { subject: `تقريرك متاح – ${d.trackingId ?? ''}`, preheader: 'سيتم تزويدك بالتقرير عبر قناة التسليم المعتمدة.', heading: 'تقريرك متاح', blocks: [{ kind: 'p', text: 'أصبح تقرير TRACED الخاص بك متاحًا. سيصلك عبر قناة التسليم المعتمدة.' }, { kind: 'tracking', label: 'رقم التتبع', value: d.trackingId ?? '' }], action: 'عرض التسجيل' }
+    : { subject: `Your TRACED report is available – ${d.trackingId ?? ''}`, preheader: 'It will be provided through the approved delivery process.', heading: 'Your report is available', blocks: [{ kind: 'p', text: 'Your TRACED report is now available and will be provided through the approved delivery process.' }, { kind: 'tracking', label: 'Tracking ID', value: d.trackingId ?? '' }], action: 'View registration' },
+  recollection_required: (l, d) => l === 'ar'
+    ? { subject: `مطلوب جمع عينة جديدة – ${d.trackingId ?? ''}`, preheader: 'أرسلنا لك رمز QR جديدًا.', heading: 'مطلوب جمع عينة جديدة', blocks: [{ kind: 'p', text: 'نحتاج إلى جمع عينة جديدة لتسجيلك. أرسلنا لك رمز QR جديدًا في رسالة منفصلة؛ يرجى إحضاره إلى فرع جمع العينة. رقم التتبع لم يتغير.' }, { kind: 'tracking', label: 'رقم التتبع', value: d.trackingId ?? '' }], action: 'عرض التسجيل' }
+    : { subject: `A new sample is needed – ${d.trackingId ?? ''}`, preheader: 'We have sent you a new QR code.', heading: 'A new sample is needed', blocks: [{ kind: 'p', text: 'We need to collect a new sample for your registration. We have sent you a new QR code in a separate email; please bring it to your collection branch. Your tracking ID is unchanged.' }, { kind: 'tracking', label: 'Tracking ID', value: d.trackingId ?? '' }], action: 'View registration' },
   registration_confirmation: (l, d) => registrationCopy(l, d, false),
   registration_qr_resend: (l, d) => registrationCopy(l, d, true),
 };

@@ -6,6 +6,8 @@ import { audit, auditSafe } from '../audit/audit.service.ts';
 import { customerTokenHmac, extractCustomerToken } from '../qr/qr.service.ts';
 import { ageParts, riyadhToday } from '../registrations/rules.ts';
 import { currentInstructions, type CollectionInstructions } from './instructions.ts';
+import { allocateSampleCode, recordInitialCustody } from '../custody/custody.service.ts';
+import { issueSampleQr } from '../custody/sample-qr.ts';
 
 // Sample collection by staff. PRIVACY: everything returned to staff is produced by the
 // allowlist functions in this file (age, gender and operational data only).
@@ -240,7 +242,7 @@ export async function recordDevVerification(deps: Deps, staff: SessionInfo, sess
  */
 export async function confirmCollection(
   deps: Deps, staff: SessionInfo, sessionId: string, input: { instructionsId: string; checklist: string[] }, meta: AuditMeta,
-): Promise<{ trackingId: string; status: 'sample_collected'; collectedAt: string; branch: BranchView }> {
+): Promise<{ trackingId: string; status: 'sample_collected'; collectedAt: string; branch: BranchView; sample: { id: string; sampleId: string } }> {
   try {
     return await withTx(deps.db, async (tx) => {
       const s0 = await ownSession(tx, staff.userId, sessionId);
@@ -286,11 +288,17 @@ export async function confirmCollection(
         throw new AppError(422, 'CHECKLIST_INCOMPLETE', 'Complete every item on the collection checklist.', { required });
       }
 
-      const sample = await tx.query<{ collected_at: Date }>(
-        `INSERT INTO samples (registration_id, branch_id, collected_by, collection_session_id, identity_verification_id, instructions_id, checklist)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING collected_at`,
-        [reg.id, s.branch_id, staff.userId, s.id, verification.id, instructions.id, JSON.stringify(given)],
+      // Phase 6: the physical sample gets its ID (tracking ID + -SXX, allocated under the
+      // registration lock), its own QR token and its initial custody event, in this transaction.
+      const code = await allocateSampleCode(tx, reg.id, reg.tracking_id);
+      const sample = await tx.query<{ id: string; collected_at: Date }>(
+        `INSERT INTO samples (registration_id, branch_id, collected_by, collection_session_id, identity_verification_id, instructions_id, checklist, sample_seq, sample_code)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, collected_at`,
+        [reg.id, s.branch_id, staff.userId, s.id, verification.id, instructions.id, JSON.stringify(given), code.seq, code.code],
       );
+      const sampleRowId = sample.rows[0]!.id;
+      await issueSampleQr(tx, deps, sampleRowId, staff.userId);
+      await recordInitialCustody(tx, { id: sampleRowId, registrationId: reg.id, branchId: s.branch_id }, staff.userId);
       await tx.query(`UPDATE registrations SET status = 'sample_collected' WHERE id = $1`, [reg.id]);
       await tx.query(
         `INSERT INTO registration_status_history (registration_id, from_status, to_status, changed_by, actor_role, reason)
@@ -302,11 +310,14 @@ export async function confirmCollection(
       await tx.query('UPDATE collection_sessions SET completed_at = now() WHERE id = $1', [s.id]);
       await audit(tx, {
         ...meta, action: 'sample.collected', outcome: 'success', targetType: 'registration', targetId: reg.id,
-        metadata: { trackingId: reg.tracking_id, branchId: s.branch_id, collectionSessionId: s.id, instructionsVersion: instructions.version, identityMethod: verification.method },
+        metadata: { trackingId: reg.tracking_id, sampleId: code.code, branchId: s.branch_id, collectionSessionId: s.id, instructionsVersion: instructions.version, identityMethod: verification.method },
       });
       const branch = (await tx.query<{ id: string; name_en: string; name_ar: string; city_en: string; city_ar: string }>(
         'SELECT id, name_en, name_ar, city_en, city_ar FROM collection_branches WHERE id = $1', [s.branch_id])).rows[0]!;
-      return { trackingId: reg.tracking_id, status: 'sample_collected' as const, collectedAt: sample.rows[0]!.collected_at.toISOString(), branch: branchView(branch) };
+      return {
+        trackingId: reg.tracking_id, status: 'sample_collected' as const, collectedAt: sample.rows[0]!.collected_at.toISOString(), branch: branchView(branch),
+        sample: { id: sampleRowId, sampleId: code.code },
+      };
     });
   } catch (err) {
     // A simultaneous confirmation that lost the race hits the one-live-sample unique index.

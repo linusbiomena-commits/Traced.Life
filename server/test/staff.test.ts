@@ -262,7 +262,8 @@ describe('sample collection confirmation', () => {
     const ready = await readyToCollect(s.c, text);
     const res = await collect(s.c, ready.collectionSessionId, ready);
     expect(res.status).toBe(200);
-    expect(Object.keys(res.body.collection).sort()).toEqual(['branch', 'collectedAt', 'status', 'trackingId']);
+    expect(Object.keys(res.body.collection).sort()).toEqual(['branch', 'collectedAt', 'sample', 'status', 'trackingId']);
+    expect(Object.keys(res.body.collection.sample).sort()).toEqual(['id', 'sampleId']); // Phase 6: physical sample for the label
     expect(res.body.collection).toMatchObject({ trackingId: registration.trackingId, status: 'sample_collected' });
 
     const sample = (await t.db.query(

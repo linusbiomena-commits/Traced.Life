@@ -39,6 +39,9 @@ const schema = z.object({
   // Shared secret for the scheduled outbox run (Cloud Scheduler → /api/v1/internal/outbox/run).
   INTERNAL_CRON_SECRET: z.string().min(32).optional(),
   SERVE_STATIC: bool.default(false),
+  // Phase 6 customer status emails (sample received, report available, recollection required).
+  // Off by default until the wording is approved; the dashboard timeline works either way.
+  CUSTOMER_STATUS_EMAILS: bool.default(false),
 });
 
 export type Config = {
@@ -63,6 +66,7 @@ export type Config = {
   dbPoolMax?: number;
   internalCronSecret?: string;
   serveStatic: boolean;
+  customerStatusEmails?: boolean;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -116,5 +120,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     dbPoolMax: e.DB_POOL_MAX,
     internalCronSecret: e.INTERNAL_CRON_SECRET,
     serveStatic: e.SERVE_STATIC,
+    customerStatusEmails: e.CUSTOMER_STATUS_EMAILS,
   };
 }

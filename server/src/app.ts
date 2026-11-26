@@ -10,6 +10,7 @@ import { adminRoutes } from './modules/admin/index.ts';
 import { authRoutes } from './modules/auth/auth.routes.ts';
 import { meRoutes } from './modules/registrations/me.routes.ts';
 import { staffRoutes } from './modules/qr/staff.routes.ts';
+import { labRoutes, staffCustodyRoutes } from './modules/custody/custody.routes.ts';
 import { internalRoutes } from './modules/mail/internal.routes.ts';
 
 export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {
@@ -61,6 +62,8 @@ export function createApi(deps: Deps): Hono<AppEnv> {
   api.route('/admin', adminRoutes(deps));
   api.route('/me', meRoutes(deps));
   api.route('/staff', staffRoutes(deps));
+  api.route('/staff', staffCustodyRoutes(deps));
+  api.route('/lab', labRoutes(deps));
   api.route('/internal', internalRoutes(deps));
 
   api.onError(errorHandler);

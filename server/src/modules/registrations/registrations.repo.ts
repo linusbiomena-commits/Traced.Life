@@ -1,6 +1,7 @@
 import type { Queryable } from '../../db/pool.ts';
 import { ageParts, riyadhToday } from './rules.ts';
 import { PRE_COLLECTION_STATUSES } from './registrations.service.ts';
+import { customerTimeline } from '../custody/custody.service.ts';
 
 // Customer-facing reads. Every query is scoped by account_user_id: a customer can only ever load
 // their own rows, and someone else's registration id behaves exactly like a non-existent one.
@@ -119,6 +120,8 @@ export async function getOwnRegistration(db: Queryable, userId: string, id: stri
       : null,
     canResendEmail: active && Boolean(qr.rows[0]),
     branchChangedAt: transfer.rows[0]?.created_at.toISOString() ?? null,
+    // Phase 6: simplified custody timeline (dates only; no staff, courier, remarks or internal codes).
+    timeline: await customerTimeline(db, id, r.created_at),
   };
 }
 

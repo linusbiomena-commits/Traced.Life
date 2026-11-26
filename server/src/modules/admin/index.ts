@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import type { AppEnv, Deps } from '../../context.ts';
 import { auditRoutes } from '../audit/audit.routes.ts';
 import { adminQrRoutes } from '../qr/admin-qr.routes.ts';
+import { adminCustodyRoutes } from '../custody/custody.routes.ts';
 import { adminBranchRoutes } from './branches.routes.ts';
 import { adminEmailRoutes } from './email.routes.ts';
 import { adminInstructionRoutes } from './instructions.routes.ts';
@@ -25,5 +26,6 @@ export function adminRoutes(deps: Deps): Hono<AppEnv> {
   r.route('/', adminEmailRoutes(deps));
   r.route('/', auditRoutes(deps));
   r.route('/', adminReportRoutes(deps));
+  r.route('/', adminCustodyRoutes(deps));
   return r;
 }

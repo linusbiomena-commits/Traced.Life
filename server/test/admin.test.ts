@@ -432,7 +432,8 @@ describe('staff management', () => {
     // Whichever commits first wins; the other is refused (its actor has just lost the authority,
     // or would remove the last super admin): never zero super admins.
     expect(codes[1]).toBe('ok');
-    expect(['LAST_SUPER_ADMIN', 'ROLE_NOT_GRANTABLE']).toContain(codes[0]);
+    // (or, if the winner committed first, its role change already ended the loser's session: 401)
+    expect(['LAST_SUPER_ADMIN', 'ROLE_NOT_GRANTABLE', 'UNAUTHENTICATED']).toContain(codes[0]);
     const left = await t.db.query(`SELECT count(*)::int AS n FROM user_roles ur JOIN users u ON u.id = ur.user_id WHERE ur.role_key = 'super_admin' AND u.status = 'active'`);
     expect(left.rows[0].n).toBe(1);
     // Restore for later tests: whoever lost the role gets it back from the remaining super admin.
