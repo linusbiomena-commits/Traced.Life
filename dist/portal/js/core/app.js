@@ -79,6 +79,29 @@ const STAFF_PAGES = new Set(['staff-sign-in', 'staff-dashboard', 'staff-scan', '
 
 /** UI routing only; every staff API call is authorised again on the server. */
 export const isStaff = (session) => Boolean(session?.permissions?.includes('collection.scan'));
+const isCustomer = (session) => Boolean(session?.roles?.includes('customer'));
+
+/**
+ * The one place that decides where a signed-in account belongs (UI routing only; the server
+ * authorises every request). `next` is honoured only when it is a safe portal path inside that
+ * account's own area, so a crafted link can't send anyone elsewhere. Returns null when the role
+ * has no portal yet.
+ */
+export function homeFor(session, next) {
+  const safe = safeNext(next);
+  const area = safe ? /^\/(?:ar\/)?traced\/(account|staff|admin)\//.exec(safe)?.[1] : null;
+  const keep = (a) => (area === a ? safe : null);
+  if (isAdmin(session)) return needsMfa(session) ? pageUrl('admin-mfa', keep('admin') ? { next: safe } : undefined) : keep('admin') || adminHome(session);
+  if (isStaff(session)) return keep('staff') || pageUrl('staff-dashboard');
+  if (isCustomer(session)) return session.emailVerified ? keep('account') || pageUrl('dashboard') : pageUrl('verify-email');
+  return null;
+}
+
+function noPortal(page, session) {
+  renderHeader(page, session);
+  mount(document.getElementById('app'), h('div', { class: 'p-narrow' }, h('h1', { class: 'p-h1' }, t('role.noPortal.title')),
+    h('div', { class: 'p-card' }, alertBox('info', null, t('role.noPortal.body')))));
+}
 
 const LANG_KEY = 'linusbiomena-language'; // shared with the public site's language switch
 
@@ -167,9 +190,10 @@ export async function boot(page, loadPage) {
   const rule = ACCESS[page] || 'auth';
   const here = location.pathname + location.search;
   const nextParam = safeNext(new URLSearchParams(location.search).get('next'));
-  // ---- Admin portal ----
-  if (rule === 'admin-guest' && session && isAdmin(session)) {
-    return go(needsMfa(session) ? pageUrl('admin-mfa', nextParam ? { next: nextParam } : undefined) : nextParam || adminHome(session));
+  // Sign-in pages: a signed-in account goes to its own portal.
+  if ((rule === 'guest' || rule === 'staff-guest' || rule === 'admin-guest') && session) {
+    const home = homeFor(session, nextParam);
+    if (home) return go(home);
   }
   if (rule === 'admin' || rule === 'admin-mfa') {
     if (!session) return go(pageUrl('admin-sign-in', rule === 'admin' ? { next: here } : undefined));
@@ -188,12 +212,10 @@ export async function boot(page, loadPage) {
     }
     if (rule === 'admin-mfa' && !needsMfa(session)) return go(nextParam || adminHome(session));
   }
-  // Privileged accounts that open customer pages go to their own portal.
-  if ((rule === 'guest' || rule === 'auth' || rule === 'verified') && session && isAdmin(session) && !session.roles.includes('customer')) {
-    return go(needsMfa(session) ? pageUrl('admin-mfa') : adminHome(session));
-  }
-  if ((rule === 'guest' || rule === 'staff-guest') && session && isStaff(session)) {
-    return go(safeNext(new URLSearchParams(location.search).get('next')) || pageUrl('staff-dashboard'));
+  // Customer-only pages: staff and admin accounts go to their own portal; other roles get a notice.
+  if ((rule === 'auth' || rule === 'verified') && session && !isCustomer(session)) {
+    const home = homeFor(session);
+    return home ? go(home) : noPortal(page, session);
   }
   if (rule === 'staff' && !session) return go(pageUrl('staff-sign-in', { next: here }));
   if (rule === 'staff' && !isStaff(session)) {
@@ -202,9 +224,9 @@ export async function boot(page, loadPage) {
       h('div', { class: 'p-card' }, alertBox('info', null, t('staff.forbidden.body')))));
     return;
   }
-  if (rule === 'guest' && session) {
-    const next = safeNext(new URLSearchParams(location.search).get('next'));
-    return go(session.emailVerified ? next || pageUrl('dashboard') : pageUrl('verify-email'));
+  if ((rule === 'guest' || rule === 'staff-guest' || rule === 'admin-guest') && session) {
+    // Signed in, but the role has no portal (homeFor returned null): sign-in page with a notice.
+    session.noPortal = true;
   }
   if ((rule === 'auth' || rule === 'verified') && !session) return go(pageUrl('sign-in', { next: here }));
   if (rule === 'verified' && !session.emailVerified) return go(pageUrl('verify-email'));

@@ -1,10 +1,11 @@
 import { api } from '../core/api.js';
 import { h, mount } from '../core/dom.js';
 import { t } from '../core/i18n.js';
-import { go, pageUrl, safeNext } from '../core/paths.js';
+import { go, pageUrl } from '../core/paths.js';
+import { homeFor } from '../core/app.js';
 import { alertBox, emailProblem, errorMessage, field, pageHeading, passwordField, setBusy, validate } from '../core/ui.js';
 
-export default function render({ app }) {
+export default function render({ app, session }) {
   const params = new URLSearchParams(location.search);
   const email = field({ label: t('field.email'), name: 'email', type: 'email', autocomplete: 'username', inputmode: 'email', maxlength: 254 });
   const password = passwordField({ label: t('field.password'), name: 'password', autocomplete: 'current-password' });
@@ -14,6 +15,7 @@ export default function render({ app }) {
 
   if (params.get('signedOut')) status.append(alertBox('success', t('signIn.signedOut')));
   if (params.get('passwordChanged')) status.append(alertBox('success', t('signIn.passwordChanged')));
+  if (session?.noPortal) status.append(alertBox('info', t('role.noPortal.title'), t('role.noPortal.body')));
 
   const form = h('form', { novalidate: true }, summary, email.wrap, password.wrap,
     h('p', { class: 'p-small p-mt-s' }, h('a', { href: pageUrl('forgot-password') }, t('signIn.forgot'))),
@@ -30,9 +32,11 @@ export default function render({ app }) {
     setBusy(submit, true);
     try {
       const { user } = await api('POST', '/auth/sign-in', { email: email.input.value.trim(), password: password.input.value });
-      const next = safeNext(params.get('next'));
-      if (user.permissions.includes('collection.scan')) return go(pageUrl('staff-dashboard')); // staff use their own portal
-      go(user.emailVerified ? next || pageUrl('dashboard') : pageUrl('verify-email'));
+      // Every role goes to its own portal (customers, staff, admins), whichever sign-in page was used.
+      const home = homeFor(user, params.get('next'));
+      if (home) return go(home);
+      setBusy(submit, false);
+      mount(status, alertBox('info', t('role.noPortal.title'), t('role.noPortal.body')));
     } catch (err) {
       setBusy(submit, false);
       password.input.value = '';
@@ -44,5 +48,10 @@ export default function render({ app }) {
   mount(app, h('div', { class: 'p-narrow' },
     pageHeading(t('signIn.title'), t('signIn.lead')),
     h('div', { class: 'p-card' }, status, form),
-    h('p', { class: 'p-center p-small p-mt-m' }, `${t('signIn.noAccount')} `, h('a', { href: pageUrl('sign-up') }, t('signIn.createAccount')))));
+    h('p', { class: 'p-center p-small p-mt-m' }, `${t('signIn.noAccount')} `, h('a', { href: pageUrl('sign-up') }, t('signIn.createAccount'))),
+    // Discreet links for invited staff and administrators (there is no registration for those roles).
+    h('nav', { class: 'p-center p-small p-mt-s p-signin-links', 'aria-label': t('signIn.otherPortals') },
+      h('a', { href: pageUrl('staff-sign-in') }, t('signIn.staffLogin')),
+      h('span', { 'aria-hidden': 'true' }, ' | '),
+      h('a', { href: pageUrl('admin-sign-in') }, t('signIn.adminLogin')))));
 }

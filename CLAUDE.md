@@ -51,6 +51,7 @@ Update `docs/HANDOVER.md` after every meaningful milestone (a module, a migratio
 | Browser tests (Edge, simulated camera, port 8791) | `npm run test:e2e` |
 | Portal shells / nav patch | `npm run build:portal` / `npm run check:portal` |
 | Create staff | `npm run create-user -- --email … --role collection_staff --name "…" --branch DEV-RUH-01` (or invite from the admin portal) |
+| Local synthetic test accounts (one-time links, no stored passwords) | `npm run dev:test-accounts` (see `docs/manual-testing.md`) |
 | Bootstrap the first super admin | `npm run create-user -- --email … --role super_admin --name "…"`, then sign in at `/traced/admin/sign-in/` and set up two-step verification |
 
 More detail: `docs/development.md`.

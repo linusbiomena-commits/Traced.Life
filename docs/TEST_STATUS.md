@@ -5,11 +5,11 @@ Last updated: **2026-11-26**, end of Phase 5 (branch `feature/traced-portal`), W
 | Check | Command | Result |
 |---|---|---|
 | TypeScript | `npm run typecheck` | clean (final Phase 5 code) |
-| Unit + integration (Vitest, real embedded PostgreSQL 18) | `npm test` | **200 / 200 pass**, 14 files: 154 Phase 1–4 + 12 proxy + 33 admin + 1 evidence check (no committed screenshot contains a decodable QR token / MFA code) |
+| Unit + integration (Vitest, real embedded PostgreSQL 18) | `npm test` | **204 / 204 pass**, 15 files: 154 Phase 1–4 + 12 proxy + 33 admin + 1 evidence check + 4 local test-account CLI (Stage A) |
 | Portal shells + account-link patch | `npm run check:portal` | 62 portal shells up to date; all 56 TRACED pages patched (no public page changed) |
 | Dependencies | `npm audit` | 0 vulnerabilities |
 | Secrets / sensitive data in tracked files | `git grep` pattern scan + screenshot QR check | none found |
-| **Browser E2E (Playwright, Edge, simulated camera)** | `npm run test:e2e` | **22 / 22 pass** on the final Phase 5 code (6 admin + 9 customer + 7 staff), about 2.4 min, including a run with a deliberately locked leftover data directory present |
+| **Browser E2E (Playwright, Edge, simulated camera)** | `npm run test:e2e` | **24 / 24 pass** at the Stage A checkpoint (6 admin + 9 customer + 7 staff + 2 login/role-routing), about 3.5 min |
 
 ## Suites
 | File | Area |

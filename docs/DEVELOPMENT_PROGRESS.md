@@ -10,12 +10,13 @@ Last updated: 2026-11-26.
 | 3 | Tracking IDs, QR, email outbox | Complete | `66d4b00`, `docs/phase-3-report.md` |
 | 4 | Collection staff portal, scanner, collection | **Complete for its scope** (physical devices pending) | `2debbf1`, `docs/phase-4-report.md`; re-verified 2026-11-26 |
 | 5 | Authorized admin portal (+ trusted-proxy fix) | **Complete for the approved scope** | `898705e`, `405a1f0`, `b49a84d`, `9b4c3c2` + finalisation commit; `docs/phase-5-report.md` (200 unit + 22 browser tests) |
-| 6 | Physical sample labels and chain of custody | **Not started; awaiting approval** (schema groundwork in 0007) | plan: `docs/phase-6-plan.md` (≈ 41–52 h) |
+| 5A | Stage A: manual-testing preparation, login links, role routing | **Complete** | Stage A checkpoint commit; `docs/manual-testing.md` |
+| 6 | Physical sample labels and chain of custody | **Approved, in progress** | plan: `docs/phase-6-plan.md`; decisions A22 |
 | 7 | Security hardening and production readiness | Not started | `docs/audit-hardening-plan.md` (plan only) |
 | 8 | Production infrastructure and deployment | Not started; **not authorised** | `docs/architecture.md` (plan only) |
 
 ## Current phase
-Phase 5 finished; Phase 6 awaits approval.
+Stage A finished; Phase 6 in progress.
 
 ## In progress
 Nothing in progress.

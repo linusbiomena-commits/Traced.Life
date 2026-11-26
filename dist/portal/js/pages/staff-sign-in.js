@@ -1,7 +1,8 @@
 import { api } from '../core/api.js';
 import { h, mount } from '../core/dom.js';
 import { t } from '../core/i18n.js';
-import { go, pageUrl, safeNext } from '../core/paths.js';
+import { go, pageUrl } from '../core/paths.js';
+import { homeFor } from '../core/app.js';
 import { alertBox, emailProblem, errorMessage, field, pageHeading, passwordField, setBusy, validate } from '../core/ui.js';
 
 // Staff sign-in uses the same authentication API as customers; staff accounts are created by
@@ -14,7 +15,7 @@ export default function render({ app, session }) {
   const status = h('div', { 'aria-live': 'polite' });
   const submit = h('button', { type: 'submit', class: 'p-btn p-btn--dark p-btn--block' }, t('signIn.submit'));
   if (params.get('signedOut')) status.append(alertBox('success', t('signIn.signedOut')));
-  if (session) status.append(alertBox('info', null, t('staff.forbidden.body')));
+  if (session?.noPortal) status.append(alertBox('info', t('role.noPortal.title'), t('role.noPortal.body')));
 
   const form = h('form', { novalidate: true }, summary, email.wrap, password.wrap,
     h('p', { class: 'p-small p-mt-s' }, h('a', { href: pageUrl('forgot-password') }, t('signIn.forgot'))),
@@ -27,12 +28,11 @@ export default function render({ app, session }) {
     setBusy(submit, true);
     try {
       const { user } = await api('POST', '/auth/sign-in', { email: email.input.value.trim(), password: password.input.value });
-      if (!user.permissions.includes('collection.scan')) {
-        setBusy(submit, false);
-        mount(status, alertBox('error', t('staff.forbidden.title'), t('staff.forbidden.body')));
-        return;
-      }
-      go(safeNext(params.get('next')) || pageUrl('staff-dashboard'));
+      // Every role goes to its own portal (admins via two-step verification), whichever sign-in page was used.
+      const home = homeFor(user, params.get('next'));
+      if (home) return go(home);
+      setBusy(submit, false);
+      mount(status, alertBox('info', t('role.noPortal.title'), t('role.noPortal.body')));
     } catch (err) {
       setBusy(submit, false);
       password.input.value = '';

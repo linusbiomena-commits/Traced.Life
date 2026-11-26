@@ -1,5 +1,11 @@
 # TRACED: Changelog
 
+## 2026-11-26: Stage A, manual-testing preparation and login improvements
+- Customer sign-in page: discreet **Staff Login | Admin Login** links (Arabic دخول الموظفين | دخول الإدارة).
+- One shared `homeFor()` routes every role to its own portal from any sign-in page; `next` links are honoured only inside the account's own area; customer-only pages send staff/admins to their portal; roles without a portal get a clear notice.
+- `npm run dev:test-accounts`: local-only synthetic accounts (customer, collection staff at DEV-RUH-01, admin, super admin, auditor) via one-time links; refuses production / non-local DB / real mail; stores no passwords.
+- `docs/manual-testing.md`; tests 204 unit + 24 browser.
+
 ## 2026-11-26: Phase 5 finalised
 - Final verification: typecheck clean, 200/200 unit+integration, 22/22 browser, `npm audit` 0, secrets scan clean.
 - Browser-test harness: per-run embedded-PostgreSQL data directory so an orphaned Windows worker can't block the next run (tested with a locked leftover directory).

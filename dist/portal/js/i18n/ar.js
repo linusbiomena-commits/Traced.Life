@@ -906,4 +906,10 @@ export default {
   "admin.audit.action.staff.branch_denied": "رفض الوصول إلى فرع",
   "admin.audit.action.sample.collect_refused": "رفض جمع العينة",
   "admin.audit.action.auth.account_locked": "قفل الحساب بعد محاولات دخول فاشلة",
+  // ---- Stage A: login links and role routing ----
+  "signIn.staffLogin": "دخول الموظفين",
+  "signIn.adminLogin": "دخول الإدارة",
+  "signIn.otherPortals": "تسجيل دخول الموظفين والمسؤولين",
+  "role.noPortal.title": "لا توجد بوابة لهذا الحساب بعد",
+  "role.noPortal.body": "تم تسجيل دخول حسابك، لكن لا توجد بوابة في TRACED لدوره بعد. يرجى التواصل مع المسؤول.",
 };

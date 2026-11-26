@@ -904,4 +904,10 @@ export default {
   "admin.audit.action.staff.branch_denied": "Branch access denied",
   "admin.audit.action.sample.collect_refused": "Collection refused",
   "admin.audit.action.auth.account_locked": "Account locked after failed sign-ins",
+  // ---- Stage A: login links and role routing ----
+  "signIn.staffLogin": "Staff Login",
+  "signIn.adminLogin": "Admin Login",
+  "signIn.otherPortals": "Staff and administrator sign-in",
+  "role.noPortal.title": "No portal for this account yet",
+  "role.noPortal.body": "Your account is signed in, but there is no TRACED portal for its role yet. Please contact your administrator.",
 };

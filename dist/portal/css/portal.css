@@ -318,3 +318,6 @@ html[lang^="ar"] .p-stat__value { font-family: Tahoma, Arial, sans-serif; font-w
   .p-table td .p-code { white-space: pre; }
 }
 .p-table .p-ltr { white-space: nowrap; }
+.p-signin-links { color: var(--color-muted); }
+.p-signin-links a { color: var(--color-muted); }
+.p-signin-links a:hover { color: var(--color-dark-secondary); }
