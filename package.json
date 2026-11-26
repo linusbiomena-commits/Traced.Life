@@ -24,7 +24,8 @@
     "backfill:phase3": "node --env-file-if-exists=.env --import tsx server/src/cli/backfill-phase3.ts",
     "dev:test-accounts": "node --env-file-if-exists=.env --import tsx server/src/cli/dev-test-accounts.ts",
     "test:perf": "vitest run --config vitest.perf.config.ts",
-    "drill:backup": "vitest run --config vitest.drill.config.ts"
+    "drill:backup": "vitest run --config vitest.drill.config.ts",
+    "dev:db-backup": "node --env-file-if-exists=.env --import tsx server/src/cli/dev-db-backup.ts"
   },
   "dependencies": {
     "@hono/node-server": "2.1.11",

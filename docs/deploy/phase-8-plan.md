@@ -1,5 +1,7 @@
 # TRACED: Phase 8 deployment plan (proposal, awaiting approval)
 
+> **27 Nov 2026:** Stage 8A (local upgrade) is done. The detailed, verified preparation (IAM matrix, exact commands, Dammam pricing, decisions D1–D13, release gate) is in `phase-8-preparation.md`, which supersedes overlapping parts of this plan.
+
 Nothing in this plan has started. Each step that creates paid resources, touches production credentials, applies production migrations, changes DNS or the live Vercel site needs the owner's explicit go-ahead.
 
 ## Decisions needed before Phase 8

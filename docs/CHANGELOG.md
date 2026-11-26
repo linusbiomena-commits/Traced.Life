@@ -1,5 +1,14 @@
 # TRACED: Changelog
 
+## 2026-11-27: Phase 8 preparation (Stage 8A done; nothing provisioned)
+- Local manual-testing worktree upgraded to `dee1101`; dev DB migrated 0009 → 0011 after an online backup with verified restore (32/32 tables); data verified unchanged.
+- New local-only CLI `npm run dev:db-backup` (online physical backup + restore test); `.dev-db-backups/` and `.dev-audit-checkpoints/` gitignored.
+- `server/sql/production-roles.sql`: asserts instead of setting superuser-only role attributes (Cloud SQL owner is not a superuser).
+- `docs/deploy/phase-8-preparation.md`: project and IAM matrix, Cloud Run/Cloud SQL configuration and exact (unexecuted) commands, secret inventory from the code, Vercel review (live site not deployed from this repo), Scheduler + independent checkpoint project, Resend/DNS, billing alerts, repository visibility, stages 8A–8D, release gate, decisions D1–D13.
+- `docs/deploy/cost-estimate.md`: verified Dammam list prices; ≈ SAR 72–79/month incl. VAT for 100–1,000 registrations.
+- `docs/manual-testing.md` §7–8: Phase 7 features and local backup/rollback.
+- Fixed: time-of-day bug in an admin audit-log test.
+
 ## 2026-11-26: Phase 7, security hardening and production readiness (local only)
 - Auth: super-admin reset of two-step verification; self-service recovery-code regeneration; production config guards (scheduler credential, https origin, export limits); `HOST`.
 - Migration **0010**: signed audit checkpoints, verification records, range verification, custody digest, TRUNCATE guards. Migration **0011**: performance indexes.

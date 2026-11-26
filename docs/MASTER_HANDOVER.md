@@ -1,6 +1,6 @@
 # TRACED: Master Handover
 
-Last updated: 2026-11-26. Permanent rules are in `/CLAUDE.md`; the exact checkpoint is in `docs/HANDOVER.md`.
+Last updated: 2026-11-27. Permanent rules are in `/CLAUDE.md`; the exact checkpoint is in `docs/HANDOVER.md`.
 
 ## 1. Overview
 Customer registration, secure QR and chain-of-custody platform for TRACED (LinusBio MENA, Saudi Arabia, collection partner Wareed), built on top of the existing static TRACED website. It has three portals (customer, collection staff, admin) over six roles. Context: `docs/PROJECT_CONTEXT.md`.
@@ -18,7 +18,7 @@ Customer registration, secure QR and chain-of-custody platform for TRACED (Linus
 | 5 | Trusted-proxy fix; admin portal (MFA, dashboard, audited search/records, transfers, cancellation, corrections, customer lock, QR, staff, branches, instruction drafts/publish, email monitor, audit viewer, operational CSV); migration 0008 | `phase-5-report.md` |
 
 ## 3. Current phase
-Phases 0–7 and Stage A are complete. **Phase 8 (Google Cloud provisioning and deployment) is NOT authorised**: wait for the owner's explicit approval and decisions D1–D10 (`docs/deploy/phase-8-plan.md`). Manual testing guide (all portals incl. laboratory and a full synthetic journey): `docs/manual-testing.md`.
+Phases 0–7 and Stage A are complete. **Phase 8 preparation:** Stage 8A (local manual-testing upgrade to `dee1101`, dev DB at 0011) is done; Stages 8B–8D (Google Cloud provisioning, restricted deployment, release) are **not authorised**. Plan, IAM, commands, verified Dammam pricing and decisions D1–D13: `docs/deploy/phase-8-preparation.md`. Manual testing guide (all portals incl. laboratory and a full synthetic journey): `docs/manual-testing.md`.
 
 ## 4. Architecture
 - Local: one Node process serves the API (`/api/v1`) and the static site from `dist/` on :8787; embedded PostgreSQL on :54329 (`npm run dev:db`).
@@ -42,4 +42,4 @@ See `docs/TEST_STATUS.md` (Phase 5 final run).
 5. Real branch data; physical-device validation.
 6. Real proxy chain must be verified at deployment (`docs/architecture.md` §2a); the code fix is done.
 7. Phase 7 open items: checkpoint GCS writer + bucket lock, housekeeping purges, CI pipeline, Vercel proxy-secret middleware, staging drills (`docs/phase-7-report.md` §4).
-8. Provisioning and deployment authorisation (Phase 8).
+8. Provisioning and deployment authorisation (Phase 8 Stage 8B onwards); release gate in `docs/deploy/phase-8-preparation.md` §12.

@@ -23,8 +23,8 @@ spec:
         run.googleapis.com/execution-environment: gen2
         run.googleapis.com/startup-cpu-boost: "true"
     spec:
-      serviceAccountName: traced-api@<PROJECT_ID>.iam.gserviceaccount.com
-      containerConcurrency: 40
+      serviceAccountName: traced-backend-sa@<PROJECT_ID>.iam.gserviceaccount.com
+      containerConcurrency: 20
       timeoutSeconds: 60
       containers:
         - image: <REGION>-docker.pkg.dev/<PROJECT_ID>/traced/traced-api:<GIT_SHA>
@@ -53,7 +53,7 @@ spec:
             - { name: DB_POOL_MAX, value: "5" }
             - { name: OUTBOX_INTERVAL_MS, value: "15000" }
             - { name: SCHEDULER_OIDC_AUDIENCE, value: "https://traced-api-<HASH>-<REGION_CODE>.a.run.app" }
-            - { name: SCHEDULER_OIDC_SERVICE_ACCOUNT, value: "traced-scheduler@<PROJECT_ID>.iam.gserviceaccount.com" }
+            - { name: SCHEDULER_OIDC_SERVICE_ACCOUNT, value: "traced-scheduler-sa@<PROJECT_ID>.iam.gserviceaccount.com" }
             - { name: EXPORT_PII_MAX_DAYS, value: "31" }
             - { name: EXPORT_PII_MAX_ROWS, value: "2000" }
             # Secrets: Secret Manager references (never literal values in this file).

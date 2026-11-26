@@ -1,6 +1,6 @@
 # TRACED: Deployment templates (Phase 7)
 
-**Status: templates only.** Nothing here has been provisioned, applied or deployed. No Google Cloud project, service account, secret, bucket, scheduler job or billing alert exists yet. Phase 8 starts only after explicit approval (`docs/deploy/phase-8-plan.md`).
+**Status: templates only.** Phase 8 preparation (IAM matrix, exact commands, verified Dammam pricing, decisions): `phase-8-preparation.md`; it supersedes overlapping parts of this file. Nothing here has been provisioned, applied or deployed. No Google Cloud project, service account, secret, bucket, scheduler job or billing alert exists yet. Phase 8 starts only after explicit approval (`docs/deploy/phase-8-plan.md`).
 
 | File | Purpose |
 |---|---|
@@ -20,10 +20,10 @@
 
 | Service account | Roles (project unless noted) | Used by |
 |---|---|---|
-| `traced-api` | `roles/cloudsql.client`; `roles/secretmanager.secretAccessor` **on the 6 runtime secrets only**; `roles/logging.logWriter`; `roles/storage.objectCreator` on the checkpoint bucket only (no read/delete) | Cloud Run service |
-| `traced-migrate` | `roles/cloudsql.client`; secret accessor on `traced-database-url-owner` only | Cloud Run job that runs `npm run migrate` and `server/sql/production-roles.sql` |
-| `traced-scheduler` | `roles/run.invoker` on `traced-api` only | Cloud Scheduler OIDC tokens |
-| `traced-deploy` (CI, optional) | `roles/run.developer` on the service, `roles/artifactregistry.writer`, `roles/iam.serviceAccountUser` on `traced-api` | GitHub Actions via Workload Identity Federation (no JSON keys) |
+| `traced-backend-sa` | `roles/cloudsql.client`; `roles/secretmanager.secretAccessor` **on the 6 runtime secrets only**; `roles/logging.logWriter`; `roles/storage.objectCreator` + `roles/storage.objectViewer` on the checkpoint bucket in the separate audit project (no delete/overwrite) | Cloud Run service |
+| `traced-migrate-sa` | `roles/cloudsql.client`; secret accessor on `traced-database-url-owner` only | Cloud Run job that runs `npm run migrate` and `server/sql/production-roles.sql` |
+| `traced-scheduler-sa` | `roles/run.invoker` on `traced-api` only | Cloud Scheduler OIDC tokens |
+| `traced-deployer-sa` (CI, optional) | `roles/run.developer` on the service, `roles/artifactregistry.writer`, `roles/iam.serviceAccountUser` on `traced-api` | GitHub Actions via Workload Identity Federation (no JSON keys) |
 
 - Humans: two named owners with hardware security keys, nobody else with `owner` or `cloudsql.admin`. Break-glass access is logged (Admin Activity + Data Access audit logs on Cloud SQL and Secret Manager enabled).
 
@@ -44,7 +44,7 @@ Generate keys offline (`node -e "console.log(require('crypto').randomBytes(32).t
 ## 3. Cloud SQL
 
 - PostgreSQL 18 (or the newest version Cloud SQL offers in the region; the app needs ≥ 15), `db-f1-micro` to start, 10 GB SSD, automatic storage increase on with a cap.
-- Private IP + Cloud SQL Auth (Unix socket) only; no public IP. `cloudsql.iam_authentication` optional later.
+- Connectivity: public IP with **no authorized networks** and connector enforcement (Cloud SQL connector / Unix socket only); private IP is the alternative (decision D12 in `phase-8-preparation.md`).
 - Backups: automated daily, **retain 30**, point-in-time recovery on (7 days of logs). Deletion protection on.
 - Flags: `max_connections` default (25 on db-f1-micro, check with `SHOW max_connections`), `log_min_duration_statement=500`, `cloudsql.enable_pgaudit=on` with `pgaudit.log=ddl,role` (owner activity trail).
 - After the first migration: run `server/sql/production-roles.sql` as owner, set the `traced_app` password from Secret Manager, re-run after every migration that adds a table.

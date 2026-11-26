@@ -26,8 +26,18 @@ BEGIN
 END $$;
 
 -- Runtime roles must never be able to create objects, own anything, or bypass row security.
-ALTER ROLE traced_app NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS CONNECTION LIMIT 40;
-ALTER ROLE traced_readonly NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS CONNECTION LIMIT 5;
+-- New roles have all of these off by default. They are ASSERTED here rather than set, because on
+-- Cloud SQL the migration user is not a true superuser and PostgreSQL refuses
+-- ALTER ROLE … NOSUPERUSER / NOREPLICATION / NOBYPASSRLS from non-superusers (Phase 8 review).
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_roles WHERE rolname IN ('traced_app', 'traced_readonly')
+              AND (rolsuper OR rolcreatedb OR rolcreaterole OR rolreplication OR rolbypassrls)) THEN
+    RAISE EXCEPTION 'traced_app / traced_readonly must not have SUPERUSER, CREATEDB, CREATEROLE, REPLICATION or BYPASSRLS';
+  END IF;
+END $$;
+ALTER ROLE traced_app CONNECTION LIMIT 40;
+ALTER ROLE traced_readonly CONNECTION LIMIT 5;
 -- Long-running or idle transactions hold locks and connections on a tiny instance.
 ALTER ROLE traced_app SET statement_timeout = '15s';
 ALTER ROLE traced_app SET idle_in_transaction_session_timeout = '30s';

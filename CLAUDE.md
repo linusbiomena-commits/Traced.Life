@@ -35,6 +35,7 @@ Update `docs/HANDOVER.md` after every meaningful milestone (a module, a migratio
 - **Provisional content** (consent text, collection instructions, identity verification) is not approved for production. Production config refuses provisional content and `DEV_IDENTITY_VERIFICATION`.
 - **Committed evidence:** screenshots must never show decodable QR tokens, MFA secrets or recovery codes. The E2E `shot` helpers redact QR codes automatically (`server/test/e2e/redact-qr.ts`), and a test enforces it.
 - **Phase 7 security rules:** evidence tables are INSERT + SELECT only for the runtime role (`server/sql/production-roles.sql`; re-run `db-roles.test.ts` after any migration that adds a table and extend the grants). Personal-data exports only through `POST /admin/exports/personal-data` (super admin, fresh TOTP, reason, limits, audited, never stored). Integrity: signed checkpoints + verification (`docs/security/audit-integrity.md`); never "fix" data after a failed verification. Camera browser tests use `cameraPage()` (one Edge instance per camera video). Screenshots are redacted in memory before writing.
+- **Phase 8:** Stage 8A is done; **no Google Cloud resource may be created and nothing may be deployed or changed on Vercel without the owner's explicit authorisation.** The plan is `docs/deploy/phase-8-preparation.md`. Dates in tests and filters are Riyadh calendar dates (`riyadhToday()`), never `toISOString().slice(0, 10)`.
 - **Windows E2E:** never stop the dev database (`postgres.exe -D …\.dev-db\data`). An orphaned test `io_worker` (parent gone) no longer blocks runs; stop it only with the owner's OK.
 - Do not claim anything is done unless it is implemented **and tested**. Keep verified results separate from assumptions.
 
@@ -51,6 +52,7 @@ Update `docs/HANDOVER.md` after every meaningful milestone (a module, a migratio
 | Typecheck | `npm run typecheck` |
 | Unit + integration tests (real PostgreSQL) | `npm test` |
 | Browser tests (Edge, simulated camera, port 8791) | `npm run test:e2e` |
+| Local dev DB online backup + restore test (before any local upgrade) | `npm run dev:db-backup` |
 | Performance run (synthetic, throw-away cluster) / backup drill | `npm run test:perf` / `npm run drill:backup` |
 | Leftover test PostgreSQL workers (dry run; `--yes` only with the owner's OK) | `node scripts/cleanup-orphan-test-postgres.mjs` |
 | Portal shells / nav patch | `npm run build:portal` / `npm run check:portal` |

@@ -11,4 +11,6 @@ test-results/
 .env.*
 !.env.example
 .dev-db/
+.dev-db-backups/
+.dev-audit-checkpoints/
 .dev-mail/

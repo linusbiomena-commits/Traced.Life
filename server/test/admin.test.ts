@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { csvCell, maskEmail, scrubEmails } from '../src/modules/admin/common.ts';
+import { riyadhToday } from '../src/modules/registrations/rules.ts';
 import { assertNotLastSuperAdmin } from '../src/modules/admin/staff.routes.ts';
 import type { RoleKey } from '../src/modules/rbac/catalogue.ts';
 import { extractCustomerToken } from '../src/modules/qr/qr.service.ts';
@@ -595,7 +596,8 @@ describe('audit log viewer', () => {
     expect((await auditor.c.get(`/admin/audit-logs?actorEmail=${encodeURIComponent(admin.email)}`)).status).toBe(403);
     const byEmail = (await admin.c.get(`/admin/audit-logs?actorEmail=${encodeURIComponent(admin.email)}&actionPrefix=customer`)).body.items;
     expect(byEmail.every((x: { actorUserId: string; action: string }) => x.actorUserId === admin.userId && x.action.startsWith('customer.'))).toBe(true);
-    const today = new Date().toISOString().slice(0, 10);
+    // Riyadh calendar date, as the filter uses (a UTC date failed between 00:00 and 03:00 Riyadh).
+    const today = riyadhToday();
     expect((await admin.c.get('/admin/audit-logs?from=2000-01-01&to=2000-01-02')).body.items).toHaveLength(0);
     expect((await admin.c.get(`/admin/audit-logs?to=${today}&limit=5`)).body.items.length).toBeGreaterThan(0);
     // Read-only: no edit or delete routes, and the database refuses changes anyway.

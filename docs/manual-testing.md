@@ -44,7 +44,7 @@ npm run dev:test-accounts
 5. Type the 6-digit code the app shows into **6-digit code** and click **Turn on two-step verification**. Codes change every 30 seconds.
 6. You'll see **10 recovery codes**. Store them somewhere safe, such as a password manager. Don't screenshot them into shared folders or commit them. Each works once if you lose your phone. Click **I have saved my codes**.
 7. **Next sign-ins:** email and password, then the current 6-digit code from the app (or **Use a recovery code instead**).
-8. Lost the authenticator for a local test account? Run `npm run dev:test-accounts -- --reset` and reset the password. Removing MFA from an account isn't possible from the UI by design. In local development you can create a fresh test account instead.
+8. Lost the authenticator for a test account? Since Phase 7 a **super admin** can reset another person's two-step verification (staff account page, §7). Nobody can reset their own. A lost password is reset with `npm run dev:test-accounts -- --reset`.
 
 ## 5. Suggested manual test run (existing portals)
 1. Customer: sign in (or sign up and verify via `.dev-mail/`), register a child, open the registration, view and download the QR.
@@ -64,3 +64,31 @@ npm run dev:test-accounts
 8. **Rejection and recollection (optional):** with a second registration, have the laboratory **Reject sample** on receipt (reason + remarks). The customer sees "Issue with the sample". The admin opens the sample → **Authorise recollection** (reason). The customer gets a new QR ("New sample required"), and a fresh collection with identity verification creates `…-S02`. The rejected sample stays in the history.
 
 Customer status emails (sample received, report available, new sample required) are off unless `CUSTOMER_STATUS_EMAILS=true` is set in `.env`. The new-QR email for recollection is always sent, to `.dev-mail/` locally.
+
+## 7. Phase 7 features (local, after the Phase 7 upgrade)
+
+The manual-testing worktree runs commit `dee1101` (dev DB at migration 0011) since 27 Nov 2026. Existing accounts, links and records were kept (backup verified before the upgrade, see §8). Use the same synthetic accounts as in §3.
+
+| Feature | Who | URL |
+|---|---|---|
+| Audit integrity (status, history, run verification) | admin, super admin, auditor | http://localhost:8787/traced/admin/audit-integrity/ (Arabic: http://localhost:8787/ar/traced/admin/audit-integrity/) |
+| Sign a checkpoint by hand | super admin | same page → **Sign a checkpoint now** |
+| Personal-data export | super admin only | http://localhost:8787/traced/admin/exports/ |
+| Create new recovery codes | anyone with two-step verification | http://localhost:8787/traced/admin/settings/ → **Recovery codes** |
+| Reset another person's two-step verification | super admin only | Staff → open the person → http://localhost:8787/traced/admin/staff-member/?id=… → **Reset two-step verification** |
+| Physical samples (branch) | collection staff | http://localhost:8787/traced/staff/samples/ |
+| Samples and chain-of-custody history (admin) | admin, super admin | http://localhost:8787/traced/admin/samples/ → open a sample (http://localhost:8787/traced/admin/sample/?id=…) for its custody events |
+| Laboratory | lab operator | http://localhost:8787/traced/lab/ and http://localhost:8787/traced/lab/history/ |
+| Customer custody timeline | customer | http://localhost:8787/traced/account/registration/?id=… |
+
+**Suggested Phase 7 test run**
+1. **Audit integrity:** sign in as super admin → **Audit integrity**. Click **Sign a checkpoint now**, then **Run verification now**: expect "Verification passed". A JSON copy appears in the worktree's `.dev-audit-checkpoints/` folder (hashes and counts only). Sign in as auditor: the page works, but there's no checkpoint button and no export menu item.
+2. **Export:** as super admin → **Personal-data export**. Choose today's date, tick one or two items (e.g. *Patient gender*), write a reason, enter the **current** 6-digit code and click **Download CSV**. Submitting again with the same code is refused (each code works once). Check the audit log for `report.exported_pii` with your reason and the file fingerprint, not the content. Admins and auditors don't see the menu item, and the server refuses them.
+3. **Recovery codes:** in **Settings** → **Recovery codes**, enter the current code → 10 new codes appear once; the old ones stop working.
+4. **MFA reset:** as super admin, open the laboratory operator's staff page → **Reset two-step verification** with a reason. The lab operator is signed out, and at the next sign-in sets up a new authenticator. On your own staff page the action isn't offered.
+5. **Custody:** run the §6 journey, then open the sample under admin **Samples** to see each custody event.
+
+**Development-only identity check:** the "Verified/Failed" simulation at collection exists only because `DEV_IDENTITY_VERIFICATION=true` in the local `.env`. Production configuration refuses to start with it (tested), and production collection stays blocked until a real verification method is approved.
+
+## 8. Local database backup (before upgrades)
+`npm run dev:db-backup` (run in the main `Traced Website` folder, where `.dev-db/` lives) takes an **online** backup of the running dev database (no downtime), restores the copy on a free port, and checks every table and the audit chain before reporting PASS. Backups go to `.dev-db-backups/<timestamp>/` (gitignored; they contain test personal data, so delete them when you no longer need them). To roll back an upgrade: stop the dev DB and the portal, move `.dev-db/data` aside, copy the backup's `data` folder in its place, start the dev DB, and move the worktree back to the previous commit.
