@@ -1,0 +1,2 @@
+# Keep the static site byte-identical to what is served: no line-ending conversion.
+dist/** -text
