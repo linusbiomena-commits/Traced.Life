@@ -27,8 +27,29 @@ Browser ──HTTPS──► Vercel (static pages)
       CSRF Origin check unchanged)                        └─◄ Cloud Scheduler (every 5 min: /api/v1/internal/outbox/run)
 ```
 
-- **Same origin is a design requirement.** The session cookie is `__Host-`, `SameSite=Strict`, and CSRF checks require the request `Origin` to equal `APP_ORIGIN`. Vercel therefore proxies `/api/*` to Cloud Run with a `vercel.json` rewrite, rather than the browser calling a different domain. `TRUST_PROXY=true` makes the API read the client IP from `X-Forwarded-For`.
+- **Same origin is a design requirement.** The session cookie is `__Host-`, `SameSite=Strict`, and CSRF checks require the request `Origin` to equal `APP_ORIGIN`. Vercel therefore proxies `/api/*` to Cloud Run with a `vercel.json` rewrite, rather than the browser calling a different domain. The client IP is read from `X-Forwarded-For` only as configured in §2a.
 - **Implication to approve:** with a rewrite, API traffic (including personal data in transit) passes through Vercel's edge network before reaching Dammam. Data is **stored** only in Cloud SQL (me-central2). If legal requires that no personal data transits non-Saudi infrastructure, use a custom domain pointing directly at Cloud Run (or a Google HTTPS load balancer) for both static pages and `/api`. That moves static hosting off Vercel, or uses a split domain with a matching cookie/CSRF review.
+
+## 2a. Client IP and trusted proxies (Phase 5 fix)
+
+Rate limits and audit records use the client IP. `X-Forwarded-For` is a list that each proxy **appends** to, so anything left of what our own proxies appended was written by the client and can be forged. `server/src/lib/client-ip.ts` therefore counts trusted hops **from the right**. It never uses the leftmost entry.
+
+| Setting | Meaning |
+|---|---|
+| `TRUSTED_PROXY_HOPS` | Proxies in front of the API. **Must be set explicitly in production** (startup fails otherwise). `0` = ignore the header. |
+| `TRUSTED_PROXY_CIDRS` (optional) | The socket peer must be inside these ranges before the header is read. Use for a self-managed proxy or load balancer with known addresses. |
+| `TRUSTED_PROXY_SECRET` (optional, ≥ 32 chars) | The outermost proxy must send `x-traced-proxy-auth: <secret>`. Requests without it are treated as having skipped that proxy, so one hop fewer is trusted. |
+
+**Expected values (verify in Phase 8 before go-live):**
+- **Vercel rewrite → Cloud Run (current same-origin design):** `TRUSTED_PROXY_HOPS=2`. Vercel writes the client address and Cloud Run's front end appends Vercel's egress address. The Cloud Run `*.run.app` URL is publicly reachable, so an attacker could call it directly with a forged entry. To close that gap, set `TRUSTED_PROXY_SECRET` and have Vercel add the header (Vercel Routing Middleware on `/api/*`). A direct call then gets only Cloud Run's own observed address.
+- **Direct API domain on Cloud Run (no Vercel proxy):** `TRUSTED_PROXY_HOPS=1`.
+- **External HTTPS load balancer → Cloud Run:** the load balancer appends `client, lb-address`, so `TRUSTED_PROXY_HOPS=2`.
+
+**Fallback:** if the chain is shorter than configured or an entry is malformed, the nearest address written by a trusted hop is used. The client can't control it; at worst clients share one stricter rate-limit bucket. Only the right-hand 2 KB of the header is parsed.
+
+**Verification procedure (Phase 8):** send a request with a forged `X-Forwarded-For: 6.6.6.6` through the real path and directly to the `run.app` URL. Confirm the audit record shows your real address in both cases and never `6.6.6.6`. Regression tests: `server/test/proxy.test.ts`.
+
+**Tests and local use:** the Vitest and Playwright harnesses hard-code `trustedProxyHops: 1` in their own config objects (not read from the environment) and act as that proxy.
 
 ## 3. Cloud Run configuration (initial)
 
@@ -57,7 +78,7 @@ Browser ──HTTPS──► Vercel (static pages)
 
 `DATABASE_URL`, `TOKEN_HMAC_KEY`, `DATA_ENCRYPTION_KEY`, `RESEND_API_KEY`, `INTERNAL_CRON_SECRET`. Rotation plan: HMAC/encryption keys need a versioned-key migration (documented for Phase 7). Never in Git; `.env` is gitignored, and production refuses dev transports and `DEV_IDENTITY_VERIFICATION`.
 
-Production environment (summary): `NODE_ENV=production`, `APP_ORIGIN=https://<official domain>`, `COOKIE_SECURE=true`, `TRUST_PROXY=true`, `MAIL_TRANSPORT=resend`, `MAIL_FROM=TRACED <no-reply@<verified domain>>`, `SERVE_STATIC=false`, `DEV_IDENTITY_VERIFICATION=false`.
+Production environment (summary): `NODE_ENV=production`, `APP_ORIGIN=https://<official domain>`, `COOKIE_SECURE=true`, `TRUSTED_PROXY_HOPS=<1 or 2, see §2a>`, `TRUSTED_PROXY_SECRET` (if Vercel proxies), `MAIL_TRANSPORT=resend`, `MAIL_FROM=TRACED <no-reply@<verified domain>>`, `SERVE_STATIC=false`, `DEV_IDENTITY_VERIFICATION=false`.
 
 ## 6. Email: Resend Free, and its data implications
 

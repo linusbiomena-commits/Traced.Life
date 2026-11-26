@@ -249,7 +249,7 @@ describe('identity verification framework', () => {
       method: 'POST', headers: { cookie: s.c.cookie!, 'x-csrf-token': s.c.csrf!, 'content-type': 'application/json', origin: 'http://localhost:8787' }, body: JSON.stringify({ outcome: 'verified' }),
     });
     expect(res.status).toBe(404);
-    const base = { APP_ORIGIN: 'https://t.example.sa', DATABASE_URL: 'postgres://x', TOKEN_HMAC_KEY: randomBytes(32).toString('base64'), DATA_ENCRYPTION_KEY: randomBytes(32).toString('base64'), MAIL_TRANSPORT: 'resend', RESEND_API_KEY: 're_abc', MAIL_FROM: 'a@b.sa' };
+    const base = { APP_ORIGIN: 'https://t.example.sa', DATABASE_URL: 'postgres://x', TOKEN_HMAC_KEY: randomBytes(32).toString('base64'), DATA_ENCRYPTION_KEY: randomBytes(32).toString('base64'), MAIL_TRANSPORT: 'resend', RESEND_API_KEY: 're_abc', MAIL_FROM: 'a@b.sa', TRUSTED_PROXY_HOPS: '2' };
     expect(() => loadConfig({ ...base, NODE_ENV: 'production', DEV_IDENTITY_VERIFICATION: 'true' })).toThrow(/never be enabled in production/);
     expect(loadConfig({ ...base, NODE_ENV: 'production', DEV_IDENTITY_VERIFICATION: 'false' }).devIdentityVerification).toBe(false);
   });

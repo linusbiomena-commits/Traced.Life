@@ -1,4 +1,6 @@
+import type { BlockList } from 'node:net';
 import { z } from 'zod';
+import { parseCidrs } from './lib/client-ip.ts';
 
 const bool = z.enum(['true', 'false']).transform((v) => v === 'true');
 
@@ -16,7 +18,14 @@ const schema = z.object({
   TOKEN_HMAC_KEY: key32('TOKEN_HMAC_KEY'),
   DATA_ENCRYPTION_KEY: key32('DATA_ENCRYPTION_KEY'),
   COOKIE_SECURE: bool.default(true),
-  TRUST_PROXY: bool.default(false),
+  // Legacy switch: true = one proxy hop (same as TRUSTED_PROXY_HOPS=1). Prefer TRUSTED_PROXY_HOPS.
+  TRUST_PROXY: bool.optional(),
+  // Number of reverse proxies in front of the API (Cloud Run direct = 1; Vercel → Cloud Run = 2).
+  TRUSTED_PROXY_HOPS: z.coerce.number().int().min(0).max(5).optional(),
+  // Optional: the socket peer must be inside these CIDRs before X-Forwarded-For is read.
+  TRUSTED_PROXY_CIDRS: z.string().max(2000).optional(),
+  // Optional: shared secret the outermost proxy sends as x-traced-proxy-auth (see lib/client-ip.ts).
+  TRUSTED_PROXY_SECRET: z.string().min(32).optional(),
   MAIL_TRANSPORT: z.enum(['dev', 'memory', 'resend']).default('dev'),
   MAIL_DEV_DIR: z.string().default('.dev-mail'),
   MAIL_FROM: z.string().max(200).optional(),
@@ -40,7 +49,10 @@ export type Config = {
   tokenHmacKey: Buffer;
   dataEncryptionKey: Buffer;
   cookieSecure: boolean;
-  trustProxy: boolean;
+  /** Reverse proxies in front of the API; 0 = use the socket address only. */
+  trustedProxyHops: number;
+  trustedProxyCidrs?: BlockList | null;
+  trustedProxySecret?: string;
   mailTransport: 'dev' | 'memory' | 'resend';
   mailDevDir: string;
   mailFrom?: string;
@@ -70,7 +82,19 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     if (e.MAIL_TRANSPORT !== 'resend') throw new Error('MAIL_TRANSPORT must be resend in production');
     if (e.SERVE_STATIC) throw new Error('SERVE_STATIC is for local development only');
     if (e.DEV_IDENTITY_VERIFICATION) throw new Error('DEV_IDENTITY_VERIFICATION must never be enabled in production');
+    // Production must state its proxy chain explicitly; a guessed value either trusts forgeable
+    // headers or puts every client into one rate-limit bucket.
+    if (e.TRUSTED_PROXY_HOPS === undefined) throw new Error('TRUSTED_PROXY_HOPS must be set explicitly in production');
+    if (e.TRUST_PROXY !== undefined) throw new Error('TRUST_PROXY is not supported in production; set TRUSTED_PROXY_HOPS');
   }
+  if (e.TRUST_PROXY !== undefined && e.TRUSTED_PROXY_HOPS !== undefined) {
+    throw new Error('Set either TRUSTED_PROXY_HOPS or the legacy TRUST_PROXY, not both');
+  }
+  const trustedProxyHops = e.TRUSTED_PROXY_HOPS ?? (e.TRUST_PROXY ? 1 : 0);
+  if (trustedProxyHops === 0 && (e.TRUSTED_PROXY_CIDRS || e.TRUSTED_PROXY_SECRET)) {
+    throw new Error('TRUSTED_PROXY_CIDRS / TRUSTED_PROXY_SECRET need TRUSTED_PROXY_HOPS >= 1');
+  }
+  const trustedProxyCidrs = parseCidrs(e.TRUSTED_PROXY_CIDRS);
   return {
     env: e.NODE_ENV,
     port: e.PORT,
@@ -79,7 +103,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     tokenHmacKey: e.TOKEN_HMAC_KEY,
     dataEncryptionKey: e.DATA_ENCRYPTION_KEY,
     cookieSecure: e.COOKIE_SECURE,
-    trustProxy: e.TRUST_PROXY,
+    trustedProxyHops,
+    trustedProxyCidrs,
+    trustedProxySecret: e.TRUSTED_PROXY_SECRET,
     mailTransport: e.MAIL_TRANSPORT,
     mailDevDir: e.MAIL_DEV_DIR,
     mailFrom: e.MAIL_FROM,

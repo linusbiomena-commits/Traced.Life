@@ -97,7 +97,8 @@ export async function setupTestApp() {
     tokenHmacKey: randomBytes(32),
     dataEncryptionKey: randomBytes(32),
     cookieSecure: false,
-    trustProxy: true,
+    // Tests act as the one trusted proxy and send each client's address as X-Forwarded-For.
+    trustedProxyHops: 1,
     mailTransport: 'memory',
     mailDevDir: '',
     serveStatic: false,

@@ -44,7 +44,9 @@ const config: Config = {
   tokenHmacKey: randomBytes(32),
   dataEncryptionKey: randomBytes(32),
   cookieSecure: false,
-  trustProxy: true, // tests send a per-customer X-Forwarded-For (as Cloud Run's proxy would)
+  // Test-harness only (hard-coded, never read from the environment): the browser tests send a
+  // per-customer X-Forwarded-For as if one trusted proxy (Cloud Run) had appended it.
+  trustedProxyHops: 1,
   mailTransport: 'dev',
   mailDevDir: MAIL_DIR,
   serveStatic: true,

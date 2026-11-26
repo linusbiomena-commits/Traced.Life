@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { isIP } from 'node:net';
 import type { MiddlewareHandler } from 'hono';
 import type { AppEnv, Deps } from '../context.ts';
+import { PROXY_AUTH_HEADER, resolveClientIp } from '../lib/client-ip.ts';
 import { safeEqual } from '../lib/crypto.ts';
 import { AppError, Errors } from '../lib/errors.ts';
 import { csrfTokenFor, loadSession, readSessionCookie } from '../modules/auth/sessions.ts';
@@ -11,14 +11,15 @@ import { csrfTokenFor, loadSession, readSessionCookie } from '../modules/auth/se
 export function requestContext(deps: Deps): MiddlewareHandler<AppEnv> {
   return async (c, next) => {
     c.set('requestId', randomUUID());
-    let ip: string | null = null;
-    if (deps.config.trustProxy) {
-      ip = c.req.header('x-forwarded-for')?.split(',')[0]?.trim() ?? null;
-    } else {
-      const incoming = (c.env as { incoming?: { socket?: { remoteAddress?: string } } } | undefined)?.incoming;
-      ip = incoming?.socket?.remoteAddress ?? null;
-    }
-    c.set('ip', ip && isIP(ip.replace(/^::ffff:/, '')) ? ip.replace(/^::ffff:/, '') : null);
+    const incoming = (c.env as { incoming?: { socket?: { remoteAddress?: string } } } | undefined)?.incoming;
+    const { trustedProxyHops, trustedProxyCidrs, trustedProxySecret } = deps.config;
+    c.set(
+      'ip',
+      resolveClientIp(
+        { forwardedFor: c.req.header('x-forwarded-for'), peer: incoming?.socket?.remoteAddress ?? null, proxyAuth: c.req.header(PROXY_AUTH_HEADER) },
+        { hops: trustedProxyHops, trustedPeers: trustedProxyCidrs, proxySecret: trustedProxySecret },
+      ),
+    );
     c.set('userAgent', c.req.header('user-agent')?.slice(0, 512) ?? null);
     c.set('session', null);
     c.set('sessionToken', null);
