@@ -53,6 +53,37 @@ export async function api(method, path, body, options = {}) {
   return data;
 }
 
+/**
+ * POST that returns a file (Phase 7 personal-data export). The file stays in memory: it is handed
+ * to the browser as a one-off object URL and the URL is revoked straight away.
+ */
+export async function apiDownload(path, body) {
+  const headers = { Accept: 'text/csv, application/json', 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+  let res;
+  try {
+    res = await fetch(`/api/v1${path}`, { method: 'POST', headers, body: JSON.stringify(body), credentials: 'same-origin', cache: 'no-store', redirect: 'error' });
+  } catch {
+    throw new ApiError(0, 'NETWORK', 'Network error');
+  }
+  if (!res.ok) {
+    let err = {};
+    try { err = (await res.json()).error || {}; } catch { /* not JSON */ }
+    throw new ApiError(res.status, err.code || `HTTP_${res.status}`, err.message, err.details, Number(res.headers.get('Retry-After')) || null);
+  }
+  const blob = await res.blob();
+  const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') || '')?.[1] || 'export.csv';
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+  return { name, rows: Number(res.headers.get('X-Export-Rows')) || 0, sha256: res.headers.get('X-Export-Sha256') || '' };
+}
+
 /** The signed-in user, or null. */
 export async function loadSession() {
   try {

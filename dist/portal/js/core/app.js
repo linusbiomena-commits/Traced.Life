@@ -51,6 +51,9 @@ const ACCESS = {
   'admin-samples': 'admin',
   'admin-sample': 'admin',
   'admin-sample-label': 'admin',
+  // Phase 7: audit integrity and personal-data export.
+  'admin-integrity': 'admin',
+  'admin-exports': 'admin',
 };
 
 // Admin navigation: each item appears only for a permission the account holds. The server checks
@@ -64,6 +67,8 @@ export const ADMIN_NAV = [
   ['admin-instructions', 'admin.nav.instructions', ['instructions.draft']],
   ['admin-emails', 'admin.nav.emails', ['email.manage']],
   ['admin-audit', 'admin.nav.audit', ['audit.read']],
+  ['admin-integrity', 'admin.nav.integrity', ['audit.read']],
+  ['admin-exports', 'admin.nav.exports', ['report.export_pii']],
   ['admin-settings', 'admin.nav.settings', []],
 ];
 // Pages beyond the menu items need the permission of the area they belong to.

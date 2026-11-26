@@ -14,7 +14,7 @@ import { renderQrPng } from '../qr/qr.service.ts';
 import type { RoleKey } from '../rbac/catalogue.ts';
 import { buildLink } from './links.ts';
 import {
-  claimTotpStep, consumeRecoveryCode, decryptSecret, encryptSecret, matchTotp, newTotpSecret, otpauthUrl, regenerateRecoveryCodes,
+  claimTotpStep, consumeRecoveryCode, decryptSecret, encryptSecret, matchTotp, newTotpSecret, otpauthUrl, regenerateRecoveryCodes, verifyFreshTotp,
 } from './mfa.ts';
 import {
   clearSessionCookie, createSession, csrfTokenFor, loadSession, revokeAllSessions, revokeSession, rotateSession, writeSessionCookie,
@@ -340,9 +340,7 @@ export function authRoutes(deps: Deps) {
     const { code } = await parseBody(c, z.strictObject({ code: z.string().trim().max(10) }));
     if (!s.mfaEnrolled || !s.mfaVerified) throw new AppError(409, 'MFA_NOT_VERIFIED', 'Complete two-step verification first.');
     await enforceRateLimit(db, { key: `mfa_recovery_regen:user:${s.userId}`, limit: 5, windowSeconds: 3600 });
-    const { rows } = await db.query<{ enc: string }>('SELECT mfa_totp_secret_enc AS enc FROM users WHERE id = $1', [s.userId]);
-    const step = matchTotp(decryptSecret(deps, s.userId, rows[0]!.enc, 'active'), code);
-    if (step === null || !(await claimTotpStep(db, s.userId, step))) {
+    if (!(await verifyFreshTotp(db, deps, s.userId, code))) {
       await auditSafe(db, { ...actorFrom(c), action: 'auth.recovery_codes_regenerated', outcome: 'failure', targetType: 'user', targetId: s.userId });
       throw Errors.invalidMfaCode();
     }

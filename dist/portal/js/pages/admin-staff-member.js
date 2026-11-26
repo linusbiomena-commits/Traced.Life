@@ -23,12 +23,12 @@ export default async function render({ app, session }) {
       branches = [];
     }
   }
-  draw(app, await api('GET', `/admin/staff/${encodeURIComponent(id)}`), branches);
+  draw(app, await api('GET', `/admin/staff/${encodeURIComponent(id)}`), branches, session);
 }
 
-function draw(app, { staff: s, activity, canManage, grantableRoles }, branches) {
+function draw(app, { staff: s, activity, canManage, grantableRoles }, branches, session) {
   const after = async (message) => {
-    draw(app, await api('GET', `/admin/staff/${encodeURIComponent(s.id)}`), branches);
+    draw(app, await api('GET', `/admin/staff/${encodeURIComponent(s.id)}`), branches, session);
     document.getElementById('action-result')?.replaceChildren(alertBox('success', message));
     return false;
   };
@@ -71,6 +71,17 @@ function draw(app, { staff: s, activity, canManage, grantableRoles }, branches) 
         run: async () => { await api('POST', `/admin/staff/${s.id}/resend-invite`, {}); return t('admin.staffd.resent'); },
       }));
     }
+  }
+  // Phase 7: lost authenticator. Super administrators only, never for their own account; the
+  // person signs in again and sets up a new authenticator.
+  if (can(session, 'admin.manage') && s.id !== session.id && s.security.mfaEnabled && s.status !== 'deactivated') {
+    actions.push(actionForm({
+      summary: t('admin.staffd.mfaReset'), intro: t('admin.staffd.mfaResetIntro'), submitLabel: t('admin.staffd.mfaResetSubmit'), danger: true,
+      run: async (reason) => {
+        await api('POST', `/admin/staff/${s.id}/mfa-reset`, { reason });
+        return after(t('admin.staffd.mfaResetDone'));
+      },
+    }));
   }
   const sec = s.security;
   mount(app, adminPage(s.fullName || s.email, null,

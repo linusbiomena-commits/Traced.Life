@@ -32,6 +32,8 @@ export const PAGES = {
   'admin-emails': 'admin/emails/',
   'admin-audit': 'admin/audit/',
   'admin-settings': 'admin/settings/',
+  'admin-integrity': 'admin/audit-integrity/',
+  'admin-exports': 'admin/exports/',
   'sample-info': 's/',
   'staff-samples': 'staff/samples/',
   'staff-label': 'staff/label/',

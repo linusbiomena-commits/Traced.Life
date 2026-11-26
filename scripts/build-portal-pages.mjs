@@ -44,6 +44,8 @@ export const PAGES = [
   { id: 'admin-emails', dir: 'admin/emails', title: { en: 'Email delivery', ar: 'تسليم البريد الإلكتروني' } },
   { id: 'admin-audit', dir: 'admin/audit', title: { en: 'Audit log', ar: 'سجل التدقيق' } },
   { id: 'admin-settings', dir: 'admin/settings', title: { en: 'Admin settings', ar: 'إعدادات المسؤول' } },
+  { id: 'admin-integrity', dir: 'admin/audit-integrity', title: { en: 'Audit integrity', ar: 'سلامة سجل التدقيق' } },
+  { id: 'admin-exports', dir: 'admin/exports', title: { en: 'Personal-data export', ar: 'تصدير البيانات الشخصية' } },
   { id: 'sample-info', dir: 's', title: { en: 'TRACED sample label', ar: 'ملصق عينة TRACED' } },
   { id: 'staff-samples', dir: 'staff/samples', title: { en: 'Samples', ar: 'العينات' } },
   { id: 'staff-label', dir: 'staff/label', title: { en: 'Sample label', ar: 'ملصق العينة' } },

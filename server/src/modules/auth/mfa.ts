@@ -73,3 +73,16 @@ export async function claimTotpStep(db: Queryable, userId: string, step: number)
   );
   return (r.rowCount ?? 0) === 1;
 }
+
+/**
+ * Step-up check for sensitive actions (Phase 7): a current authenticator code (not a recovery
+ * code), each 30-second step usable once. Returns false for no enrolment, a wrong code or a reused
+ * step.
+ */
+export async function verifyFreshTotp(db: Queryable, deps: Deps, userId: string, code: string): Promise<boolean> {
+  if (!/^\d{6}$/.test(code)) return false;
+  const { rows } = await db.query<{ enc: string | null }>('SELECT mfa_totp_secret_enc AS enc FROM users WHERE id = $1 AND mfa_enabled_at IS NOT NULL', [userId]);
+  if (!rows[0]?.enc) return false;
+  const step = matchTotp(decryptSecret(deps, userId, rows[0].enc, 'active'), code);
+  return step !== null && (await claimTotpStep(db, userId, step));
+}
