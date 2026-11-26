@@ -14,6 +14,7 @@ import { revokeAllSessions } from '../auth/sessions.ts';
 import { issueToken } from '../auth/tokens.ts';
 import { enqueueEmail, kickOutbox } from '../mail/outbox.ts';
 import { registrationBody } from '../registrations/me.routes.ts';
+import { listActiveBranches } from '../registrations/registrations.repo.ts';
 import { applyPatientCorrection } from '../registrations/registrations.service.ts';
 import { ageParts, normaliseSaudiMobile, riyadhToday, toAsciiDigits } from '../registrations/rules.ts';
 import { dateParam, has, idParam, isOpen, reasonField, searchTermHash, uuid } from './common.ts';
@@ -263,9 +264,11 @@ export function adminRegistrationRoutes(deps: Deps) {
     if (!detail) throw Errors.notFound();
     await audit(db, { ...actorFrom(c), action: 'registration.viewed_full', outcome: 'success', targetType: 'registration', targetId: id, fieldsAccessed: FULL_FIELDS });
     const s = actor(c);
+    const manage = has(s, 'registration.manage');
     return c.json({
       registration: detail,
-      permissions: { manage: has(s, 'registration.manage'), qr: has(s, 'qr.revoke') },
+      permissions: { manage, qr: has(s, 'qr.revoke') },
+      activeBranches: manage ? await listActiveBranches(db) : [],
     });
   });
 

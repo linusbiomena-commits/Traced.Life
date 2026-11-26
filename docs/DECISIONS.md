@@ -1,6 +1,6 @@
 # TRACED: Decision Register
 
-Last updated: 2026-11-26. Only **Approved** items may be treated as settled. Anything else needs the owner's explicit approval.
+Last updated: 2026-11-26 (Phase 5 approved and implemented). Only **Approved** items may be treated as settled. Anything else needs the owner's explicit approval.
 
 ## Approved
 | # | Decision | Source |
@@ -16,17 +16,23 @@ Last updated: 2026-11-26. Only **Approved** items may be treated as settled. Any
 | A9 | No National ID, Iqama or nationality in the initial implementation; account holder must confirm 18+; no arbitrary minimum patient age | Phase 2 |
 | A10 | Header label "My Account" / "حسابي", person icon on mobile; footer Account link points to the local portal | Phase 2 |
 | A11 | Standing authorisation: commit and push tested work to `feature/traced-portal`; never `main`, never deploy | Master handover §23 |
+| A12 | Phase 5 (admin portal) approved, with the trusted-proxy fix first | Owner, 2026-11-26 |
+| A13 | Branch transfers before collection by authorised admins: reason, from/to, who, when, audit, sessions invalidated, customer notified, tracking ID kept | Owner, 2026-11-26 |
+| A14 | Only the super admin approves/publishes collection instructions; admins prepare drafts (new permission `instructions.draft`). Publishing in the app is not clinical approval | Owner, 2026-11-26 |
+| A15 | PII exports: super admin only, fresh MFA, reason, date limits, audit, CSV-injection safe. **Deferred to Phase 7**; non-identifying operational CSV allowed in Phase 5 | Owner, 2026-11-26 |
+| A16 | Admin search by patient name, customer name, email, mobile, tracking ID; audited without readable terms | Owner, 2026-11-26 |
+| A17 | Customer account actions: resend verification, lock, unlock (reasons, audit). No deletion or unrestricted deactivation | Owner, 2026-11-26 |
+| A18 | Admin patient corrections before collection only, with reason and encrypted history | Owner, 2026-11-26 |
+| A19 | Client IP: count trusted proxy hops from the right (`TRUSTED_PROXY_HOPS`, optional CIDRs / proxy secret); production must set it explicitly | Phase 5 milestone 1 |
 
 ## Proposed / awaiting approval
 | # | Item | Notes |
 |---|---|---|
-| P1 | Phase 5 scope and plan | `docs/phase-5-plan.md` |
+| P1 | Phase 6 scope (physical sample labels, chain of custody) | `docs/phase-5-report.md` §18 |
 | P2 | Make GitHub repo `linusbiomena-commits/Traced.Life` **private** | Currently public; recommended |
 | P3 | Identity-verification method per scenario (adult, child + guardian, dependent) | `docs/identity-verification.md`; production collection blocked until decided |
-| P4 | Collection only at the registered branch (current) vs. audited branch transfer | Phase 5 plan §4.1 |
 | P5 | API routing: Vercel rewrite vs. direct Saudi-hosted API domain | `docs/architecture.md` §2 |
-| P6 | Who approves collection instructions (super admin via `form.approve` proposed) | Phase 5 plan §4.2 |
-| P7 | Fix leftmost-X-Forwarded-For trust (use right-hand trusted hop) | Phase 5 plan §1.1 |
+| P6 | Exact proxy chain in production (`TRUSTED_PROXY_HOPS` 1 or 2; Vercel proxy secret) | `docs/architecture.md` §2a; verify in Phase 8 |
 
 ## Unresolved (business, legal or clinical; not technical)
 1. Official production sending domain.

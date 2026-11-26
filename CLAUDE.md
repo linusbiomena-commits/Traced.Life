@@ -1,6 +1,6 @@
 # TRACED Platform: Permanent Instructions for Claude
 
-TRACED (LinusBio MENA, Saudi Arabia; collection partner Wareed) extends the existing static TRACED website with customer registration, secure QR codes, a collection-staff portal, an admin portal (Phase 5) and physical-sample chain of custody (Phase 6).
+TRACED (LinusBio MENA, Saudi Arabia; collection partner Wareed) extends the existing static TRACED website with customer registration, secure QR codes, a collection-staff portal, an admin portal (built in Phase 5) and physical-sample chain of custody (Phase 6).
 
 **This is a continuing project. Never restart a completed phase.** The repository is the source of truth for continuity: read the handover files below before doing anything.
 
@@ -29,7 +29,8 @@ Update `docs/HANDOVER.md` after every meaningful milestone (a module, a migratio
 - **Customers** see only their own data. **Admins** see personal data only through permission-checked, audited endpoints. **Auditors** do not get patient personal data. PII exports need `report.export_pii`.
 - **Tracking ID** `TRC-SA-MM/YY-XXXXX` (Asia/Riyadh, monthly atomic sequence). Preserve the engine. It is not a credential.
 - **QR tokens:** 256-bit random, never logged, never contain personal data or the tracking ID.
-- **Migrations:** never edit an applied migration; add a new numbered one. Allocate the tracking ID before any audit write; the lock order is registration → patient → session/token → audit.
+- **Client IP:** never trust the leftmost `X-Forwarded-For`; use `server/src/lib/client-ip.ts` and `TRUSTED_PROXY_HOPS`.
+- **Migrations:** never edit an applied migration; add a new numbered one (latest: 0008). Allocate the tracking ID before any audit write; the lock order is registration → patient → session/token → audit.
 - **Provisional content** (consent text, collection instructions, identity verification) is not approved for production. Production config refuses provisional content and `DEV_IDENTITY_VERIFICATION`.
 - Do not claim anything is done unless it is implemented **and tested**. Keep verified results separate from assumptions.
 
@@ -47,7 +48,8 @@ Update `docs/HANDOVER.md` after every meaningful milestone (a module, a migratio
 | Unit + integration tests (real PostgreSQL) | `npm test` |
 | Browser tests (Edge, simulated camera, port 8791) | `npm run test:e2e` |
 | Portal shells / nav patch | `npm run build:portal` / `npm run check:portal` |
-| Create staff | `npm run create-user -- --email … --role collection_staff --name "…" --branch DEV-RUH-01` |
+| Create staff | `npm run create-user -- --email … --role collection_staff --name "…" --branch DEV-RUH-01` (or invite from the admin portal) |
+| Bootstrap the first super admin | `npm run create-user -- --email … --role super_admin --name "…"`, then sign in at `/traced/admin/sign-in/` and set up two-step verification |
 
 More detail: `docs/development.md`.
 

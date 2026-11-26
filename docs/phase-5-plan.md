@@ -1,6 +1,6 @@
 # TRACED Platform: Phase 5 Implementation Plan (Authorized Admin Portal)
 
-Status: **PROPOSED, awaiting approval.** Nothing in this plan has been implemented. Written 26 November 2026 on top of Phase 4 (`2debbf1`).
+Status: **APPROVED (26 Nov 2026) and IMPLEMENTED** with the owner's reduced scope; see `docs/phase-5-report.md` for what was built. The text below is the original plan, kept for reference. Written 26 November 2026 on top of Phase 4 (`2debbf1`).
 
 ## 0. Principles
 - Reuse the Phase 1 authentication system, sessions, MFA, CSRF, rate limits, audit service and the existing permission catalogue (`server/migrations/0003`, `server/src/modules/rbac/catalogue.ts`). **Add no new authentication system and no new roles.**

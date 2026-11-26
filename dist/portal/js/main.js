@@ -20,6 +20,19 @@ const PAGES = {
   'staff-settings': () => import('./pages/staff-settings.js'),
   'staff-accept-invite': () => import('./pages/accept-invite.js'),
   'admin-accept-invite': () => import('./pages/accept-invite.js'),
+  'admin-dashboard': () => import('./pages/admin-dashboard.js'),
+  'admin-sign-in': () => import('./pages/admin-sign-in.js'),
+  'admin-mfa': () => import('./pages/admin-mfa.js'),
+  'admin-registrations': () => import('./pages/admin-registrations.js'),
+  'admin-registration': () => import('./pages/admin-registration.js'),
+  'admin-customer': () => import('./pages/admin-customer.js'),
+  'admin-staff': () => import('./pages/admin-staff.js'),
+  'admin-staff-member': () => import('./pages/admin-staff-member.js'),
+  'admin-branches': () => import('./pages/admin-branches.js'),
+  'admin-instructions': () => import('./pages/admin-instructions.js'),
+  'admin-emails': () => import('./pages/admin-emails.js'),
+  'admin-audit': () => import('./pages/admin-audit.js'),
+  'admin-settings': () => import('./pages/admin-settings.js'),
 };
 
 const page = document.documentElement.dataset.page;

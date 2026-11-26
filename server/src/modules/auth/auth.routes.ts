@@ -10,6 +10,7 @@ import { enforceRateLimit, enforceRateLimits } from '../../middleware/rate-limit
 import { requireSession } from '../../middleware/rbac.ts';
 import { audit, auditSafe } from '../audit/audit.service.ts';
 import { sendMailInBackground } from '../mail/send.ts';
+import { renderQrPng } from '../qr/qr.service.ts';
 import type { RoleKey } from '../rbac/catalogue.ts';
 import { buildLink } from './links.ts';
 import {
@@ -296,7 +297,10 @@ export function authRoutes(deps: Deps) {
     const secret = newTotpSecret();
     await db.query('UPDATE users SET mfa_pending_secret_enc = $2 WHERE id = $1', [s.userId, encryptSecret(deps, s.userId, secret, 'pending')]);
     await auditSafe(db, { ...actorFrom(c), action: 'auth.mfa_setup_started', outcome: 'success', targetType: 'user', targetId: s.userId });
-    return c.json({ otpauthUrl: otpauthUrl(secret, s.email), secret });
+    const url = otpauthUrl(secret, s.email);
+    // QR of the otpauth:// link for authenticator apps, rendered on our server (no third party).
+    const qrImage = `data:image/png;base64,${(await renderQrPng(url, 240)).toString('base64')}`;
+    return c.json({ otpauthUrl: url, secret, qrImage });
   });
 
   r.post('/mfa/enable', requireSession, async (c) => {

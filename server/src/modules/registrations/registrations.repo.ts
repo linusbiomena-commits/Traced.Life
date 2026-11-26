@@ -94,6 +94,9 @@ export async function getOwnRegistration(db: Queryable, userId: string, id: stri
     `SELECT s.collected_at, b.name_en, b.name_ar, b.city_en, b.city_ar
        FROM samples s JOIN collection_branches b ON b.id = s.branch_id
       WHERE s.registration_id = $1 AND s.status <> 'rejected'`, [id]);
+  // Phase 5: an administrator may move the registration to another branch before collection.
+  const transfer = await db.query<{ created_at: Date }>(
+    'SELECT created_at FROM registration_branch_transfers WHERE registration_id = $1 ORDER BY id DESC LIMIT 1', [id]);
   const base = summary(r);
   return {
     ...base,
@@ -115,6 +118,7 @@ export async function getOwnRegistration(db: Queryable, userId: string, id: stri
       ? { collectedAt: sample.rows[0].collected_at.toISOString(), branch: { nameEn: sample.rows[0].name_en, nameAr: sample.rows[0].name_ar, cityEn: sample.rows[0].city_en, cityAr: sample.rows[0].city_ar } }
       : null,
     canResendEmail: active && Boolean(qr.rows[0]),
+    branchChangedAt: transfer.rows[0]?.created_at.toISOString() ?? null,
   };
 }
 

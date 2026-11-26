@@ -19,6 +19,19 @@ export const PAGES = {
   'staff-settings': 'staff/settings/',
   'staff-accept-invite': 'staff/accept-invite/',
   'admin-accept-invite': 'admin/accept-invite/',
+  'admin-dashboard': 'admin/',
+  'admin-sign-in': 'admin/sign-in/',
+  'admin-mfa': 'admin/two-step/',
+  'admin-registrations': 'admin/registrations/',
+  'admin-registration': 'admin/registration/',
+  'admin-customer': 'admin/customer/',
+  'admin-staff': 'admin/staff/',
+  'admin-staff-member': 'admin/staff-member/',
+  'admin-branches': 'admin/branches/',
+  'admin-instructions': 'admin/instructions/',
+  'admin-emails': 'admin/emails/',
+  'admin-audit': 'admin/audit/',
+  'admin-settings': 'admin/settings/',
 };
 
 export const isArabicPath = (path = location.pathname) => /^\/ar(?:\/|$)/.test(path);
@@ -39,7 +52,7 @@ export function counterpartPath(path = location.pathname) {
   return isArabicPath(path) ? path.replace(/^\/ar(?=\/|$)/, '') || '/' : `/ar${path}`;
 }
 
-const NEXT_RE = /^\/(?:ar\/)?traced\/(?:account|staff)\/(?:[a-z-]+\/)?(?:\?id=[0-9a-f-]{36})?$/;
+const NEXT_RE = /^\/(?:ar\/)?traced\/(?:account|staff|admin)\/(?:[a-z-]+\/)?(?:\?id=[0-9a-f-]{36})?$/;
 
 /** Only same-site portal paths are accepted as a post-sign-in destination (no open redirects). */
 export function safeNext(value) {

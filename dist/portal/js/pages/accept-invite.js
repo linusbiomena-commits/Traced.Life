@@ -27,7 +27,7 @@ export default function render({ app, page }) {
       await api('POST', '/auth/account-setup', { token, password: password.input.value });
       mount(app, h('div', { class: 'p-narrow' }, pageHeading(t('invite.title')),
         h('div', { class: 'p-card p-stack' }, alertBox('success', null, admin ? t('invite.adminDone') : t('invite.done')),
-          admin ? null : h('a', { class: 'p-btn p-btn--dark p-btn--block', href: pageUrl('staff-sign-in') }, t('common.goToSignIn')))));
+          h('a', { class: 'p-btn p-btn--dark p-btn--block', href: pageUrl(admin ? 'admin-sign-in' : 'staff-sign-in') }, t('common.goToSignIn')))));
       focusTitle();
     } catch (err) {
       setBusy(submit, false);

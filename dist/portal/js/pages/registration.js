@@ -207,7 +207,7 @@ export default async function render({ app, session }) {
           [t('reg.country'), t('reg.countryValue')],
           [t('reg.branch'), branchName(r.branch)],
           addr ? ['', addr] : null,
-        ])),
+        ]), r.branchChangedAt && !r.collection ? alertBox('info', null, t('detail.branchChanged', { date: formatDateTime(r.branchChangedAt) })) : null),
         section('consents-title', t('detail.consents'), h('ul', { class: 'p-list' }, r.consents.map((c) => h('li', { class: 'p-item' },
           h('div', {}, h('p', { class: 'p-item__title' }, c.title),
             h('p', { class: 'p-item__meta' }, h('span', {}, t('detail.version', { v: c.version })), h('span', {}, t('detail.acceptedOn', { date: formatDate(c.acceptedAt) })))),

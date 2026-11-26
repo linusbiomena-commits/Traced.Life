@@ -1,5 +1,11 @@
 # TRACED: Changelog
 
+## 2026-11-26: Phase 5, authorized admin portal
+- **Milestone 1 (`898705e`):** trusted-proxy hardening (`TRUSTED_PROXY_HOPS`/`_CIDRS`/`_SECRET`; leftmost X-Forwarded-For no longer trusted; production must configure it).
+- **Milestone 2 (`405a1f0`):** migration **0008** (permission `instructions.draft`, user status metadata, `registration_branch_transfers`, `collection_instruction_drafts`, instruction approval columns, `registration_branch_changed` email, indexes); admin API under `server/src/modules/admin/`; audit viewer filters and redaction.
+- **Milestone 3:** admin portal pages (13 EN/AR pages incl. MFA enrolment), customer branch-change notice, MFA setup QR image, 6 admin browser tests, 20 screenshots, `docs/phase-5-report.md`.
+- **Fixed:** race in the last-super-admin guard; invite message wiped on reload; page-level permission guard.
+
 ## 2026-11-26: Phase 4 verified and handover system added
 - Independent re-verification on a new Claude account: typecheck clean, 154/154 tests, 16/16 browser tests, portal checks pass, `npm audit` 0 vulnerabilities, no tracked secrets.
 - Added `CLAUDE.md` and the handover documents (`docs/MASTER_HANDOVER.md`, `HANDOVER.md`, `PROJECT_CONTEXT.md`, `DEVELOPMENT_PROGRESS.md`, `DECISIONS.md`, `TEST_STATUS.md`, this file) and `docs/phase-5-plan.md`.

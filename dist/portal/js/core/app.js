@@ -26,7 +26,54 @@ const ACCESS = {
   'staff-settings': 'staff',
   'staff-accept-invite': 'any',
   'admin-accept-invite': 'any',
+  // Admin portal (Phase 5): privileged accounts that have passed MFA; navigation by permission.
+  'admin-sign-in': 'admin-guest',
+  'admin-mfa': 'admin-mfa',
+  'admin-dashboard': 'admin',
+  'admin-registrations': 'admin',
+  'admin-registration': 'admin',
+  'admin-customer': 'admin',
+  'admin-staff': 'admin',
+  'admin-staff-member': 'admin',
+  'admin-branches': 'admin',
+  'admin-instructions': 'admin',
+  'admin-emails': 'admin',
+  'admin-audit': 'admin',
+  'admin-settings': 'admin',
 };
+
+// Admin navigation: each item appears only for a permission the account holds. The server checks
+// every request again; hiding a link is never the control.
+export const ADMIN_NAV = [
+  ['admin-dashboard', 'admin.nav.dashboard', ['stats.read']],
+  ['admin-registrations', 'admin.nav.registrations', ['registration.read_full']],
+  ['admin-staff', 'admin.nav.staff', ['staff.manage', 'admin.manage']],
+  ['admin-branches', 'admin.nav.branches', ['branch.manage']],
+  ['admin-instructions', 'admin.nav.instructions', ['instructions.draft']],
+  ['admin-emails', 'admin.nav.emails', ['email.manage']],
+  ['admin-audit', 'admin.nav.audit', ['audit.read']],
+  ['admin-settings', 'admin.nav.settings', []],
+];
+// Pages beyond the menu items need the permission of the area they belong to.
+const ADMIN_PAGE_PERMS = {
+  ...Object.fromEntries(ADMIN_NAV.map(([id, , perms]) => [id, perms])),
+  'admin-registration': ['registration.read_full'],
+  'admin-customer': ['registration.read_full'],
+  'admin-staff-member': ['staff.manage', 'admin.manage'],
+};
+const ADMIN_PERMS = ['stats.read', 'registration.read_full', 'staff.manage', 'admin.manage', 'branch.manage', 'instructions.draft', 'email.manage', 'audit.read'];
+const ADMIN_PAGES = new Set(Object.keys(ACCESS).filter((p) => p.startsWith('admin-') && p !== 'admin-accept-invite'));
+
+/** UI routing only: an account with any administrative permission. */
+export const isAdmin = (session) => Boolean(session?.permissions?.some((p) => ADMIN_PERMS.includes(p)));
+export const can = (session, ...perms) => perms.length === 0 || perms.some((p) => session?.permissions?.includes(p));
+const needsMfa = (session) => Boolean(session?.mfa?.required && !session.mfa.verified);
+
+/** First admin page this account may open. */
+export function adminHome(session) {
+  const first = ADMIN_NAV.find(([, , perms]) => can(session, ...perms));
+  return pageUrl(first ? first[0] : 'admin-settings');
+}
 
 const STAFF_PAGES = new Set(['staff-sign-in', 'staff-dashboard', 'staff-scan', 'staff-history', 'staff-settings', 'staff-accept-invite']);
 
@@ -52,20 +99,29 @@ export function rememberLanguage(value) {
 }
 
 export async function signOut() {
-  const staffPage = STAFF_PAGES.has(document.documentElement.dataset.page);
+  const current = document.documentElement.dataset.page;
+  const staffPage = STAFF_PAGES.has(current);
+  const adminPage = ADMIN_PAGES.has(current);
   try {
     await api('POST', '/auth/sign-out', {});
   } catch {
     /* already signed out */
   }
-  go(pageUrl(staffPage ? 'staff-sign-in' : 'sign-in', { signedOut: '1' }));
+  go(pageUrl(adminPage ? 'admin-sign-in' : staffPage ? 'staff-sign-in' : 'sign-in', { signedOut: '1' }));
 }
 
 function renderHeader(page, session) {
   const nav = document.getElementById('account-nav');
   if (!nav) return;
   const items = [h('a', { class: 'p-nav__home', href: lang === 'ar' ? '/ar/traced/' : '/traced/' }, t('nav.home'))];
-  if (STAFF_PAGES.has(page) && isStaff(session)) {
+  if (ADMIN_PAGES.has(page) && isAdmin(session) && !needsMfa(session)) {
+    nav.setAttribute('aria-label', t('admin.nav.main'));
+    items.length = 0;
+    for (const [id, key, perms] of ADMIN_NAV) {
+      if (can(session, ...perms)) items.push(h('a', { href: pageUrl(id), 'aria-current': page === id || page.startsWith(`${id}-`) || (id === 'admin-registrations' && ['admin-registration', 'admin-customer'].includes(page)) ? 'page' : undefined }, t(key)));
+    }
+    items.push(h('button', { type: 'button', class: 'p-link', onclick: signOut }, t('nav.signOut')));
+  } else if (STAFF_PAGES.has(page) && isStaff(session)) {
     nav.setAttribute('aria-label', t('staff.nav.main'));
     items.length = 0;
     for (const [id, key] of [['staff-dashboard', 'staff.nav.dashboard'], ['staff-scan', 'staff.nav.scan'], ['staff-history', 'staff.nav.history'], ['staff-settings', 'staff.nav.settings']]) {
@@ -110,6 +166,32 @@ export async function boot(page, loadPage) {
 
   const rule = ACCESS[page] || 'auth';
   const here = location.pathname + location.search;
+  const nextParam = safeNext(new URLSearchParams(location.search).get('next'));
+  // ---- Admin portal ----
+  if (rule === 'admin-guest' && session && isAdmin(session)) {
+    return go(needsMfa(session) ? pageUrl('admin-mfa', nextParam ? { next: nextParam } : undefined) : nextParam || adminHome(session));
+  }
+  if (rule === 'admin' || rule === 'admin-mfa') {
+    if (!session) return go(pageUrl('admin-sign-in', rule === 'admin' ? { next: here } : undefined));
+    if (!isAdmin(session)) {
+      renderHeader(page, session);
+      mount(app, h('div', { class: 'p-narrow' }, h('h1', { class: 'p-h1' }, t('admin.forbidden.title')),
+        h('div', { class: 'p-card' }, alertBox('info', null, t('admin.forbidden.body')))));
+      return;
+    }
+    if (rule === 'admin' && needsMfa(session)) return go(pageUrl('admin-mfa', { next: here }));
+    if (rule === 'admin' && !can(session, ...(ADMIN_PAGE_PERMS[page] || []))) {
+      renderHeader(page, session);
+      mount(app, h('div', { class: 'p-narrow' }, h('h1', { class: 'p-h1' }, t('admin.forbidden.title')),
+        h('div', { class: 'p-card' }, alertBox('info', null, t('admin.forbidden.page')))));
+      return;
+    }
+    if (rule === 'admin-mfa' && !needsMfa(session)) return go(nextParam || adminHome(session));
+  }
+  // Privileged accounts that open customer pages go to their own portal.
+  if ((rule === 'guest' || rule === 'auth' || rule === 'verified') && session && isAdmin(session) && !session.roles.includes('customer')) {
+    return go(needsMfa(session) ? pageUrl('admin-mfa') : adminHome(session));
+  }
   if ((rule === 'guest' || rule === 'staff-guest') && session && isStaff(session)) {
     return go(safeNext(new URLSearchParams(location.search).get('next')) || pageUrl('staff-dashboard'));
   }

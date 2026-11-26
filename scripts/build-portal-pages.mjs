@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
-const VERSION = '20261126-p4'; // bump to bust browser caches of portal CSS/JS
+const VERSION = '20261126-p5'; // bump to bust browser caches of portal CSS/JS
 
 export const PAGES = [
   { id: 'dashboard', dir: 'account', title: { en: 'My account', ar: 'حسابي' } },
@@ -31,6 +31,19 @@ export const PAGES = [
   { id: 'staff-settings', dir: 'staff/settings', title: { en: 'Staff settings', ar: 'إعدادات الموظف' } },
   { id: 'staff-accept-invite', dir: 'staff/accept-invite', title: { en: 'Set up your account', ar: 'إعداد حسابك' } },
   { id: 'admin-accept-invite', dir: 'admin/accept-invite', title: { en: 'Set up your account', ar: 'إعداد حسابك' } },
+  { id: 'admin-dashboard', dir: 'admin', title: { en: 'Admin dashboard', ar: 'لوحة الإدارة' } },
+  { id: 'admin-sign-in', dir: 'admin/sign-in', title: { en: 'Admin sign in', ar: 'تسجيل دخول الإدارة' } },
+  { id: 'admin-mfa', dir: 'admin/two-step', title: { en: 'Two-step verification', ar: 'التحقق بخطوتين' } },
+  { id: 'admin-registrations', dir: 'admin/registrations', title: { en: 'Registrations', ar: 'التسجيلات' } },
+  { id: 'admin-registration', dir: 'admin/registration', title: { en: 'Registration record', ar: 'سجل التسجيل' } },
+  { id: 'admin-customer', dir: 'admin/customer', title: { en: 'Customer account', ar: 'حساب العميل' } },
+  { id: 'admin-staff', dir: 'admin/staff', title: { en: 'Staff', ar: 'الموظفون' } },
+  { id: 'admin-staff-member', dir: 'admin/staff-member', title: { en: 'Staff account', ar: 'حساب الموظف' } },
+  { id: 'admin-branches', dir: 'admin/branches', title: { en: 'Collection branches', ar: 'فروع جمع العينات' } },
+  { id: 'admin-instructions', dir: 'admin/instructions', title: { en: 'Collection instructions', ar: 'تعليمات جمع العينات' } },
+  { id: 'admin-emails', dir: 'admin/emails', title: { en: 'Email delivery', ar: 'تسليم البريد الإلكتروني' } },
+  { id: 'admin-audit', dir: 'admin/audit', title: { en: 'Audit log', ar: 'سجل التدقيق' } },
+  { id: 'admin-settings', dir: 'admin/settings', title: { en: 'Admin settings', ar: 'إعدادات المسؤول' } },
 ];
 
 const TEXT = {

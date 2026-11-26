@@ -9,13 +9,13 @@ Last updated: 2026-11-26.
 | 2 | Customer portal | Complete | `cdcb44d`, `docs/phase-2-report.md` |
 | 3 | Tracking IDs, QR, email outbox | Complete | `66d4b00`, `docs/phase-3-report.md` |
 | 4 | Collection staff portal, scanner, collection | **Complete for its scope** (physical devices pending) | `2debbf1`, `docs/phase-4-report.md`; re-verified 2026-11-26 |
-| 5 | Authorized admin portal | **Planned, awaiting approval** | `docs/phase-5-plan.md` |
-| 6 | Physical sample labels and chain of custody | Not started (schema groundwork in 0007) | none |
+| 5 | Authorized admin portal (+ trusted-proxy fix) | **Complete for the approved scope** | `898705e`, `405a1f0`, final Phase 5 commit; `docs/phase-5-report.md` |
+| 6 | Physical sample labels and chain of custody | **Not started; awaiting approval** (schema groundwork in 0007) | proposed scope: `docs/phase-5-report.md` §18 |
 | 7 | Security hardening and production readiness | Not started | `docs/audit-hardening-plan.md` (plan only) |
 | 8 | Production infrastructure and deployment | Not started; **not authorised** | `docs/architecture.md` (plan only) |
 
 ## Current phase
-Between Phase 4 (finished) and Phase 5 (awaiting approval).
+Phase 5 finished; Phase 6 awaits approval.
 
 ## In progress
 Nothing in progress.
@@ -27,4 +27,4 @@ The approvals listed in `docs/DECISIONS.md` ("Unresolved"): identity verificatio
 **Not ready.** Nothing is provisioned or deployed. Production collection is deliberately blocked until an approved identity-verification method and approved instructions exist.
 
 ## Estimated completion
-About **55%** of total development effort (Phases 0–4 ≈ 180 h of ≈ 300–390 h, per the Phase 0 estimates). This counts engineering effort only and excludes business, legal and clinical approvals.
+About **65%** of total development effort (Phases 0–5 ≈ 225 h of ≈ 300–390 h, per the Phase 0 estimates). This counts engineering effort only and excludes business, legal and clinical approvals.
