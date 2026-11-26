@@ -1,0 +1,266 @@
+.language-switch-row { display: flex; align-items: center; gap: 12px; }
+.language-switch-link { white-space: nowrap; flex-shrink: 0; }
+.clearstrand-language-actions { gap: 10px; }
+.clearstrand-language-actions > a { flex-shrink: 0; }
+.clearstrand-language-actions--mobile > a { flex: 1; justify-content: center; }
+/* Preserve the English icon gaps on the text-facing side in RTL. */
+html[dir="rtl"]:has(.clearstrand-language-header) .btn--primary > [class~="mr-[10px]"],
+html[dir="rtl"]:has(.clearstrand-language-header) button > [class~="mr-[10px]"] {
+  margin-right: 0;
+  margin-left: 10px;
+}
+html[dir="rtl"]:has(.clearstrand-language-header) svg[class~="ml-[11px]"] {
+  margin-left: 0;
+  margin-right: 11px;
+}
+html[dir="rtl"] .clearstrand-language-header svg[class~="ml-auto"] {
+  margin-left: 0;
+  margin-right: auto;
+}
+@media (min-width: 960px) {
+  html[dir="rtl"] .clearstrand-language-header svg[class~="mdm:ml-[8px]"] {
+    margin-left: 0;
+    margin-right: 8px;
+  }
+  .clearstrand-language-header nav { gap: 16px; }
+  .clearstrand-language-header nav > div:first-child,
+  .clearstrand-language-header nav > div:last-child { flex: 0 0 auto; }
+  .clearstrand-language-header nav > div:nth-child(2) { flex: 1; min-width: 0; }
+  .clearstrand-language-header nav > div:nth-child(2) > ul { justify-content: center; padding-inline: 0; }
+  .clearstrand-language-header nav > div:nth-child(2) > ul > li { margin-inline: 0 20px; }
+  .clearstrand-language-actions--mobile { display: none; }
+  .clearstrand-language-actions > .language-switch-link { padding-inline: 20px; }
+}
+@media (min-width: 960px) and (max-width: 1199px) {
+  .clearstrand-language-header nav { gap: 10px; }
+  .clearstrand-language-header nav > div:first-child svg { width: 180px; }
+  .clearstrand-language-header nav > div:nth-child(2) > ul > li { margin-inline-end: 10px; }
+  .clearstrand-language-header nav > div:nth-child(2) > ul > li > a,
+  .clearstrand-language-header .clearstrand-language-actions > a { font-size: 14px; }
+  .clearstrand-language-header .clearstrand-language-actions > a { padding-inline: 12px; }
+}
+.language-switch-link:focus-visible { outline: 3px solid #07b9c5; outline-offset: 3px; }
+html[lang="ar-SA"] body { font-family: Tahoma, Arial, sans-serif; }
+html[lang="ar-SA"] h1,
+html[lang="ar-SA"] h2,
+html[lang="ar-SA"] h3,
+html[lang="ar-SA"] h4,
+html[lang="ar-SA"] p,
+html[lang="ar-SA"] button,
+html[lang="ar-SA"] input,
+html[lang="ar-SA"] textarea,
+html[lang="ar-SA"] select,
+html[lang="ar-SA"] label { font-family: Tahoma, Arial, sans-serif !important; letter-spacing: 0 !important; }
+html[lang="ar-SA"] h1,
+html[lang="ar-SA"] h2,
+html[lang="ar-SA"] h3 { line-height: 1.4 !important; }
+html[lang="ar-SA"] p { line-height: 1.85 !important; }
+html[dir="rtl"] .text-left { text-align: right !important; }
+html[dir="rtl"] .text-right { text-align: left !important; }
+html[dir="rtl"] input[type="tel"],
+html[dir="rtl"] input[type="email"],
+html[dir="rtl"] a[href^="tel:"],
+html[dir="rtl"] a[href^="mailto:"] { direction: ltr; unicode-bidi: isolate; }
+html[dir="rtl"] .fui-label { text-align: right; }
+html[dir="rtl"] footer p { line-height: 1.6 !important; }
+@media (min-width: 768px) {
+  html[dir="rtl"] footer [class~="md:text-left"] { text-align: right !important; }
+  html[dir="rtl"] footer [class~="md:text-right"] { text-align: left !important; }
+}
+@media (min-width: 1200px) {
+  html[dir="rtl"] footer [class~="lg:text-left"] { text-align: right !important; }
+  html[dir="rtl"] footer [class~="lg:text-right"] { text-align: left !important; }
+}
+html[dir="rtl"] [data-child-portraits] {
+  display: inline-flex;
+  direction: ltr;
+  unicode-bidi: isolate;
+  white-space: nowrap;
+  margin-inline: .15em;
+}
+html[dir="rtl"] [data-child-portraits] > span { flex-shrink: 0; }
+html[dir="rtl"] p[data-portrait-lead] { line-height: 1.3 !important; }
+/* Mirror the ClearStrand hero's physical positioning for Arabic. */
+html[dir="rtl"] .hero .hero__h1,
+html[dir="rtl"] .hero [x-ref="h1"] {
+  line-height: 1 !important;
+  transform-origin: 100% 50% !important;
+}
+html[dir="rtl"] .hero .hero__h1 > span:first-child,
+html[dir="rtl"] .hero [x-ref="h1to"] { left: auto !important; right: 0 !important; }
+@media (min-width: 768px) {
+  html[dir="rtl"] .hero [x-ref="h1"] { text-align: right; }
+  html[dir="rtl"] .hero [x-ref="fakeBottomTextContainer"] { left: auto; right: 0; }
+}
+@media (min-width: 1024px) {
+  html[dir="rtl"] .hero .hero__image--desktop { left: -10% !important; right: 40% !important; }
+  html[dir="rtl"] .hero .hero__image--desktop img { object-position: 0 50% !important; }
+}
+@media (min-width: 1200px) {
+  html[dir="rtl"] header.layout--header > nav > ul:first-of-type { flex-shrink: 0; }
+  html[dir="rtl"] header.layout--header > nav > ul:nth-of-type(2) {
+    min-width: 0;
+    padding-left: 0 !important;
+    padding-right: clamp(24px, 3vw, 64px) !important;
+    column-gap: clamp(14px, 1.6vw, 32px);
+  }
+  html[dir="rtl"] header.layout--header .language-switch-row {
+    margin-left: 0 !important;
+    margin-right: auto !important;
+  }
+}
+@media (max-width: 1199px) {
+  html[dir="rtl"] header [class~="pl-[24px]"] { padding-left: 0 !important; padding-right: 24px !important; }
+  html[dir="rtl"] header [class~="pr-[24px]"] { padding-right: 0 !important; padding-left: 24px !important; }
+}
+/* Mirror the overlapping avatar pair so it stays inside its box in RTL. */
+html[dir="rtl"] img[class~="-ml-16"] {
+  margin-left: 0;
+  margin-right: calc(var(--spacing) * -16);
+}
+@media (min-width: 48rem) {
+  html[dir="rtl"] img[class~="md:-ml-36"] {
+    margin-left: 0;
+    margin-right: calc(var(--spacing) * -36);
+  }
+}
+/* Point previous/next arrows the reading direction in RTL. Uses `scale` so it composes with the icons' own rotation. */
+html[dir="rtl"] [x-bind="prev"] svg,
+html[dir="rtl"] [x-bind="next"] svg,
+html[dir="rtl"] .swiper-button-prev svg,
+html[dir="rtl"] .swiper-button-next svg,
+html[dir="rtl"] [aria-label="الشريحة السابقة"] svg,
+html[dir="rtl"] [aria-label="الشريحة التالية"] svg,
+html[dir="rtl"] [aria-label="السابق"] svg,
+html[dir="rtl"] [aria-label="التالي"] svg {
+  scale: -1 1;
+}
+/* What We Test, "other elements" panel: the top of this background is pale, so white headings disappear in RTL. */
+html[dir="rtl"] .wwt-slide:has([id^="ebm-tab-slide_MKUJNN-"]) h2.pill {
+  color: #000 !important;
+  border-color: #000 !important;
+}
+html[dir="rtl"] .wwt-slide:has([id^="ebm-tab-slide_MKUJNN-"]) [role="tab"] {
+  color: rgb(0 0 0 / .6) !important;
+}
+html[dir="rtl"] .wwt-slide:has([id^="ebm-tab-slide_MKUJNN-"]) [role="tab"][aria-selected="true"],
+html[dir="rtl"] .wwt-slide:has([id^="ebm-tab-slide_MKUJNN-"]) [role="tab"]:hover,
+html[dir="rtl"] .wwt-slide:has([id^="ebm-tab-slide_MKUJNN-"]) [role="tab"]:focus-visible {
+  /* The active tab's text-light-50! utility is layered, so it outranks unlayered !important; change the colour it reads instead. */
+  --color-light-50: #000;
+  color: #000 !important;
+}
+
+/* Header logo: dotted circle spins once on hover (matches linusbio.com). */
+.lb-logo-circle {
+  transition: transform 600ms ease;
+}
+a:hover > span > .lb-logo-circle,
+a:focus-visible > span > .lb-logo-circle {
+  transform: rotate(-360deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lb-logo-circle { transition: none; }
+}
+@media (min-width: 48rem) {
+  /* RTL: mirror the two hero headlines so each hugs its outer edge, as in English. */
+  html[dir="rtl"] section[x-data="heroSlides"] [class~="md:col-1-to-4"] > p[class~="md:text-left"] { text-align: right; }
+  html[dir="rtl"] section[x-data="heroSlides"] [class~="md:col-9-to-12"] > p[class~="md:text-right"] { text-align: left; }
+}
+/* Traced hero over the train photo: white headlines (phones already use white). */
+@media (min-width: 48rem) {
+  section[x-data="heroSlides"]:has(img[src*="traced-woman-train"]) [class~="md:col-1-to-4"] > p,
+  section[x-data="heroSlides"]:has(img[src*="traced-woman-train"]) [class~="md:col-9-to-12"] > p {
+    color: #fff;
+  }
+}
+/* ClearStrand step slider (FAQs, Understanding the results): the "01 / 04" counter and arrows
+   are pinned with left + full width, which pushes them off the right edge in Arabic.
+   Pin them from the right instead. */
+html[dir="rtl"] div[class~="md:max-w-content"][class~="left-[16px]"][class~="md:left-[32px]"] { left: auto; right: 16px; }
+@media (min-width: 48rem) {
+  html[dir="rtl"] div[class~="md:max-w-content"][class~="left-[16px]"][class~="md:left-[32px]"] { right: 32px; }
+}
+/* Same slider: keep the 8px gap between the two arrow buttons in Arabic (mr-[8px] lands on the outer side in RTL). */
+html[dir="rtl"] div[class~="md:max-w-content"][class~="md:left-[32px]"] button[class~="mr-[8px]"] { margin-right: 0; margin-left: 8px; }
+/* Two-card rows (home page "Our technology" / "ClearStrand-ASD", Platform page): in English the text
+   is padded away from the centre divider and the images are squared off on the divider side.
+   Mirror both for Arabic so the text no longer touches the divider. */
+@media (min-width: 1024px) {
+  html[dir="rtl"] [class~="mdw:pr-[122px]"] { padding-right: 0; padding-left: 12.2rem; }
+  html[dir="rtl"] [class~="mdw:pl-[60px]"] { padding-left: 0; padding-right: 6rem; }
+  html[dir="rtl"] [class~="mdw:rounded-tr-none"][class~="mdw:rounded-br-none"] {
+    border-radius: 8px; border-top-left-radius: 0; border-bottom-left-radius: 0;
+  }
+  html[dir="rtl"] [class~="mdw:rounded-tl-none"][class~="mdw:rounded-bl-none"] {
+    border-radius: 8px; border-top-right-radius: 0; border-bottom-right-radius: 0;
+  }
+}
+@media (min-width: 1200px) {
+  html[dir="rtl"] [class~="lg:pl-[121px]"] { padding-left: 0; padding-right: 12.1rem; }
+}
+/* Arabic pages now load mirrored copies of the site stylesheets (media/*.rtl.css, made by
+   tools/make_rtl_css.py). The rules below cover the few spots those copies leave alone
+   because they use 0/auto positions. */
+/* About / Careers / Partnerships / Pipeline: picture panel sits on the right in English, so on the left in Arabic. */
+@media (min-width: 1200px) {
+  html[dir="rtl"] [class~="inset-0"][class~="lg:left-auto"] { left: 0; right: auto; }
+}
+/* About timeline: the vertical line runs down the start edge. */
+html[dir="rtl"] [class~="w-[1px]"][class~="h-full"][class~="left-0"][class~="my-auto"] { left: auto; right: 0; }
+/* ClearStrand "Page contents" / "Important information" bar and drawers: bottom-left in English, bottom-right in Arabic. */
+@media (min-width: 960px) {
+  html[dir="rtl"] [class~="left-0"][class~="mdm:right-auto"] { left: auto; right: 0; }
+}
+/* Traced home hero: English has the text over a blurred left half and the sharp video on the
+   right. Mirror both halves so the Arabic text sits on the blurred side too. */
+@media (min-width: 48rem) {
+  html[dir="rtl"] #hph-bg .hph-half { right: auto; left: 0; }
+  html[dir="rtl"] #hph-blur { left: auto; right: 0; }
+}
+/* Conditions page: picture panel on the right in English (from 1024px), left in Arabic. */
+@media (min-width: 1024px) {
+  html[dir="rtl"] [class~="inset-0"][class~="mdw:left-auto"] { left: 0; right: auto; }
+}
+/* ClearStrand Start page: progress fill grows from the start edge. */
+html[dir="rtl"] [class~="inset-y-0"][class~="left-0"][class~="bg-teal-500"][class~="rounded-full"] { left: auto; right: 0; }
+/* Traced home: side label hangs off the start edge of its block. */
+@media (min-width: 64rem) {
+  html[dir="rtl"] [class~="lg:right-full"] { right: auto; left: 100%; }
+}
+/* Traced reviews: "Write a review" button sits at the end of the header row. */
+html[dir="rtl"] .oke-w-reviews-head .oke-w-reviews-writeReview { margin-left: 0 !important; margin-right: auto !important; }
+/* Open menus on tablets and phones: keep them inside the visible screen and scrollable on their
+   own. 100vh on iPad Safari is taller than the visible area, so use 100dvh where supported. */
+header.layout--header { max-height: 100vh; max-height: 100dvh; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+@media (max-width: 959.98px) {
+  header.clearstrand-language-header [class~="mdm:static"][class~="top-full"] {
+    max-height: calc(100vh - 64px); max-height: calc(100dvh - 64px);
+    overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  }
+}
+div.header [id^="dropdown-panel-"] {
+  max-height: calc(100vh - 96px); max-height: calc(100dvh - 96px);
+  overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+}
+/* Traced product page: "Coming soon" label and enquiry form (replaces the Wareed purchase button). */
+.traced-soon { cursor: default !important; pointer-events: none; }
+.traced-enquiry { margin-top: 24px; padding: 24px; border-radius: 20px; background: var(--color-light-50, #fafafa); border: 1px solid rgba(65, 63, 50, .12); color: var(--color-dark-primary, #413f32); text-align: start; }
+.traced-enquiry__title { font-size: 1.25rem; line-height: 1.2; margin: 0 0 4px; }
+.traced-enquiry__intro { font-size: .9rem; opacity: .7; margin: 0 0 20px; }
+.traced-enquiry__field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+.traced-enquiry__field label { font-size: .875rem; }
+.traced-enquiry__field label span { color: #b3261e; }
+.traced-enquiry input, .traced-enquiry select, .traced-enquiry textarea {
+  width: 100%; font: inherit; font-size: 1rem; color: inherit; background: #fff;
+  border: 1px solid rgba(65, 63, 50, .25); border-radius: 12px; padding: 12px 14px; outline: none;
+}
+.traced-enquiry textarea { resize: vertical; min-height: 88px; }
+.traced-enquiry input:focus, .traced-enquiry select:focus, .traced-enquiry textarea:focus { border-color: var(--color-dark-primary, #413f32); box-shadow: 0 0 0 3px rgba(65, 63, 50, .12); }
+.traced-enquiry__phone { display: flex; gap: 8px; direction: ltr; }
+.traced-enquiry__phone select { flex: 0 0 auto; width: auto; min-width: 108px; }
+.traced-enquiry__phone input { flex: 1 1 auto; min-width: 0; }
+html[dir="rtl"] .traced-enquiry__phone input { text-align: right; }
+.traced-enquiry button { margin-top: 4px; }
+.traced-enquiry__status { font-size: .875rem; margin: 12px 0 0; }
+.traced-enquiry__status:empty { display: none; }
