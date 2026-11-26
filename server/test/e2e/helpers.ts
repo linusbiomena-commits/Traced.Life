@@ -1,0 +1,67 @@
+/// <reference lib="dom" />
+import { randomBytes } from 'node:crypto';
+import { readdir, readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { expect, type Page } from '@playwright/test';
+
+export const PASSWORD = 'correct horse battery staple';
+export const MAIL_DIR = path.resolve('test-results/e2e-mail');
+export const SHOTS = path.resolve('docs/phase-2/screenshots');
+
+export const uniqueEmail = (prefix: string) => `${prefix}.${randomBytes(4).toString('hex')}@example.com`;
+
+/** Link from the newest dev-mail file of a template sent to an address. */
+export async function mailLink(to: string, template: string): Promise<string> {
+  for (let attempt = 0; attempt < 40; attempt++) {
+    const files = (await readdir(MAIL_DIR).catch(() => [] as string[])).filter((f) => f.includes(`-${template}-`) && f.endsWith('.txt')).sort().reverse();
+    for (const f of files) {
+      const text = await readFile(path.join(MAIL_DIR, f), 'utf8');
+      if (text.includes(`To: ${to}\n`)) {
+        const link = /https?:\/\/\S+#token=[A-Za-z0-9_-]+/.exec(text)?.[0];
+        if (link) return link;
+      }
+    }
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  throw new Error(`no ${template} email for ${to}`);
+}
+
+/** YYYY-MM-DD for someone `years` years and `months` months old today (Asia/Riyadh). */
+export function dobFor(years: number, months = 0): string {
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(new Date());
+  const [y, m, d] = today.split('-').map(Number) as [number, number, number];
+  const date = new Date(Date.UTC(y - years, m - 1 - months, Math.min(d, 28)));
+  return date.toISOString().slice(0, 10);
+}
+
+const L = {
+  en: { email: 'Email address', password: 'Password', create: 'Create account', signIn: 'Sign in' },
+  ar: { email: 'البريد الإلكتروني', password: 'كلمة المرور', create: 'إنشاء الحساب', signIn: 'تسجيل الدخول' },
+};
+
+/** Creates an account through the UI, opens the emailed verification link and signs in. */
+export async function signUpAndSignIn(page: Page, lang: 'en' | 'ar', email: string) {
+  const pre = lang === 'ar' ? '/ar' : '';
+  const l = L[lang];
+  await page.goto(`${pre}/traced/account/sign-up/`);
+  await page.getByLabel(l.email).fill(email);
+  await page.getByLabel(l.password, { exact: true }).fill(PASSWORD);
+  await page.getByRole('button', { name: l.create }).click();
+  await expect(page.locator('#page-title')).toBeVisible();
+  await page.goto(await mailLink(email, 'verify_email'));
+  await expect(page.locator('.p-alert--success')).toBeVisible();
+  await page.goto(`${pre}/traced/account/sign-in/`);
+  await page.getByLabel(l.email).fill(email);
+  await page.getByLabel(l.password, { exact: true }).fill(PASSWORD);
+  await page.locator('form').getByRole('button', { name: l.signIn }).click();
+  await page.waitForURL(`**${pre}/traced/account/`);
+}
+
+export async function noHorizontalScroll(page: Page) {
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  expect(overflow, `horizontal overflow on ${page.url()}`).toBeLessThanOrEqual(1);
+}
+
+export async function shot(page: Page, name: string, fullPage = true) {
+  await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage });
+}

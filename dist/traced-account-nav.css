@@ -1,0 +1,22 @@
+/* TRACED header "Account" item (customer portal entry).
+   On narrow screens the text is replaced by a person icon so the floating header bar keeps
+   its original width; the text stays available to screen readers. */
+.traced-account-nav__wrap { height: 100%; }
+.traced-account-nav__icon { display: none; width: 20px; height: 20px; flex: none; }
+@media (max-width: 767.98px) {
+  /* 24px-wide touch target (WCAG 2.5.8 minimum), full bar height. */
+  .traced-account-nav__wrap > a { padding-inline: 3px !important; min-width: 24px; }
+  .traced-account-nav__icon { display: block; width: 18px; height: 18px; }
+  .traced-account-nav__label {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; border: 0;
+    overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap;
+  }
+}
+/* Very narrow phones (≤400px): trim the nav items' side padding slightly (2.5cqw → 1.8cqw) so
+   the extra 24px icon fits without wrapping or overflowing the bar. */
+@media (max-width: 400px) {
+  .header-bar:has(.traced-account-nav__wrap) nav > ul > li > a,
+  .header-bar:has(.traced-account-nav__wrap) nav > ul > li > button {
+    padding-inline: clamp(4px, 1.8cqw, 12px) !important;
+  }
+}

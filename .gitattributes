@@ -1,2 +1,4 @@
 # Keep the static site byte-identical to what is served: no line-ending conversion.
 dist/** -text
+*.sql text eol=lf
+*.ts text eol=lf

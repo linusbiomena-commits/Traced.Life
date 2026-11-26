@@ -1,0 +1,42 @@
+{
+  "name": "traced-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "TRACED customer registration, QR and chain-of-custody platform (static site in dist/, API in server/)",
+  "type": "module",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch --import tsx server/src/index.ts",
+    "start": "node --env-file-if-exists=.env --import tsx server/src/index.ts",
+    "dev:db": "node --env-file-if-exists=.env --import tsx server/src/cli/dev-db.ts",
+    "migrate": "node --env-file-if-exists=.env --import tsx server/src/cli/migrate.ts",
+    "create-user": "node --env-file-if-exists=.env --import tsx server/src/cli/create-user.ts",
+    "gen-keys": "node --import tsx server/src/cli/gen-keys.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "seed:dev": "node --env-file-if-exists=.env --import tsx server/src/cli/seed-dev.ts",
+    "build:portal": "node scripts/build-portal-pages.mjs && node scripts/patch-traced-account-links.mjs",
+    "check:portal": "node scripts/build-portal-pages.mjs --check && node scripts/patch-traced-account-links.mjs --check",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@hono/node-server": "2.1.11",
+    "@node-rs/argon2": "2.2.2",
+    "hono": "4.13.22",
+    "otpauth": "9.6.0",
+    "pg": "8.23.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "@types/node": "22.20.7",
+    "@types/pg": "8.23.1",
+    "embedded-postgres": "18.7.0-beta.19",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "vitest": "5.1.2"
+  }
+}
