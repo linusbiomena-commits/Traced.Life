@@ -189,4 +189,16 @@ Admin portal with MFA: registration search and full detail view (audited); QR re
 ## 18. Completion
 **Phase 4: complete for its scope**, verified by 154 automated tests, 16 browser tests and 43 screenshots; physical devices pending. **Overall: about 55%** by Phase 0 hour estimates (Phases 0–4 ≈ 180 of ≈ 300–390 h).
 
-Git commit and push status: reported in the handover message for this phase.
+## 19. Final verification and Git status (26 November 2026)
+
+Re-verified independently on a new Claude account after the handover:
+
+- **Git:** Phase 4 is commit **`2debbf1`** on `feature/traced-portal`, **pushed** (local = `origin/feature/traced-portal`). The tree was clean before the docs-only handover commit that follows it.
+- **Results:** typecheck clean; **154/154** Vitest (12 files); **16/16** Playwright on Edge; `check:portal` passes (56 TRACED pages patched); `npm audit` 0 vulnerabilities. Counts match the expected baseline.
+- **Secrets and privacy scan** of tracked files: no API keys, private keys, credential URLs, `.env`, local databases, mail captures or test-results; only `example.com` test addresses and the published support address; screenshots show synthetic `[DEV]` data only.
+- **Configuration review:** `DEV_IDENTITY_VERIFICATION` is refused at startup and forced off in production. The E2E `trustProxy: true` is hard-coded in the test harness only (not environment-driven). `INTERNAL_CRON_SECRET` is server-only (not in `dist/`), compared in constant time and never logged; the endpoint returns 404 when it isn't set.
+- **New finding (pre-existing since Phase 1):** with `TRUST_PROXY=true` the server trusts the *leftmost* `X-Forwarded-For` entry, which a client can forge. This would weaken IP rate limits behind Cloud Run or Vercel. It isn't exploitable today (nothing deployed). Fix proposed as Phase 5 pre-work.
+- **GitHub:** repository still **public**. Its default branch is `feature/traced-portal`. There are 0 deployments, environments or checks, so the push triggers no deployment (webhooks need admin access to inspect).
+- **Physical-device testing:** still not performed.
+
+Recommended Phase 5 scope: see `docs/phase-5-plan.md` (awaiting approval).
