@@ -1,4 +1,7 @@
-import { writeFileSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import path from 'node:path';
+import { chromium, type Page } from '@playwright/test';
 import { PNG } from 'pngjs';
 import QRCode from 'qrcode';
 
@@ -45,4 +48,34 @@ export async function writeQrCamera(text: string, file = FAKE_CAMERA_FILE): Prom
     const k = (py * png.width + px) * 4;
     return [png.data[k]!, png.data[k + 1]!, png.data[k + 2]!];
   }));
+}
+
+/**
+ * Phase 7 (root cause of the intermittent camera failures): Edge opens the fake-capture file once
+ * per browser process and keeps reading the copy it opened, so rewriting the shared file between
+ * tests raced with the device already running in the shared browser. Each camera step now gets
+ * its own Edge instance whose camera file is written before launch and never changed, with the
+ * signed-in session carried over (cookies and local storage). Call close() when done.
+ */
+export async function cameraPage(from: Page, text: string | null, url: string, opts: { headers?: Record<string, string>; mobile?: boolean } = {}) {
+  const file = path.resolve('test-results/cameras', `${randomUUID()}.y4m`);
+  mkdirSync(path.dirname(file), { recursive: true });
+  if (text === null) writeBlankCamera(file);
+  else await writeQrCamera(text, file);
+  const browser = await chromium.launch({ channel: 'msedge', args: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream', `--use-file-for-fake-video-capture=${file}`] });
+  const origin = new URL(from.url()).origin;
+  const viewport = from.viewportSize();
+  const ctx = await browser.newContext({
+    baseURL: origin, permissions: ['camera'], storageState: await from.context().storageState(),
+    ...(viewport ? { viewport } : {}), ...(opts.headers ? { extraHTTPHeaders: opts.headers } : {}), ...(opts.mobile ? { isMobile: true, hasTouch: true } : {}),
+  });
+  const page = await ctx.newPage();
+  await page.goto(url);
+  return {
+    page,
+    close: async () => {
+      await browser.close().catch(() => {});
+      rmSync(file, { force: true });
+    },
+  };
 }

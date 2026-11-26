@@ -72,11 +72,20 @@ async function buildMessage(deps: Deps, job: Job): Promise<MailMessage> {
 /** Sends due emails. Safe to run concurrently (rows are claimed with SKIP LOCKED). */
 export async function processOutbox(deps: Deps, limit = 20): Promise<{ sent: number; retried: number; failed: number }> {
   const result = { sent: 0, retried: 0, failed: 0 };
+  // Phase 7: a message whose sender died mid-send (instance stopped, crash) is retried after its
+  // lock expires, but only up to max_attempts; one that keeps killing the sender is failed here
+  // instead of being retried forever. The provider idempotency key stops a duplicate delivery
+  // when the send itself succeeded before the crash.
+  const exhausted = await deps.db.query(
+    `UPDATE email_outbox SET status = 'failed', locked_until = NULL, payload_enc = NULL,
+            last_error = 'gave up: sender stopped during the last attempt'
+      WHERE status = 'sending' AND locked_until < now() AND attempts >= max_attempts`);
+  result.failed += exhausted.rowCount ?? 0;
   const { rows: jobs } = await deps.db.query<Job>(
     `UPDATE email_outbox SET status = 'sending', locked_until = now() + interval '2 minutes', attempts = attempts + 1
       WHERE id IN (
         SELECT id FROM email_outbox
-         WHERE (status = 'queued' AND next_attempt_at <= now()) OR (status = 'sending' AND locked_until < now())
+         WHERE (status = 'queued' AND next_attempt_at <= now()) OR (status = 'sending' AND locked_until < now() AND attempts < max_attempts)
          ORDER BY next_attempt_at
          LIMIT $1
          FOR UPDATE SKIP LOCKED)

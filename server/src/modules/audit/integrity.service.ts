@@ -75,6 +75,8 @@ export async function createCheckpoint(deps: Deps, opts: { trigger: 'scheduled' 
   return withTx(deps.db, async (tx) => {
     // One checkpoint at a time, and the chain head must not move while we read it: take the same
     // advisory lock the audit insert trigger takes.
+    // The runtime role has a 15 s statement_timeout; the custody digest grows with the data.
+    await tx.query(`SET LOCAL statement_timeout = '300s'`);
     await tx.query('SELECT pg_advisory_xact_lock(7270001)');
     const head = await tx.query<{ seq: string | null; hash: Buffer | null }>('SELECT chain_seq AS seq, hash FROM audit_logs ORDER BY chain_seq DESC LIMIT 1');
     const lastCustody = await tx.query<{ id: string | null }>('SELECT max(id) AS id FROM custody_events');
@@ -122,68 +124,77 @@ export type VerificationReport = {
 
 export async function verifyIntegrity(deps: Deps, opts: { trigger: 'scheduled' | 'manual'; actorUserId: string | null; meta?: Record<string, unknown> }): Promise<VerificationReport> {
   const started = Date.now();
-  const db: Queryable = deps.db;
   const findings: Finding[] = [];
   const key = deps.config.auditCheckpointKey;
   const currentKeyId = key ? keyFingerprint(key) : null;
 
-  // 1. Full chain.
-  const chain = await db.query<{ broken: string | null; rows: string; max: string | null }>(
-    'SELECT audit_verify_chain() AS broken, (SELECT count(*) FROM audit_logs) AS rows, (SELECT max(chain_seq) FROM audit_logs) AS max');
-  const firstBrokenSeq = chain.rows[0]!.broken === null ? null : Number(chain.rows[0]!.broken);
-  const chainRows = Number(chain.rows[0]!.rows);
-  const maxSeq = Number(chain.rows[0]!.max ?? 0);
-  if (firstBrokenSeq !== null) findings.push({ code: 'chain_broken', seq: firstBrokenSeq });
-  if (chainRows !== maxSeq) findings.push({ code: 'chain_gap', detail: `${chainRows} rows, highest sequence ${maxSeq}` });
+  // All reads run in one REPEATABLE READ snapshot (chain, checkpoints and custody seen at the same
+  // moment) with a longer statement timeout than the runtime role's 15 s default. The records
+  // of the run are written afterwards, outside the snapshot: an audit insert inside it could
+  // read a stale chain head.
+  const { chainRows, firstBrokenSeq, checkpoints } = await withTx(deps.db, async (db) => {
+    await db.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ ONLY');
+    await db.query(`SET LOCAL statement_timeout = '600s'`);
+    // 1. Full chain.
+    const chain = await db.query<{ broken: string | null; rows: string; max: string | null }>(
+      'SELECT audit_verify_chain() AS broken, (SELECT count(*) FROM audit_logs) AS rows, (SELECT max(chain_seq) FROM audit_logs) AS max');
+    const firstBrokenSeq = chain.rows[0]!.broken === null ? null : Number(chain.rows[0]!.broken);
+    const chainRows = Number(chain.rows[0]!.rows);
+    const maxSeq = Number(chain.rows[0]!.max ?? 0);
+    if (firstBrokenSeq !== null) findings.push({ code: 'chain_broken', seq: firstBrokenSeq });
+    if (chainRows !== maxSeq) findings.push({ code: 'chain_gap', detail: `${chainRows} rows, highest sequence ${maxSeq}` });
 
-  // 2. Checkpoints (newest first).
-  const { rows } = await db.query('SELECT * FROM audit_checkpoints ORDER BY id DESC LIMIT $1', [VERIFY_CHECKPOINT_LIMIT]);
-  const checkpoints = rows.map(rowToCheckpoint);
-  if (!key && checkpoints.length) findings.push({ code: 'checkpoint_key_missing', detail: 'signatures cannot be checked without AUDIT_CHECKPOINT_KEY' });
-  for (const cp of checkpoints) {
-    if (key) {
-      if (cp.keyId !== currentKeyId) findings.push({ code: 'checkpoint_unknown_key', checkpointId: cp.id, detail: cp.keyId });
-      else {
-        const expected = signCheckpoint(key, cp);
-        if (expected.length !== cp.signature.length || !timingSafeEqual(expected, cp.signature)) findings.push({ code: 'checkpoint_signature_invalid', checkpointId: cp.id });
+    // 2. Checkpoints (newest first).
+    const { rows } = await db.query('SELECT * FROM audit_checkpoints ORDER BY id DESC LIMIT $1', [VERIFY_CHECKPOINT_LIMIT]);
+    const checkpoints = rows.map(rowToCheckpoint);
+    if (!key && checkpoints.length) findings.push({ code: 'checkpoint_key_missing', detail: 'signatures cannot be checked without AUDIT_CHECKPOINT_KEY' });
+    for (const cp of checkpoints) {
+      if (key) {
+        if (cp.keyId !== currentKeyId) findings.push({ code: 'checkpoint_unknown_key', checkpointId: cp.id, detail: cp.keyId });
+        else {
+          const expected = signCheckpoint(key, cp);
+          if (expected.length !== cp.signature.length || !timingSafeEqual(expected, cp.signature)) findings.push({ code: 'checkpoint_signature_invalid', checkpointId: cp.id });
+        }
+      }
+      if (cp.auditLastSeq > 0) {
+        const at = await db.query<{ hash: Buffer }>('SELECT hash FROM audit_logs WHERE chain_seq = $1', [cp.auditLastSeq]);
+        if (!at.rowCount) findings.push({ code: 'audit_rows_missing', checkpointId: cp.id, seq: cp.auditLastSeq });
+        else if (!at.rows[0]!.hash.equals(cp.auditLastHash!)) findings.push({ code: 'audit_head_mismatch', checkpointId: cp.id, seq: cp.auditLastSeq });
+      }
+      const d = await db.query<{ event_count: string; digest: Buffer }>('SELECT event_count, digest FROM custody_events_digest($1)', [cp.custodyLastId]);
+      if (Number(d.rows[0]!.event_count) !== cp.custodyCount || !d.rows[0]!.digest.equals(cp.custodyDigest)) {
+        findings.push({ code: 'custody_digest_mismatch', checkpointId: cp.id, detail: `expected ${cp.custodyCount} events, found ${d.rows[0]!.event_count}` });
       }
     }
-    if (cp.auditLastSeq > 0) {
-      const at = await db.query<{ hash: Buffer }>('SELECT hash FROM audit_logs WHERE chain_seq = $1', [cp.auditLastSeq]);
-      if (!at.rowCount) findings.push({ code: 'audit_rows_missing', checkpointId: cp.id, seq: cp.auditLastSeq });
-      else if (!at.rows[0]!.hash.equals(cp.auditLastHash!)) findings.push({ code: 'audit_head_mismatch', checkpointId: cp.id, seq: cp.auditLastSeq });
-    }
-    const d = await db.query<{ event_count: string; digest: Buffer }>('SELECT event_count, digest FROM custody_events_digest($1)', [cp.custodyLastId]);
-    if (Number(d.rows[0]!.event_count) !== cp.custodyCount || !d.rows[0]!.digest.equals(cp.custodyDigest)) {
-      findings.push({ code: 'custody_digest_mismatch', checkpointId: cp.id, detail: `expected ${cp.custodyCount} events, found ${d.rows[0]!.event_count}` });
-    }
-  }
 
-  // 3. External sink: every copy must still match a database row, and every row that claims a
-  // copy must still have one. A deleted or altered checkpoint row is caught here.
-  const dir = sinkDir(deps);
-  if (dir) {
-    let files: string[] = [];
-    try { files = (await readdir(dir)).filter((f) => /^checkpoint-.*\.json$/.test(f)); } catch { /* no folder yet */ }
-    const byRef = new Map(checkpoints.filter((c) => c.sinkRef).map((c) => [c.sinkRef!, c]));
-    const oldestChecked = checkpoints.at(-1)?.id ?? 0;
-    for (const f of files) {
-      let doc: Record<string, unknown>;
-      try { doc = JSON.parse(await readFile(path.join(dir, f), 'utf8')); } catch { findings.push({ code: 'sink_file_unreadable', detail: f }); continue; }
-      const cp = byRef.get(f);
-      if (!cp) {
-        if (typeof doc.id === 'number' && doc.id < oldestChecked) continue; // older than the checked window
-        findings.push({ code: 'checkpoint_missing_in_database', detail: f });
-        continue;
+    // 3. External sink: every copy must still match a database row, and every row that claims a
+    // copy must still have one. A deleted or altered checkpoint row is caught here.
+    const dir = sinkDir(deps);
+    if (dir) {
+      let files: string[] = [];
+      try { files = (await readdir(dir)).filter((f) => /^checkpoint-.*\.json$/.test(f)); } catch { /* no folder yet */ }
+      const byRef = new Map(checkpoints.filter((c) => c.sinkRef).map((c) => [c.sinkRef!, c]));
+      const oldestChecked = checkpoints.at(-1)?.id ?? 0;
+      for (const f of files) {
+        let doc: Record<string, unknown>;
+        try { doc = JSON.parse(await readFile(path.join(dir, f), 'utf8')); } catch { findings.push({ code: 'sink_file_unreadable', detail: f }); continue; }
+        const cp = byRef.get(f);
+        if (!cp) {
+          if (typeof doc.id === 'number' && doc.id < oldestChecked) continue; // older than the checked window
+          findings.push({ code: 'checkpoint_missing_in_database', detail: f });
+          continue;
+        }
+        if (JSON.stringify(doc) !== JSON.stringify(sinkDocument(cp))) findings.push({ code: 'sink_copy_mismatch', checkpointId: cp.id, detail: f });
       }
-      if (JSON.stringify(doc) !== JSON.stringify(sinkDocument(cp))) findings.push({ code: 'sink_copy_mismatch', checkpointId: cp.id, detail: f });
+      const present = new Set(files);
+      for (const cp of checkpoints) if (cp.sink === 'file' && cp.sinkRef && !present.has(cp.sinkRef)) findings.push({ code: 'sink_file_missing', checkpointId: cp.id, detail: cp.sinkRef });
     }
-    const present = new Set(files);
-    for (const cp of checkpoints) if (cp.sink === 'file' && cp.sinkRef && !present.has(cp.sinkRef)) findings.push({ code: 'sink_file_missing', checkpointId: cp.id, detail: cp.sinkRef });
-  }
+    return { chainRows, firstBrokenSeq, checkpoints };
+  });
 
   const outcome = findings.filter((f) => f.code !== 'checkpoint_key_missing').length ? 'failed' : 'ok';
   const durationMs = Date.now() - started;
+  const db: Queryable = deps.db;
   const ins = await db.query<{ id: string }>(
     `INSERT INTO audit_verifications (run_by, trigger, outcome, chain_rows, first_broken_seq, checkpoints_checked, findings, duration_ms)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`,

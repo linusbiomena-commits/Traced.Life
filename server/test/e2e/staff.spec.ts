@@ -6,7 +6,7 @@ import type { Config } from '../../src/config.ts';
 import { createStaffAccount } from '../../src/modules/accounts/accounts.service.ts';
 import { MemoryMailer } from '../../src/modules/mail/mailer.ts';
 import { decodeQrPng } from '../helpers/registration.ts';
-import { writeBlankCamera, writeQrCamera } from './fake-camera.ts';
+import { cameraPage } from './fake-camera.ts';
 import { noHorizontalScroll, PASSWORD, signUpAndSignIn, uniqueEmail } from './helpers.ts';
 import path from 'node:path';
 import { saveScreenshot } from './redact-qr.ts';
@@ -68,7 +68,10 @@ async function staffSignIn(page: Page, email: string, lang: 'en' | 'ar' = 'en') 
   await page.waitForURL(`**${lang === 'ar' ? '/ar' : ''}/traced/staff/`);
 }
 
-test.afterEach(() => writeBlankCamera());
+// Each camera step runs in its own Edge instance (cameraPage); closed after every test.
+const cams: { close: () => Promise<void> }[] = [];
+const track = <T extends { close: () => Promise<void> }>(c: T): T => { cams.push(c); return c; };
+test.afterEach(async () => { await Promise.all(cams.splice(0).map((c) => c.close())); });
 
 test('staff invitation → account setup → sign in → dashboard', async ({ page }) => {
   const { email, setupLink } = await inviteStaff('Sara Alqahtani', ['DEV-RUH-01', 'DEV-JED-01']);
@@ -103,7 +106,9 @@ test('full collection with the simulated camera: scan → age/gender only → ve
   await page.getByRole('link', { name: 'Scan QR code' }).click();
   await page.waitForURL('**/traced/staff/scan/');
   await shot(page, '03-scanner-idle-en');
-  await writeQrCamera(cust.text); // the "customer" holds their QR up to the camera
+  const cam = track(await cameraPage(page, cust.text, '/traced/staff/scan/')); // the "customer" holds their QR up to the camera
+  await page.goto('about:blank');
+  page = cam.page;
   await page.getByRole('button', { name: 'Start camera' }).click();
 
   // Result: tracking ID, age, gender, sample type, status, branch — and nothing personal.
@@ -134,8 +139,7 @@ test('full collection with the simulated camera: scan → age/gender only → ve
 
   // Scanning the same QR again is refused.
   await page.getByRole('button', { name: 'Scan another QR code' }).click();
-  await writeQrCamera(cust.text);
-  await page.getByRole('button', { name: 'Start camera' }).click();
+  await page.getByRole('button', { name: 'Start camera' }).click(); // same camera video: the same QR again
   await expect(page.getByText('A sample has already been collected for this registration.')).toBeVisible({ timeout: 20_000 });
   await shot(page, '07-already-collected-en');
 
@@ -174,10 +178,10 @@ test('invalid input: unknown QR, tracking ID only, and a non-TRACED code', async
   await page.getByRole('button', { name: 'Check code' }).click();
   await expect(page.getByText('A tracking ID can’t be used to collect a sample.')).toBeVisible();
 
-  await writeQrCamera('https://example.com/some/other/link'); // arbitrary URL in a QR: never opened
-  await page.getByRole('button', { name: 'Start camera' }).click();
-  await expect(page.getByText('This is not a TRACED customer QR code.')).toBeVisible({ timeout: 20_000 });
-  expect(page.url()).toContain('/traced/staff/scan/');
+  const cam = track(await cameraPage(page, 'https://example.com/some/other/link', '/traced/staff/scan/')); // arbitrary URL in a QR: never opened
+  await cam.page.getByRole('button', { name: 'Start camera' }).click();
+  await expect(cam.page.getByText('This is not a TRACED customer QR code.')).toBeVisible({ timeout: 20_000 });
+  expect(cam.page.url()).toContain('/traced/staff/scan/');
 });
 
 test('camera errors: permission denied and no camera', async ({ page }) => {
@@ -232,7 +236,10 @@ test('Arabic staff portal is right-to-left and fully Arabic', async ({ page, bro
   await expect(page.getByRole('heading', { name: 'مرحبًا، ريم' })).toBeVisible();
   await shot(page, '12-staff-dashboard-ar');
   await page.getByRole('link', { name: 'مسح رمز QR' }).click();
-  await writeQrCamera(cust.text);
+  await page.waitForURL('**/ar/traced/staff/scan/');
+  const cam = track(await cameraPage(page, cust.text, '/ar/traced/staff/scan/'));
+  await page.goto('about:blank');
+  page = cam.page;
   await page.getByRole('button', { name: 'تشغيل الكاميرا' }).click();
   await expect(page.getByRole('heading', { name: 'رمز QR صالح' })).toBeVisible({ timeout: 20_000 });
   await expect(page.locator('main')).toContainText('أنثى');
@@ -256,8 +263,9 @@ test.describe('mobile staff portal (375 × 812)', () => {
     await noHorizontalScroll(page);
     await shot(page, '14-mobile-staff-dashboard');
 
-    await page.goto('/traced/staff/scan/');
-    await writeBlankCamera(); // live preview without a code first
+    const blank = track(await cameraPage(page, null, '/traced/staff/scan/', { mobile: true })); // live preview without a code first
+    await page.goto('about:blank');
+    page = blank.page;
     await page.getByRole('button', { name: 'Start camera' }).click();
     await expect(page.locator('video')).toBeVisible();
     await page.waitForTimeout(800);
@@ -266,12 +274,10 @@ test.describe('mobile staff portal (375 × 812)', () => {
     await page.getByRole('button', { name: 'Stop camera' }).click();
     expect(await page.evaluate(() => (document.querySelector('video') as HTMLVideoElement | null)?.srcObject ?? null)).toBeNull();
 
-    // Edge keeps reading the fake-camera file it opened, so load a fresh page for the QR video.
-    await writeQrCamera(cust.text);
-    const scanPage = await page.context().newPage();
-    await scanPage.goto('/traced/staff/scan/');
-    await page.close();
-    page = scanPage;
+    // A different camera video means a different browser instance (see cameraPage).
+    const cam = track(await cameraPage(page, cust.text, '/traced/staff/scan/', { mobile: true }));
+    page = cam.page;
+    await blank.close();
     await page.getByRole('button', { name: 'Start camera' }).click();
     await expect(page.getByRole('heading', { name: 'Valid QR code' })).toBeVisible({ timeout: 20_000 });
     await noHorizontalScroll(page);

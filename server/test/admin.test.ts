@@ -619,6 +619,30 @@ describe('operational export', () => {
     expect((await lastAudit('report.exported')).metadata.personalData).toBe(false);
   });
 
+  it('counts match a direct per-day, per-branch count (Phase 7 single-pass query, Riyadh day boundaries)', async () => {
+    // A registration just after midnight Riyadh (21:00 UTC the day before) belongs to the Riyadh day.
+    const r = await registrationWithQr();
+    await t.db.query(`ALTER TABLE registrations DISABLE TRIGGER registrations_set_updated_at`);
+    await t.db.query(`UPDATE registrations SET created_at = (date_trunc('day', now() AT TIME ZONE 'Asia/Riyadh') + interval '5 minutes') AT TIME ZONE 'Asia/Riyadh' WHERE id = $1`, [r.registration.id]);
+    await t.db.query(`ALTER TABLE registrations ENABLE TRIGGER registrations_set_updated_at`);
+    const res = await t.app.request('/api/v1/admin/reports/operational.csv', { headers: { cookie: superAdmin.c.cookie!, origin: ORIGIN } });
+    const lines = Buffer.from(await res.arrayBuffer()).toString('utf8').slice(1).trim().split('\r\n').slice(1);
+    const expected = await t.db.query<{ day: string; code: string; reg: string; col: string; can: string }>(
+      `WITH d AS (SELECT generate_series(date_trunc('month', now() AT TIME ZONE 'Asia/Riyadh')::date, (now() AT TIME ZONE 'Asia/Riyadh')::date, interval '1 day')::date AS day)
+       SELECT to_char(d.day, 'YYYY-MM-DD') AS day, b.code,
+              (SELECT count(*) FROM registrations x WHERE x.branch_id = b.id AND (x.created_at AT TIME ZONE 'Asia/Riyadh')::date = d.day) AS reg,
+              (SELECT count(*) FROM samples s WHERE s.branch_id = b.id AND (s.collected_at AT TIME ZONE 'Asia/Riyadh')::date = d.day) AS col,
+              (SELECT count(*) FROM registrations x WHERE x.branch_id = b.id AND x.status = 'cancelled' AND (x.cancelled_at AT TIME ZONE 'Asia/Riyadh')::date = d.day) AS can
+         FROM d CROSS JOIN collection_branches b ORDER BY d.day, b.sort_order, b.code`);
+    expect(lines.length).toBe(expected.rows.length);
+    lines.forEach((line, i) => {
+      const cells = line.split(',');
+      const e = expected.rows[i]!;
+      expect([cells[0], cells[1], cells.at(-3), cells.at(-2), cells.at(-1)]).toEqual([e.day, e.code, e.reg, e.col, e.can]);
+    });
+    expect(expected.rows.some((e) => Number(e.reg) > 0)).toBe(true);
+  });
+
   it('csv helpers neutralise every formula prefix; masking and scrubbing hide addresses', () => {
     for (const p of ['=', '+', '-', '@', '\t', '\r']) expect(csvCell(`${p}1`).replace(/^"|"$/g, '').startsWith(`'${p}`)).toBe(true);
     expect(csvCell('plain')).toBe('plain');

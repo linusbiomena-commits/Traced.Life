@@ -10,7 +10,7 @@ import { createStaffAccount } from '../../src/modules/accounts/accounts.service.
 import { MemoryMailer } from '../../src/modules/mail/mailer.ts';
 import type { RoleKey } from '../../src/modules/rbac/catalogue.ts';
 import { decodeQrPng } from '../helpers/registration.ts';
-import { writeBlankCamera, writeQrCamera } from './fake-camera.ts';
+import { cameraPage } from './fake-camera.ts';
 import { noHorizontalScroll, PASSWORD, signUpAndSignIn, uniqueEmail } from './helpers.ts';
 import { saveScreenshot } from './redact-qr.ts';
 
@@ -104,7 +104,10 @@ async function staffAction(page: Page, sampleId: string, label: string, extra?: 
   await expect(page.getByText(/^Recorded:/)).toBeVisible();
 }
 
-test.afterEach(() => writeBlankCamera());
+// Each camera step runs in its own Edge instance (cameraPage); closed after every test.
+const cams: { close: () => Promise<void> }[] = [];
+const track = <T extends { close: () => Promise<void> }>(c: T): T => { cams.push(c); return c; };
+test.afterEach(async () => { await Promise.all(cams.splice(0).map((c) => c.close())); });
 
 test('full chain of custody: collection → label → package → dispatch → lab receipt (camera) → analysis → report → customer timeline → admin record', async ({ browser }) => {
   test.setTimeout(240_000); // four roles and the whole journey in one test
@@ -154,7 +157,9 @@ test('full chain of custody: collection → label → package → dispatch → l
   await expect(lab.page.getByText('SMSA-0001-TEST')).toBeVisible();
   await shot(lab.page, 'b04-lab-dashboard-incoming');
   await lab.page.goto('/traced/lab/scan/');
-  await writeQrCamera(sampleQr); // the operator holds the sample label up to the camera
+  const labCam = track(await cameraPage(lab.page, sampleQr, '/traced/lab/scan/')); // the operator holds the sample label up to the camera
+  await lab.page.goto('about:blank');
+  lab.page = labCam.page;
   await lab.page.getByRole('button', { name: 'Scan with camera' }).click();
   await expect(lab.page.getByRole('heading', { name: sampleId })).toBeVisible({ timeout: 20_000 }); // camera decode (as in the staff tests)
   await expect(lab.page.locator('video')).toBeHidden(); // camera released after the read
