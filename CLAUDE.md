@@ -32,6 +32,8 @@ Update `docs/HANDOVER.md` after every meaningful milestone (a module, a migratio
 - **Client IP:** never trust the leftmost `X-Forwarded-For`; use `server/src/lib/client-ip.ts` and `TRUSTED_PROXY_HOPS`.
 - **Migrations:** never edit an applied migration; add a new numbered one (latest: 0008). Allocate the tracking ID before any audit write; the lock order is registration → patient → session/token → audit.
 - **Provisional content** (consent text, collection instructions, identity verification) is not approved for production. Production config refuses provisional content and `DEV_IDENTITY_VERIFICATION`.
+- **Committed evidence:** screenshots must never show decodable QR tokens, MFA secrets or recovery codes. The E2E `shot` helpers redact QR codes automatically (`server/test/e2e/redact-qr.ts`), and a test enforces it.
+- **Windows E2E:** never stop the dev database (`postgres.exe -D …\.dev-db\data`). An orphaned test `io_worker` (parent gone) no longer blocks runs; stop it only with the owner's OK.
 - Do not claim anything is done unless it is implemented **and tested**. Keep verified results separate from assumptions.
 
 ## 5. Git authorisation

@@ -23,12 +23,13 @@ Last updated: 2026-11-26 (Phase 5 approved and implemented). Only **Approved** i
 | A16 | Admin search by patient name, customer name, email, mobile, tracking ID; audited without readable terms | Owner, 2026-11-26 |
 | A17 | Customer account actions: resend verification, lock, unlock (reasons, audit). No deletion or unrestricted deactivation | Owner, 2026-11-26 |
 | A18 | Admin patient corrections before collection only, with reason and encrypted history | Owner, 2026-11-26 |
+| A20 | Phase 5 finalised (owner, 2026-11-26); committed evidence must never contain decodable QR tokens, MFA secrets or recovery codes | Owner, 2026-11-26 |
 | A19 | Client IP: count trusted proxy hops from the right (`TRUSTED_PROXY_HOPS`, optional CIDRs / proxy secret); production must set it explicitly | Phase 5 milestone 1 |
 
 ## Proposed / awaiting approval
 | # | Item | Notes |
 |---|---|---|
-| P1 | Phase 6 scope (physical sample labels, chain of custody) | `docs/phase-5-report.md` §18 |
+| P1 | Phase 6 scope (physical sample labels, chain of custody) and its §1 decisions (sample ID format, who records each transition, transport login, label printer/size, report-available meaning, rejection rules) | `docs/phase-6-plan.md` |
 | P2 | Make GitHub repo `linusbiomena-commits/Traced.Life` **private** | Currently public; recommended |
 | P3 | Identity-verification method per scenario (adult, child + guardian, dependent) | `docs/identity-verification.md`; production collection blocked until decided |
 | P5 | API routing: Vercel rewrite vs. direct Saudi-hosted API domain | `docs/architecture.md` §2 |

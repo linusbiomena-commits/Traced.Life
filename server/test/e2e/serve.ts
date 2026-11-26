@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { mkdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { serve } from '@hono/node-server';
 import EmbeddedPostgres from 'embedded-postgres';
@@ -18,10 +18,18 @@ import { createHttpApp } from '../../src/server.ts';
 const PORT = Number(process.env.E2E_PORT ?? 8790);
 const MAIL_DIR = path.resolve(process.env.E2E_MAIL_DIR ?? 'test-results/e2e-mail');
 
-// Fixed, gitignored location wiped on every start: Playwright force-kills this process on
-// Windows (so the exit cleanup may not run), and this keeps leftovers from accumulating.
-const dir = path.resolve('test-results/e2e-pg');
-await rm(dir, { recursive: true, force: true });
+// Each run gets its own gitignored data directory under test-results/e2e-pg. On Windows,
+// Playwright force-kills this process, so the exit cleanup may not run and an embedded-postgres
+// worker can survive as an orphan that keeps files in its data directory open. A fixed directory
+// then couldn't be wiped and the next run failed to start. Earlier runs' directories are removed
+// best-effort (one still held open is skipped and removed by a later run), so leftovers can't
+// accumulate and can't block a new run.
+const root = path.resolve('test-results/e2e-pg');
+await mkdir(root, { recursive: true });
+for (const name of await readdir(root).catch(() => [] as string[])) {
+  await rm(path.join(root, name), { recursive: true, force: true }).catch(() => {});
+}
+const dir = path.join(root, `run-${Date.now()}-${randomBytes(3).toString('hex')}`);
 await mkdir(dir, { recursive: true });
 const dataDir = path.join(dir, 'data');
 const password = randomBytes(16).toString('hex');

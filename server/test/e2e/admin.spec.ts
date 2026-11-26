@@ -10,12 +10,14 @@ import { createStaffAccount } from '../../src/modules/accounts/accounts.service.
 import { MemoryMailer } from '../../src/modules/mail/mailer.ts';
 import type { RoleKey } from '../../src/modules/rbac/catalogue.ts';
 import { mailLink, noHorizontalScroll, PASSWORD, signUpAndSignIn, uniqueEmail } from './helpers.ts';
+import { redactQrCodes } from './redact-qr.ts';
 
 const SHOTS = path.resolve('docs/phase-5/screenshots');
 mkdirSync(SHOTS, { recursive: true });
 const shot = async (page: Page, name: string, fullPage = true) => {
   if (fullPage) await page.evaluate(() => window.scrollTo(0, 0));
   await page.screenshot({ path: path.join(SHOTS, `${name}.png`), fullPage });
+  await redactQrCodes(path.join(SHOTS, `${name}.png`)); // never commit a decodable QR token
 };
 const totp = (secret: string) => new TOTP({ algorithm: 'SHA1', digits: 6, period: 30, secret: Secret.fromBase32(secret.replace(/\s/g, '')) }).generate();
 const ip = () => { const b = randomBytes(3); return `10.${b[0]}.${b[1]}.${b[2]}`; };
@@ -103,6 +105,12 @@ test('admin invitation → set password → sign in → two-step setup with reco
   await page.getByRole('button', { name: 'Start setup' }).click();
   await expect(page.locator('.p-mfa-qr')).toBeVisible();
   const secret = (await page.locator('.p-code').textContent())!;
+  // Never keep an MFA secret in committed evidence, even for a throwaway account: mask the key
+  // and blur the QR before the screenshot (the test still uses the real secret below).
+  await page.evaluate(() => {
+    document.querySelector('.p-code')!.textContent = 'XXXX XXXX XXXX XXXX XXXX XXXX XXXX XXXX';
+    (document.querySelector('.p-mfa-qr') as HTMLElement).style.filter = 'blur(14px)';
+  });
   await shot(page, '02-admin-mfa-setup-en');
   await page.getByLabel('6-digit code').fill(totp(secret));
   await page.getByRole('button', { name: 'Turn on two-step verification' }).click();

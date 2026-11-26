@@ -2,6 +2,7 @@ import { execFileSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { hasSensitiveQr } from './e2e/redact-qr.ts';
 
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const PORTAL_JS = path.join(ROOT, 'dist/portal/js');
@@ -73,3 +74,14 @@ describe('portal pages', () => {
     }
   });
 });
+
+describe('committed evidence', () => {
+  it('no screenshot contains a decodable customer QR token or MFA enrolment code', async () => {
+    const shots = execFileSync('git', ['ls-files', 'docs/*.png'], { cwd: ROOT, encoding: 'utf8' }).split(/\r?\n/).filter(Boolean);
+    expect(shots.length).toBeGreaterThan(100);
+    const leaking: string[] = [];
+    for (const f of shots) if (await hasSensitiveQr(path.join(ROOT, f))) leaking.push(f);
+    expect(leaking).toEqual([]);
+  }, 300_000);
+});
+

@@ -16,7 +16,7 @@ Customer registration, secure QR and chain-of-custody platform for TRACED (Linus
 | 5 | Trusted-proxy fix; admin portal (MFA, dashboard, audited search/records, transfers, cancellation, corrections, customer lock, QR, staff, branches, instruction drafts/publish, email monitor, audit viewer, operational CSV); migration 0008 | `phase-5-report.md` |
 
 ## 3. Current phase
-Phase 5 is complete. **Phase 6 (physical sample labels and chain of custody) awaits the owner's approval**; proposed scope in `docs/phase-5-report.md` §18. Do not start it without approval.
+Phase 5 is complete. **Phase 6 (physical sample labels and chain of custody) awaits the owner's approval**; detailed plan in `docs/phase-6-plan.md`. Do not start it without approval.
 
 ## 4. Architecture
 - Local: one Node process serves the API (`/api/v1`) and the static site from `dist/` on :8787; embedded PostgreSQL on :54329 (`npm run dev:db`).
@@ -30,7 +30,7 @@ See `docs/DECISIONS.md` (approved vs proposed vs unresolved).
 See `docs/TEST_STATUS.md` (Phase 5 final run).
 
 ## 7. Roadmap
-6 Physical sample labels and chain of custody (reuse `samples`) → 7 Security hardening (audit roles and checkpoints, OWASP, device validation, load and backup tests) → 8 Production provisioning and deployment (explicit approval only).
+6 Physical sample labels and chain of custody (reuse `samples`; plan `docs/phase-6-plan.md`) → 7 Security hardening (audit roles and checkpoints, OWASP, device validation, load and backup tests) → 8 Production provisioning and deployment (explicit approval only).
 
 ## 8. Production blockers
 1. GitHub repository is **public** (recommend private; owner action).

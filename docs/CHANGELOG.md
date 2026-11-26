@@ -1,5 +1,11 @@
 # TRACED: Changelog
 
+## 2026-11-26: Phase 5 finalised
+- Final verification: typecheck clean, 200/200 unit+integration, 22/22 browser, `npm audit` 0, secrets scan clean.
+- Browser-test harness: per-run embedded-PostgreSQL data directory so an orphaned Windows worker can't block the next run (tested with a locked leftover directory).
+- Evidence: MFA key and recovery codes masked; 13 customer QR codes redacted from committed screenshots; `redact-qr.ts` runs automatically on every screenshot; new test fails if a committed screenshot contains a decodable QR token or MFA code.
+- `docs/phase-6-plan.md` (proposed, awaiting approval).
+
 ## 2026-11-26: Phase 5, authorized admin portal
 - **Milestone 1 (`898705e`):** trusted-proxy hardening (`TRUSTED_PROXY_HOPS`/`_CIDRS`/`_SECRET`; leftmost X-Forwarded-For no longer trusted; production must configure it).
 - **Milestone 2 (`405a1f0`):** migration **0008** (permission `instructions.draft`, user status metadata, `registration_branch_transfers`, `collection_instruction_drafts`, instruction approval columns, `registration_branch_changed` email, indexes); admin API under `server/src/modules/admin/`; audit viewer filters and redaction.
