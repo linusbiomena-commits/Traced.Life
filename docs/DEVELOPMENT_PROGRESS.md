@@ -1,6 +1,6 @@
 # TRACED: Development Progress (evidence-based)
 
-Last updated: 2026-11-26.
+Last updated: 2026-11-26 (end of Phase 7).
 
 | Phase | Scope | Status | Evidence |
 |---|---|---|---|
@@ -12,11 +12,11 @@ Last updated: 2026-11-26.
 | 5 | Authorized admin portal (+ trusted-proxy fix) | **Complete for the approved scope** | `898705e`, `405a1f0`, `b49a84d`, `9b4c3c2` + finalisation commit; `docs/phase-5-report.md` (200 unit + 22 browser tests) |
 | 5A | Stage A: manual-testing preparation, login links, role routing | **Complete** | Stage A checkpoint commit; `docs/manual-testing.md` |
 | 6 | Physical sample labels and chain of custody | **Complete for the approved scope** (printer/devices untested) | `9f39578` + final Phase 6 commit; `docs/phase-6-report.md` (216 unit + 27 browser) |
-| 7 | Security hardening and production readiness | **Plan ready, awaiting approval** | `docs/phase-6-report.md` §18 |
+| 7 | Security hardening and production readiness | **Complete (local only)**; nothing provisioned | `91ea577`…`8682bb3` + docs commit; `docs/phase-7-report.md` |
 | 8 | Production infrastructure and deployment | Not started; **not authorised** | `docs/architecture.md` (plan only) |
 
 ## Current phase
-Phase 6 finished; Phase 7 awaits approval.
+Phase 7 finished; Phase 8 (provisioning/deployment) is not authorised and awaits the owner's decision.
 
 ## In progress
 Nothing in progress.
@@ -28,4 +28,4 @@ The approvals listed in `docs/DECISIONS.md` ("Unresolved"): identity verificatio
 **Not ready.** Nothing is provisioned or deployed. Production collection is deliberately blocked until an approved identity-verification method and approved instructions exist.
 
 ## Estimated completion
-About **77%** of total development effort (Phases 0–6 ≈ 275 h of ≈ 330–400 h; remaining ≈ 60–85 h for Phases 7–8). This counts engineering effort only and excludes business, legal and clinical approvals.
+About **85%** of total development effort (Phases 0–7 ≈ 325 h of ≈ 360–400 h; remaining ≈ 25–35 h for Phase 8). This counts engineering effort only and excludes business, legal and clinical approvals.

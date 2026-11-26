@@ -1,0 +1,69 @@
+{
+  "//": "TEMPLATE ONLY (Phase 7). Kept out of the repository root on purpose: a vercel.json there would change the live public site on the next main deploy. In Phase 8, after approval and a preview test, merge the rewrites/headers into the real config. <CLOUD_RUN_URL> is the traced-api service URL. The trusted-proxy request header (x-traced-proxy-auth, TRUSTED_PROXY_SECRET) cannot be added by vercel.json (its 'headers' are response headers): add it in Vercel Routing Middleware on /api/* (docs/architecture.md §2a, docs/deploy/README.md).",
+  "rewrites": [
+    {
+      "source": "/api/v1/:path*",
+      "destination": "https://<CLOUD_RUN_URL>/api/v1/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/traced/(account|staff|admin|lab|c|s)/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self), microphone=(), geolocation=()"
+        }
+      ]
+    },
+    {
+      "source": "/ar/traced/(account|staff|admin|lab|c|s)/:path*",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store"
+        },
+        {
+          "key": "X-Robots-Tag",
+          "value": "noindex, nofollow"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "camera=(self), microphone=(), geolocation=()"
+        }
+      ]
+    }
+  ]
+}

@@ -23,9 +23,9 @@ export function findQr(png: PNG) {
  */
 export const SENSITIVE_QR = /\/traced\/[cs]\/|\b[cs]1_|otpauth:|token=/i; // customer (c1_) and physical-sample (s1_) QR tokens
 
-/** Paints over every decodable sensitive QR code in a PNG file. Returns how many were redacted. */
-export async function redactQrCodes(file: string): Promise<number> {
-  const png = PNG.sync.read(await readFile(file));
+/** Paints over every decodable sensitive QR code in a PNG image held in memory. */
+export function redactQrBuffer(image: Buffer): { image: Buffer; count: number } {
+  const png = PNG.sync.read(image);
   const scratch = PNG.sync.read(PNG.sync.write(png)); // search copy: every hit is blanked here
   let count = 0;
   for (let round = 0; round < 30; round++) {
@@ -46,7 +46,13 @@ export async function redactQrCodes(file: string): Promise<number> {
       count++;
     }
   }
-  if (count > 0) await writeFile(file, PNG.sync.write(png));
+  return { image: count > 0 ? PNG.sync.write(png) : image, count };
+}
+
+/** Paints over every decodable sensitive QR code in a PNG file. Returns how many were redacted. */
+export async function redactQrCodes(file: string): Promise<number> {
+  const { image, count } = redactQrBuffer(await readFile(file));
+  if (count > 0) await writeFile(file, image);
   return count;
 }
 
@@ -88,10 +94,12 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
 
 /**
  * Takes a screenshot in memory and saves it with a few retries (on Windows, sync/antivirus tools
- * occasionally hold a PNG open for a moment), then redacts any sensitive QR code in it.
+ * occasionally hold a PNG open for a moment). Sensitive QR codes are redacted before writing.
  */
 export async function saveScreenshot(page: { screenshot: (o: { fullPage: boolean }) => Promise<Buffer> }, file: string, fullPage = true): Promise<void> {
-  const image = await page.screenshot({ fullPage });
+  // Phase 7: redact in memory first, so an unredacted image never touches the disk (a crash or a
+  // concurrent reader between "write" and "redact" could otherwise see the raw QR code).
+  const { image } = redactQrBuffer(await page.screenshot({ fullPage }));
   for (let attempt = 0; ; attempt++) {
     try {
       await writeFile(file, image);
@@ -101,5 +109,4 @@ export async function saveScreenshot(page: { screenshot: (o: { fullPage: boolean
       await new Promise((r) => setTimeout(r, 300 * (attempt + 1)));
     }
   }
-  await redactQrCodes(file);
 }

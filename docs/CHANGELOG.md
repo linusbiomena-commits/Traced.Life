@@ -1,5 +1,15 @@
 # TRACED: Changelog
 
+## 2026-11-26: Phase 7, security hardening and production readiness (local only)
+- Auth: super-admin reset of two-step verification; self-service recovery-code regeneration; production config guards (scheduler credential, https origin, export limits); `HOST`.
+- Migration **0010**: signed audit checkpoints, verification records, range verification, custody digest, TRUNCATE guards. Migration **0011**: performance indexes.
+- Audit integrity service + admin page; scheduled checkpoint/verify; Cloud Scheduler OIDC verification.
+- `production-roles.sql` rewritten per table and tested (app runs as `traced_app`).
+- Super-admin personal-data export (fresh TOTP, reason, minimisation, limits, CSV-safe, audited, not stored) + admin page.
+- Performance run (`npm run test:perf`), backup drill (`npm run drill:backup`), outbox attempt cap, camera tests isolated per browser, screenshots redacted in memory, orphan cleanup script, history QR scanner.
+- Docs: threat model, security assessment, permission matrix, DB permissions, audit integrity runbook, privacy review, performance, backup, device checklist, deployment templates, launch checklist, Phase 8 plan, cost estimate, rollback.
+- Tests: 263 / 263 unit/integration, 30 / 30 browser.
+
 ## 2026-11-26: Phase 6, physical sample identification and chain of custody
 - Migration **0009**: sample IDs `TRC-SA-MM/YY-XXXXX-SXX` (reuses `samples.sample_code`, per-registration sequence, immutable), `sample_qr_tokens` (`s1_`), append-only `custody_events`, `sample_label_prints`, `recollection_authorizations`, status email kinds.
 - Collection creates the sample ID, sample QR and initial custody event; staff Samples page (package, ready, dispatch) and printable labels (50×30 default; audited reprints); **laboratory portal** (`/traced/lab/`, MFA, no patient data): receipt with condition, accept/reject, analysis, report available; admin custody list/record, appended corrections, recollection authorisation (new customer QR, fresh collection → `-S02`); customer timeline; optional status emails (`CUSTOMER_STATUS_EMAILS`).

@@ -12,13 +12,13 @@
 |---|---|
 | `dist/` | Static site (byte-exact) plus generated portal shells under `traced/{account,staff,admin,lab,c,s}` and `ar/traced/...`; portal JS/CSS in `dist/portal/` |
 | `server/src/` | Hono app: `modules/{auth,accounts,rbac,audit,registrations,consents,tracking,qr,collection,custody,mail,admin,dev}`, `middleware/`, `db/`, `cli/` |
-| `server/migrations/` | `0001`–`0009` (checksummed; never edit applied ones) |
+| `server/migrations/` | `0001`–`0011` (checksummed; never edit applied ones) |
 | `server/test/` | Vitest suites (real embedded PostgreSQL) and `e2e/` Playwright specs |
 | `scripts/` | Portal page generator and account-link patcher |
 | `docs/` | Phase reports, architecture, identity verification, device testing, audit hardening, handover files |
 
 **Roles:** customer, collection_staff, lab_operator, admin, super_admin, auditor (see `server/migrations/0003_seed_roles_permissions.sql`).
 
-**Key documents:** `docs/architecture.md` (GCP plan), `docs/development.md` (developer guide), `docs/identity-verification.md`, `docs/device-testing.md`, `docs/audit-hardening-plan.md`, `docs/phase-{0..6}-report.md`, `docs/manual-testing.md`, `docs/phase-5-plan.md`.
+**Key documents:** `docs/architecture.md` (GCP plan), `docs/development.md` (developer guide), `docs/identity-verification.md`, `docs/device-testing.md`, `docs/audit-hardening-plan.md`, `docs/phase-{0..7}-report.md`, `docs/security/`, `docs/deploy/`, `docs/manual-testing.md`, `docs/phase-5-plan.md`.
 
 Idea and business ownership: LinusBio MENA. Volume expectation: about 100 registrations per month initially.

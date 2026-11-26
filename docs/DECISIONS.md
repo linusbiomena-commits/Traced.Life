@@ -27,12 +27,15 @@ Last updated: 2026-11-26 (Phase 5 approved and implemented). Only **Approved** i
 | A21 | Stage A: Staff/Admin login links on the customer sign-in page; local test accounts only via one-time links (no stored passwords, MFA unchanged) | Owner, 2026-11-26 |
 | A22 | Phase 6 approved: physical sample ID `TRC-SA-MM/YY-XXXXX-SXX` (keeps the registration tracking ID); separate secure sample QR; scans never change status by themselves; 50×30 mm configurable label without personal data; append-only custody events with a server-enforced matrix; packaging/dispatch by branch staff; **no transport portal** (dispatch record + independent lab receipt); minimal lab-operator portal with MFA and no patient identity; rejection with provisional reason categories; admin-authorised recollection with new sample ID/QR and fresh identity verification; customer timeline; admin custody management; no report upload or LIS integration | Owner, 2026-11-26 |
 | A23 | Phase 6 implementation choices: sample ID reuses `samples.sample_code`; `in_transit` reserved (no transport accounts, no fabricated custody); recollection issues a new customer QR (spent QR never reactivated); customer status emails behind `CUSTOMER_STATUS_EMAILS` (off until wording approved); report availability is status-only | Phase 6 |
+| A24 | Phase 7 approved (owner, 2026-11-26) and implemented locally: migrations 0010–0011 additive; PII export super admin only with fresh TOTP; MFA reset by super admin only; Cloud Scheduler OIDC recommended for production; deployment templates kept under `docs/deploy/` (not repo root) | Owner / Phase 7 |
 | A19 | Client IP: count trusted proxy hops from the right (`TRUSTED_PROXY_HOPS`, optional CIDRs / proxy secret); production must set it explicitly | Phase 5 milestone 1 |
 
 ## Proposed / awaiting approval
 | # | Item | Notes |
 |---|---|---|
-| P1 | Phase 7 scope (security hardening, PII exports, audit hardening, load/backup tests, device validation) | `docs/phase-6-report.md` §18 |
+| P1 | Phase 8 provisioning and deployment, decisions D1–D10 | `docs/deploy/phase-8-plan.md` |
+| P7 | F-03: keep or purge historical screenshots with synthetic test QR tokens (history rewrite) | `docs/security/security-assessment.md`; keeping recommended |
+| P8 | Data retention periods | `docs/security/privacy-review.md` §4 |
 | P2 | Make GitHub repo `linusbiomena-commits/Traced.Life` **private** | Currently public; recommended |
 | P3 | Identity-verification method per scenario (adult, child + guardian, dependent) | `docs/identity-verification.md`; production collection blocked until decided |
 | P5 | API routing: Vercel rewrite vs. direct Saudi-hosted API domain | `docs/architecture.md` §2 |
@@ -50,6 +53,6 @@ Last updated: 2026-11-26 (Phase 5 approved and implemented). Only **Approved** i
 9. Real collection-branch data (Wareed).
 10. Physical Android, iPhone and USB scanner validation.
 11. Final GCP pricing in me-central2; `db-f1-micro` suitability (shared core, no SLA).
-12. Backup and recovery verification; audit-log hardening (Phase 7).
+12. Backup/restore on Cloud SQL staging and checkpoint bucket lock (Phase 8; local drill and audit hardening done in Phase 7).
 13. Production provisioning and deployment authorisation (Phase 8).
 14. External GitHub deployment configuration (webhooks need repository-admin access to inspect).

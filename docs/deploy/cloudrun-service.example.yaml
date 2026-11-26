@@ -1,0 +1,71 @@
+# TRACED API Cloud Run service. TEMPLATE ONLY (Phase 7): not applied anywhere.
+# Placeholders in <ANGLE_BRACKETS>. Apply in Phase 8 after approval with:
+#   gcloud run services replace cloudrun-service.yaml --region=<REGION>
+# Region: me-central2 (Dammam) is the default assumption for data residency; confirm with
+# LinusBio MENA / legal before provisioning (docs/deploy/phase-8-plan.md §Decisions).
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: traced-api
+  labels:
+    app: traced
+    env: production
+  annotations:
+    run.googleapis.com/ingress: all               # Vercel rewrites /api/* here; see vercel.example.json
+    run.googleapis.com/invoker-iam-disabled: "true" # public HTTP API (auth is in the app)
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: "0"     # scale to zero; Cloud Scheduler drives the outbox
+        autoscaling.knative.dev/maxScale: "2"     # connection budget: docs/performance/README.md
+        run.googleapis.com/cloudsql-instances: <PROJECT_ID>:<REGION>:traced-db
+        run.googleapis.com/execution-environment: gen2
+        run.googleapis.com/startup-cpu-boost: "true"
+    spec:
+      serviceAccountName: traced-api@<PROJECT_ID>.iam.gserviceaccount.com
+      containerConcurrency: 40
+      timeoutSeconds: 60
+      containers:
+        - image: <REGION>-docker.pkg.dev/<PROJECT_ID>/traced/traced-api:<GIT_SHA>
+          ports:
+            - containerPort: 8080
+          resources:
+            limits:
+              cpu: "1"
+              memory: 512Mi
+          startupProbe:
+            httpGet: { path: /api/v1/health }
+            periodSeconds: 5
+            failureThreshold: 12
+          env:
+            - { name: NODE_ENV, value: production }
+            - { name: HOST, value: 0.0.0.0 }
+            - { name: APP_ORIGIN, value: "https://<PUBLIC_DOMAIN>" }
+            - { name: COOKIE_SECURE, value: "true" }
+            - { name: SERVE_STATIC, value: "false" }
+            - { name: MAIL_TRANSPORT, value: resend }
+            - { name: MAIL_FROM, value: "TRACED <no-reply@<MAIL_DOMAIN>>" }
+            - { name: DEV_IDENTITY_VERIFICATION, value: "false" }
+            # Client → Vercel edge → Google front end → container. Verify the real hop count
+            # with a test request before launch (docs/architecture.md §2a).
+            - { name: TRUSTED_PROXY_HOPS, value: "2" }
+            - { name: DB_POOL_MAX, value: "5" }
+            - { name: OUTBOX_INTERVAL_MS, value: "15000" }
+            - { name: SCHEDULER_OIDC_AUDIENCE, value: "https://traced-api-<HASH>-<REGION_CODE>.a.run.app" }
+            - { name: SCHEDULER_OIDC_SERVICE_ACCOUNT, value: "traced-scheduler@<PROJECT_ID>.iam.gserviceaccount.com" }
+            - { name: EXPORT_PII_MAX_DAYS, value: "31" }
+            - { name: EXPORT_PII_MAX_ROWS, value: "2000" }
+            # Secrets: Secret Manager references (never literal values in this file).
+            - name: DATABASE_URL       # postgres://traced_app:…@/traced?host=/cloudsql/<PROJECT_ID>:<REGION>:traced-db
+              valueFrom: { secretKeyRef: { name: traced-database-url, key: latest } }
+            - name: TOKEN_HMAC_KEY
+              valueFrom: { secretKeyRef: { name: traced-token-hmac-key, key: latest } }
+            - name: DATA_ENCRYPTION_KEY
+              valueFrom: { secretKeyRef: { name: traced-data-encryption-key, key: latest } }
+            - name: RESEND_API_KEY
+              valueFrom: { secretKeyRef: { name: traced-resend-api-key, key: latest } }
+            - name: TRUSTED_PROXY_SECRET
+              valueFrom: { secretKeyRef: { name: traced-proxy-secret, key: latest } }
+            - name: AUDIT_CHECKPOINT_KEY
+              valueFrom: { secretKeyRef: { name: traced-audit-checkpoint-key, key: latest } }

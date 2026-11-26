@@ -1,26 +1,26 @@
 # TRACED: Continuation Checkpoint
 
-**Last updated:** 2026-11-26 ~15:45 UTC (18:45 Asia/Riyadh), Claude account 2
+**Last updated:** 2026-11-26, end of Phase 7.
 
 | Item | State |
 |---|---|
 | Branch | `feature/traced-portal` (also GitHub's *default* branch) |
-| Commits | Phase 5: `898705e`…`7050b57`; Stage A `26d4eec`; Phase 6 backend `9f39578`; **Phase 6 final commit** (see `git log -1`). All pushed |
-| Push status | pushed to `origin/feature/traced-portal` (local = origin after the final push) |
-| Current phase | **Phase 6 complete** for the approved scope; **Phase 7 awaits approval** (plan: `docs/phase-6-report.md` §18) |
-| Last completed task | Phase 6 frontend + tests + docs: staff Samples/label pages, laboratory portal, admin samples pages, customer timeline, `/traced/s/`; `server/test/e2e/tracking-custody.spec.ts`; `docs/phase-6-report.md`; `docs/manual-testing.md` (lab + full journey) |
+| Commits | Phase 6 final `8f4c870`; Phase 7: `91ea577`, `f594b4c`, `9ca24b3`, `8682bb3` + the Phase 7 docs/finalisation commit (see `git log`) |
+| Push status | see `git status -sb` (Phase 7 pushed at the end of the phase if the pre-push checks passed) |
+| Current phase | **Phase 7 complete (local only)**; **Phase 8 not authorised** |
+| Last completed task | Phase 7 report and deliverables (`docs/phase-7-report.md`) |
 | Current unfinished task | none |
-| Uncommitted / staged changes | none expected (run `git status`) |
-| Database migrations | 0001–0009. The owner's dev DB gets 0009 when the manual-testing worktree is moved to the Phase 6 commit (done at the end of Phase 6; check `schema_migrations`) |
-| Running services | Manual-testing portal on :8787 runs from the worktree `../Traced Website (manual testing)` (moved to the Phase 6 commit) + dev DB on :54329 (`.dev-db/data`). Synthetic accounts incl. `lab.local@example.com`; passwords set by the owner only (`npm run dev:test-accounts`) |
-| Tests executed | typecheck clean; `npm test` **216/216**; `npm run test:e2e` **27/27**; `check:portal` pass; `npm audit` 0; secrets scan clean |
-| Failed tests | none |
-| Known bugs | none open. Phase 6 fixes: idempotent replay under concurrency; label CSS collision; reprint label text; invisible char in redaction regex. Windows E2E stability: close extra contexts, screenshot write retries, custody spec sorts after staff spec |
-| Outstanding checks | Physical devices; real proxy-chain verification in Phase 8 |
-| Blockers | Phase 7 approval; outstanding approvals in `docs/DECISIONS.md` (incl. printer/packaging dimensions, rejection criteria, report delivery) |
+| Database migrations | 0001–0011. **The owner's dev DB is still at 0009** (manual-testing worktree at `8f4c870`). Upgrading the worktree applies 0010–0011: coordinate with the owner first |
+| Running services | Manual-testing portal on :8787 from `../Traced Website (manual testing)` (detached at `8f4c870`) + dev DB on :54329 (`.dev-db/data`). Not touched in Phase 7 |
+| Tests executed | typecheck clean; `npm test` **263 / 263**; `npm run test:e2e` **30 / 30**; `check:portal` pass; `npm audit` 0; `npm run test:perf` and `npm run drill:backup` pass; history secret + QR scans done |
+| Failed tests | none in the final run |
+| Known bugs | none open. Phase 7 fixes: outbox endless retry on crashing sends; integrity verification timeout risk; CSV per-day counting; missing QR-token index; screenshot written before redaction (now in memory); shared fake-camera file race |
+| Outstanding checks | physical devices and printers; real proxy chain; Cloud SQL performance; staging restore drill |
+| Blockers | Phase 8 approval and decisions D1–D10; F-03 (historical synthetic QR screenshots) decision; approvals in `docs/DECISIONS.md` |
+| Machine housekeeping | 7 orphaned test PostgreSQL `io_worker` processes listed by `node scripts/cleanup-orphan-test-postgres.mjs` (dry run). Stop only with the owner's OK |
 
-## Push safety evidence (re-checked 2026-11-26, after Phase 5 pushes)
-GitHub API: 0 deployments, 0 environments, 0 check runs. The repo has no `vercel.json`, `.vercel/`, Netlify or workflow files. Behavioural check: the live `linusbiomena.vercel.app` site still serves its 23 Nov build, and every portal path pushed to this branch (`/traced/account/`, `/traced/staff/`, `/traced/admin/`, `/portal/js/…`, `/api/v1/health`) returns 404 there, so no integration deploys this branch to it. Limitation: webhook and app settings need repository-admin access.
+## Push safety evidence
+Re-checked before the Phase 7 push: GitHub API 0 deployments / 0 environments; no `vercel.json`, `.vercel/` or workflow files at the repo root (deployment templates are under `docs/deploy/` only); the live `linusbiomena.vercel.app` portal paths return 404.
 
 ## Exact next action
-Wait for the owner's approval of Phase 7 (plan: `docs/phase-6-report.md` §18). Do not start it without approval.
+Wait for the owner's explicit authorisation before any Google Cloud provisioning or deployment (Phase 8). Do not start Phase 8 without it.
