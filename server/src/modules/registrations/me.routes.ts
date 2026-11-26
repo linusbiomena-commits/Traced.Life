@@ -27,7 +27,7 @@ const phone = z.string().max(40).transform((v, ctx) => {
   return n;
 });
 
-const registrationBody = z.strictObject({
+export const registrationBody = z.strictObject({
   relationship: z.enum(['self', 'child', 'authorized_dependent']),
   patient: z.strictObject({
     firstName: name(100),

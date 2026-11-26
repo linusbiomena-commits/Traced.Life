@@ -66,6 +66,12 @@ export class TestClient {
   post(path: string, body?: unknown, opts?: { headers?: Record<string, string>; csrf?: boolean; raw?: string }) {
     return this.request('POST', path, body ?? {}, opts);
   }
+  put(path: string, body?: unknown) {
+    return this.request('PUT', path, body ?? {});
+  }
+  patch(path: string, body?: unknown) {
+    return this.request('PATCH', path, body ?? {});
+  }
 }
 
 export type TestEnv = Awaited<ReturnType<typeof setupTestApp>>;

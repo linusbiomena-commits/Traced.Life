@@ -6,7 +6,7 @@
 export type Locale = 'en' | 'ar';
 export type TemplateName =
   | 'verify_email' | 'account_exists' | 'reset_password' | 'password_changed' | 'account_setup'
-  | 'registration_confirmation' | 'registration_qr_resend';
+  | 'registration_confirmation' | 'registration_qr_resend' | 'registration_branch_changed';
 
 export const SUPPORT_EMAIL = 'LinusBio@karama.tech';
 export const SUPPORT_PHONE = '+966 55 141 5599';
@@ -102,6 +102,14 @@ const COPY: Record<TemplateName, (locale: Locale, d: Record<string, string>) => 
   account_setup: (l) => l === 'ar'
     ? { subject: 'إعداد حساب الموظف في TRACED', preheader: 'اختر كلمة مرور لتفعيل حسابك.', heading: 'إعداد حسابك', blocks: [{ kind: 'p', text: 'أنشأ أحد المسؤولين حسابًا لك في TRACED.' }, { kind: 'p', text: 'اختر كلمة مرور لتفعيله. تنتهي صلاحية هذا الرابط خلال 72 ساعة ويمكن استخدامه مرة واحدة.' }], action: 'تعيين كلمة المرور' }
     : { subject: 'Set up your TRACED staff account', preheader: 'Choose a password to activate your account.', heading: 'Set up your account', blocks: [{ kind: 'p', text: 'An administrator created a TRACED account for you.' }, { kind: 'p', text: 'Choose a password to activate it. This link expires in 72 hours and can be used once.' }], action: 'Set password' },
+  // Phase 5: an administrator moved the registration to another collection branch. No patient data.
+  registration_branch_changed: (l, d) => l === 'ar'
+    ? { subject: `تم تغيير فرع جمع العينة – ${d.trackingId ?? ''}`, preheader: 'يرجى زيارة الفرع الجديد لجمع العينة.', heading: 'تم تغيير فرع جمع العينة',
+        blocks: [{ kind: 'p', text: 'تم نقل تسجيلك في TRACED إلى فرع جمع آخر. رقم التتبع ورمز QR الخاص بك لم يتغيرا.' }, { kind: 'tracking', label: 'رقم التتبع', value: d.trackingId ?? '' },
+          { kind: 'info', title: 'فرع جمع العينة الجديد', lines: [d.branchName, d.branchCity, d.branchAddress].filter((x): x is string => Boolean(x)) }], action: 'عرض التسجيل' }
+    : { subject: `Your collection branch has changed – ${d.trackingId ?? ''}`, preheader: 'Please visit the new branch for your sample collection.', heading: 'Collection branch changed',
+        blocks: [{ kind: 'p', text: 'Your TRACED registration has been moved to a different collection branch. Your tracking ID and QR code have not changed.' }, { kind: 'tracking', label: 'Tracking ID', value: d.trackingId ?? '' },
+          { kind: 'info', title: 'New collection branch', lines: [d.branchName, d.branchCity, d.branchAddress].filter((x): x is string => Boolean(x)) }], action: 'View registration' },
   registration_confirmation: (l, d) => registrationCopy(l, d, false),
   registration_qr_resend: (l, d) => registrationCopy(l, d, true),
 };

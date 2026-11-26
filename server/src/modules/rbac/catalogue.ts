@@ -33,6 +33,7 @@ export const PERMISSIONS = [
   'admin.manage',
   'form.approve',
   'consent.manage',
+  'instructions.draft',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -40,7 +41,7 @@ export type Permission = (typeof PERMISSIONS)[number];
 const ADMIN_COMMON: Permission[] = [
   'custody.record_branch', 'custody.record_lab', 'custody.correct',
   'registration.read_full', 'registration.manage', 'qr.revoke', 'email.manage',
-  'staff.manage', 'branch.manage', 'audit.read', 'stats.read', 'report.export',
+  'staff.manage', 'branch.manage', 'audit.read', 'stats.read', 'report.export', 'instructions.draft',
 ];
 
 export const ROLE_PERMISSIONS: Record<RoleKey, Permission[]> = {

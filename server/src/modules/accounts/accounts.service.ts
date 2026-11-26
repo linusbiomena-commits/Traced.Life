@@ -1,5 +1,5 @@
 import type { Deps } from '../../context.ts';
-import { isUniqueViolation, withTx } from '../../db/pool.ts';
+import { isUniqueViolation, withTx, type Queryable } from '../../db/pool.ts';
 import { AppError } from '../../lib/errors.ts';
 import { audit } from '../audit/audit.service.ts';
 import { buildLink } from '../auth/links.ts';
@@ -16,7 +16,11 @@ export type AuditMeta = { actorUserId: string | null; actorRole: string | null; 
  */
 export async function createStaffAccount(
   deps: Deps,
-  input: { email: string; roles: RoleKey[]; locale: Locale; meta: AuditMeta },
+  input: {
+    email: string; roles: RoleKey[]; locale: Locale; meta: AuditMeta;
+    /** Runs inside the same transaction (admin invitations: name, branches, setup email). */
+    afterCreate?: (tx: Queryable, userId: string, setupLink: string) => Promise<void>;
+  },
 ): Promise<{ userId: string; setupLink: string }> {
   const roles = [...new Set(input.roles)];
   if (roles.length === 0) throw new AppError(422, 'ROLE_REQUIRED', 'Choose at least one role.');
@@ -34,7 +38,9 @@ export async function createStaffAccount(
       const token = await issueToken(tx, deps, userId, 'account_setup', input.meta.actorUserId);
       await audit(tx, { ...input.meta, action: 'account.staff_created', outcome: 'success', targetType: 'user', targetId: userId, metadata: { roles } });
       const adminSide = roles.some((r) => r === 'admin' || r === 'super_admin' || r === 'auditor');
-      return { userId, setupLink: buildLink(deps.config.appOrigin, adminSide ? 'admin_setup' : 'staff_setup', input.locale, token) };
+      const setupLink = buildLink(deps.config.appOrigin, adminSide ? 'admin_setup' : 'staff_setup', input.locale, token);
+      if (input.afterCreate) await input.afterCreate(tx, userId, setupLink);
+      return { userId, setupLink };
     });
   } catch (err) {
     if (isUniqueViolation(err, 'users_email_key')) throw new AppError(409, 'EMAIL_IN_USE', 'An account with this email already exists.');

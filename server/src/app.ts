@@ -6,11 +6,10 @@ import type { AppEnv, Deps } from './context.ts';
 import { AppError } from './lib/errors.ts';
 import { log } from './lib/logger.ts';
 import { csrfProtection, requestContext, sessionLoader } from './middleware/request.ts';
-import { auditRoutes } from './modules/audit/audit.routes.ts';
+import { adminRoutes } from './modules/admin/index.ts';
 import { authRoutes } from './modules/auth/auth.routes.ts';
 import { meRoutes } from './modules/registrations/me.routes.ts';
 import { staffRoutes } from './modules/qr/staff.routes.ts';
-import { adminQrRoutes } from './modules/qr/admin-qr.routes.ts';
 import { internalRoutes } from './modules/mail/internal.routes.ts';
 
 export const errorHandler: ErrorHandler<AppEnv> = (err, c) => {
@@ -59,8 +58,7 @@ export function createApi(deps: Deps): Hono<AppEnv> {
     return c.json({ status: 'ok' });
   });
   api.route('/auth', authRoutes(deps));
-  api.route('/admin', auditRoutes(deps));
-  api.route('/admin', adminQrRoutes(deps));
+  api.route('/admin', adminRoutes(deps));
   api.route('/me', meRoutes(deps));
   api.route('/staff', staffRoutes(deps));
   api.route('/internal', internalRoutes(deps));
