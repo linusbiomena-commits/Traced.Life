@@ -20,8 +20,8 @@ const deps = { config, db, mailer };
 const app = createHttpApp(deps);
 const stopOutbox = startOutboxWorker(deps, config.outboxIntervalMs);
 
-const server = serve({ fetch: app.fetch, port: config.port, hostname: '127.0.0.1' }, (info) => {
-  log.info('TRACED server listening', { url: `http://127.0.0.1:${info.port}`, static: config.serveStatic, mail: config.mailTransport });
+const server = serve({ fetch: app.fetch, port: config.port, hostname: config.host ?? '127.0.0.1' }, (info) => {
+  log.info('TRACED server listening', { url: `http://${config.host ?? '127.0.0.1'}:${info.port}`, static: config.serveStatic, mail: config.mailTransport });
 });
 
 async function shutdown(signal: string) {

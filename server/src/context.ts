@@ -1,3 +1,4 @@
+import type { JwksFetcher } from './lib/scheduler-auth.ts';
 import type { Context } from 'hono';
 import type { Config } from './config.ts';
 import type { Pool } from './db/pool.ts';
@@ -8,6 +9,8 @@ export type Deps = {
   config: Config;
   db: Pool;
   mailer: Mailer;
+  /** Test hook: replaces Google's JWKS download when verifying Cloud Scheduler OIDC tokens. */
+  schedulerJwks?: JwksFetcher;
 };
 
 /** The signed-in user as loaded for one request. */

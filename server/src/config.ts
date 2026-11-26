@@ -13,6 +13,8 @@ const key32 = (name: string) =>
 const schema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().min(1).max(65535).default(8787),
+  // Listen address. Local default is loopback only; containers (Cloud Run) set HOST=0.0.0.0.
+  HOST: z.union([z.literal('127.0.0.1'), z.literal('0.0.0.0'), z.literal('::')]).default('127.0.0.1'),
   APP_ORIGIN: z.url().transform((u) => new URL(u).origin),
   DATABASE_URL: z.string().min(1, 'DATABASE_URL is required'),
   TOKEN_HMAC_KEY: key32('TOKEN_HMAC_KEY'),
@@ -42,11 +44,22 @@ const schema = z.object({
   // Phase 6 customer status emails (sample received, report available, recollection required).
   // Off by default until the wording is approved; the dashboard timeline works either way.
   CUSTOMER_STATUS_EMAILS: bool.default(false),
+  // Phase 7: Cloud Scheduler may call /internal/* with a Google-signed OIDC token instead of (or
+  // as well as) the shared secret. Audience = the service URL; the token must come from this SA.
+  SCHEDULER_OIDC_AUDIENCE: z.url().optional(),
+  SCHEDULER_OIDC_SERVICE_ACCOUNT: z.email().optional(),
+  // Phase 7: independent audit checkpoints (HMAC key from Secret Manager; local file sink in dev).
+  AUDIT_CHECKPOINT_KEY: z.string().min(32).optional(),
+  AUDIT_CHECKPOINT_DIR: z.string().optional(),
+  // Phase 7: personal-data export limits (super admin only).
+  EXPORT_PII_MAX_DAYS: z.coerce.number().int().min(1).max(366).default(31),
+  EXPORT_PII_MAX_ROWS: z.coerce.number().int().min(1).max(50000).default(2000),
 });
 
 export type Config = {
   env: 'development' | 'test' | 'production';
   port: number;
+  host?: string;
   appOrigin: string;
   databaseUrl: string;
   tokenHmacKey: Buffer;
@@ -67,6 +80,12 @@ export type Config = {
   internalCronSecret?: string;
   serveStatic: boolean;
   customerStatusEmails?: boolean;
+  schedulerOidcAudience?: string;
+  schedulerOidcServiceAccount?: string;
+  auditCheckpointKey?: string;
+  auditCheckpointDir?: string;
+  exportPiiMaxDays?: number;
+  exportPiiMaxRows?: number;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -90,6 +109,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     // headers or puts every client into one rate-limit bucket.
     if (e.TRUSTED_PROXY_HOPS === undefined) throw new Error('TRUSTED_PROXY_HOPS must be set explicitly in production');
     if (e.TRUST_PROXY !== undefined) throw new Error('TRUST_PROXY is not supported in production; set TRUSTED_PROXY_HOPS');
+    // On Cloud Run the in-process outbox timer stops when the service scales to zero, so a
+    // scheduler credential must exist for queued emails and checkpoints to be processed.
+    if (!e.INTERNAL_CRON_SECRET && !e.SCHEDULER_OIDC_AUDIENCE) throw new Error('Production needs INTERNAL_CRON_SECRET or SCHEDULER_OIDC_AUDIENCE for scheduled jobs');
+    if (e.SCHEDULER_OIDC_AUDIENCE && !e.SCHEDULER_OIDC_SERVICE_ACCOUNT) throw new Error('SCHEDULER_OIDC_SERVICE_ACCOUNT is required with SCHEDULER_OIDC_AUDIENCE');
+    if (!e.APP_ORIGIN.startsWith('https://') || /localhost|127\.0\.0\.1/.test(e.APP_ORIGIN)) throw new Error('APP_ORIGIN must be the public https origin in production');
   }
   if (e.TRUST_PROXY !== undefined && e.TRUSTED_PROXY_HOPS !== undefined) {
     throw new Error('Set either TRUSTED_PROXY_HOPS or the legacy TRUST_PROXY, not both');
@@ -102,6 +126,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
   return {
     env: e.NODE_ENV,
     port: e.PORT,
+    host: e.HOST,
     appOrigin: e.APP_ORIGIN,
     databaseUrl: e.DATABASE_URL,
     tokenHmacKey: e.TOKEN_HMAC_KEY,
@@ -121,5 +146,11 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     internalCronSecret: e.INTERNAL_CRON_SECRET,
     serveStatic: e.SERVE_STATIC,
     customerStatusEmails: e.CUSTOMER_STATUS_EMAILS,
+    schedulerOidcAudience: e.SCHEDULER_OIDC_AUDIENCE,
+    schedulerOidcServiceAccount: e.SCHEDULER_OIDC_SERVICE_ACCOUNT,
+    auditCheckpointKey: e.AUDIT_CHECKPOINT_KEY,
+    auditCheckpointDir: e.AUDIT_CHECKPOINT_DIR,
+    exportPiiMaxDays: e.EXPORT_PII_MAX_DAYS,
+    exportPiiMaxRows: e.EXPORT_PII_MAX_ROWS,
   };
 }

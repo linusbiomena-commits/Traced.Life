@@ -333,6 +333,27 @@ export function authRoutes(deps: Deps) {
     return c.json(result);
   });
 
+  // Phase 7: replace one's own recovery codes (old ones stop working). Needs a current
+  // authenticator code from an MFA-verified session; the new codes are shown once.
+  r.post('/mfa/recovery-codes', requireSession, async (c) => {
+    const s = session(c);
+    const { code } = await parseBody(c, z.strictObject({ code: z.string().trim().max(10) }));
+    if (!s.mfaEnrolled || !s.mfaVerified) throw new AppError(409, 'MFA_NOT_VERIFIED', 'Complete two-step verification first.');
+    await enforceRateLimit(db, { key: `mfa_recovery_regen:user:${s.userId}`, limit: 5, windowSeconds: 3600 });
+    const { rows } = await db.query<{ enc: string }>('SELECT mfa_totp_secret_enc AS enc FROM users WHERE id = $1', [s.userId]);
+    const step = matchTotp(decryptSecret(deps, s.userId, rows[0]!.enc, 'active'), code);
+    if (step === null || !(await claimTotpStep(db, s.userId, step))) {
+      await auditSafe(db, { ...actorFrom(c), action: 'auth.recovery_codes_regenerated', outcome: 'failure', targetType: 'user', targetId: s.userId });
+      throw Errors.invalidMfaCode();
+    }
+    const recoveryCodes = await withTx(db, async (tx) => {
+      const codes = await regenerateRecoveryCodes(tx, deps, s.userId);
+      await audit(tx, { ...actorFrom(c), action: 'auth.recovery_codes_regenerated', outcome: 'success', targetType: 'user', targetId: s.userId });
+      return codes;
+    });
+    return c.json({ recoveryCodes });
+  });
+
   r.post('/mfa/verify', requireSession, async (c) => {
     const s = session(c);
     const body = await parseBody(

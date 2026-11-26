@@ -1,4 +1,6 @@
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import pg from 'pg';
 import { inject } from 'vitest';
 import { createApp } from '../../src/app.ts';
@@ -77,7 +79,11 @@ export class TestClient {
 export type TestEnv = Awaited<ReturnType<typeof setupTestApp>>;
 
 /** A fresh database (cloned from the migrated template) and app instance per test file. */
-export async function setupTestApp() {
+/**
+ * `appRole: true` runs server/sql/production-roles.sql on the test database and gives the app a
+ * pool that logs in as the least-privilege `traced_app` role (t.db stays the owner connection).
+ */
+export async function setupTestApp(opts: { appRole?: boolean } = {}) {
   const base = inject('pgBaseUrl');
   const dbName = `t_${randomBytes(6).toString('hex')}`;
   const admin = new pg.Client({ connectionString: `${base}/postgres` });
@@ -95,6 +101,13 @@ export async function setupTestApp() {
 
   const db: Pool = createPool(`${base}/${dbName}`, 20);
   await seedDevData(db, 'test');
+  let appDb: Pool = db;
+  if (opts.appRole) {
+    await db.query(readFileSync(path.resolve('server/sql/production-roles.sql'), 'utf8'));
+    const pw = randomBytes(16).toString('hex');
+    await db.query(`ALTER ROLE traced_app PASSWORD '${pw}'`);
+    appDb = createPool(`${base.replace(/\/\/[^@]+@/, `//traced_app:${pw}@`)}/${dbName}`, 20);
+  }
   const config: Config = {
     env: 'test',
     port: 0,
@@ -113,7 +126,7 @@ export async function setupTestApp() {
     customerStatusEmails: true, // Phase 6 status emails are exercised in tests
   };
   const mailer = new MemoryMailer();
-  const deps: Deps = { config, db, mailer };
+  const deps: Deps = { config, db: appDb, mailer };
   const app = createApp(deps);
 
   let ipCounter = 0;
@@ -179,6 +192,7 @@ export async function setupTestApp() {
   };
 
   const close = async () => {
+    if (appDb !== db) await appDb.end();
     await db.end();
     const a = new pg.Client({ connectionString: `${base}/postgres` });
     await a.connect();
@@ -186,7 +200,7 @@ export async function setupTestApp() {
     await a.end();
   };
 
-  return { app, db, mailer, config, deps, client, tokenFromMail, waitForMail, settleMail, customer, staff, mfaStaff, close };
+  return { app, db, appDb, mailer, config, deps, client, tokenFromMail, waitForMail, settleMail, customer, staff, mfaStaff, close };
 }
 
 /** Current TOTP code, optionally offset by whole 30-second steps. */

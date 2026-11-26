@@ -75,7 +75,7 @@ describe('proxy configuration', () => {
     expect(() => loadConfig(prod)).toThrow(/TRUSTED_PROXY_HOPS must be set explicitly/);
     expect(() => loadConfig({ ...prod, TRUST_PROXY: 'true' })).toThrow(/TRUSTED_PROXY_HOPS must be set|not supported in production/);
     expect(() => loadConfig({ ...prod, TRUSTED_PROXY_HOPS: '2', TRUST_PROXY: 'true' })).toThrow(/not supported in production/);
-    const c = loadConfig({ ...prod, TRUSTED_PROXY_HOPS: '2', TRUSTED_PROXY_SECRET: SECRET });
+    const c = loadConfig({ ...prod, TRUSTED_PROXY_HOPS: '2', TRUSTED_PROXY_SECRET: SECRET, INTERNAL_CRON_SECRET: 'x'.repeat(40) });
     expect(c.trustedProxyHops).toBe(2);
     expect(c.trustedProxySecret).toBe(SECRET);
   });

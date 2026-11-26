@@ -292,5 +292,28 @@ export function adminStaffRoutes(deps: Deps) {
     return c.json({ staff: await staffView(id) });
   });
 
+  // ---- Two-step verification reset (lost authenticator) ----------------------------------------
+  // Super admins only (admin.manage). Clears the authenticator secret and recovery codes and ends
+  // the person's sessions; they must enrol again at the next sign-in. Never for one's own account.
+  r.post('/staff/:id/mfa-reset', requirePermission(deps, 'admin.manage'), async (c) => {
+    const id = idParam(c);
+    const body = await parseBody(c, z.strictObject({ reason: reasonField }));
+    const s = actor(c);
+    notSelf(c, id);
+    await enforceRateLimit(db, { key: `admin_mfa_reset:user:${s.userId}`, limit: 20, windowSeconds: 3600 });
+    const meta = actorFrom(c);
+    await withTx(db, async (tx) => {
+      const { target, authority } = await lockTarget(tx, id, s.userId);
+      if (!authority.permissions.has('admin.manage')) throw Errors.forbidden();
+      const had = await tx.query<{ enrolled: boolean }>('SELECT (mfa_enabled_at IS NOT NULL) AS enrolled FROM users WHERE id = $1', [id]);
+      if (!had.rows[0]!.enrolled) throw new AppError(409, 'MFA_NOT_ENROLLED', 'This account has not set up two-step verification.');
+      await tx.query('UPDATE users SET mfa_totp_secret_enc = NULL, mfa_pending_secret_enc = NULL, mfa_enabled_at = NULL, mfa_last_used_step = NULL WHERE id = $1', [id]);
+      await tx.query('DELETE FROM mfa_recovery_codes WHERE user_id = $1', [id]);
+      const sessionsRevoked = await revokeAllSessions(tx, id, 'mfa_reset');
+      await audit(tx, { ...meta, action: 'staff.mfa_reset', outcome: 'success', targetType: 'user', targetId: id, metadata: { roles: target.roles, reason: body.reason, sessionsRevoked } });
+    });
+    return c.json({ staff: await staffView(id) });
+  });
+
   return r;
 }
