@@ -5,7 +5,7 @@
 **Use synthetic people and data only. Never enter a real patient.** The production database `traced` is separate and untouched.
 
 ## 1. Access
-- Base address: **https://www.tracedmena.life**. The pilot gate asks for username `traced` and the pilot password, which the owner shares separately; **no Vercel account is needed**.
+- Base address: **https://www.tracedmena.life**. Opening a portal link first shows the TRACED **Pilot access** page (English or Arabic). Enter the pilot access password, which the owner shares separately; you then continue to the page you asked for, with invitation links intact. **No Vercel account and no browser pop-up.** Pilot access lasts 12 hours per browser. After 10 wrong attempts, wait 15 minutes.
 
 | Portal | English | Arabic |
 |---|---|---|

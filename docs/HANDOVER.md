@@ -13,7 +13,7 @@
 | Local servers | dev DB on :54329 (preview `traced-db`), manual portal on :8787 (preview `traced-portal-manual`, worktree `../Traced Website (manual testing)` detached at `dee1101`). Both were restarted on 2026-11-27 after an unclean stop (app restart); data re-verified identical |
 | Local backup | `.dev-db-backups/2026-11-26T17-43-44-118Z/` (online backup taken before the upgrade, restore verified 32/32 tables; gitignored; contains test personal data) |
 | Completed (this stage) | dev DB online backup CLI (`npm run dev:db-backup`) + verified restore; worktree upgrade to `dee1101`; migrations 0010–0011 applied; data integrity verified twice; Phase 7 manual-testing guide (`docs/manual-testing.md` §7–8); verified Dammam prices; `docs/deploy/phase-8-preparation.md` (project, IAM matrix, Cloud Run/SQL commands, secret inventory, Vercel review, scheduler, checkpoint destination, Resend, billing, release gate, decisions D1–D13); `docs/deploy/cost-estimate.md` rewritten; `production-roles.sql` made Cloud SQL compatible; time-of-day test bug fixed |
-| Tests | typecheck clean; `npm test` **277/277** (27 Nov 2026, incl. 9 Oracle layout tests); `check:portal` pass; browser suite last run 30/30 twice (Phase 7; UI unchanged since). Open: one earlier intermittent staff camera failure, not reproduced |
+| Tests | typecheck clean; `npm test` **293/293** (27 Nov 2026, incl. 9 Oracle layout tests); `check:portal` pass; browser suite last run 30/30 twice (Phase 7; UI unchanged since). Open: one earlier intermittent staff camera failure, not reproduced |
 | Cost estimate | ≈ USD 16.6–18.3/month ex VAT ≈ **SAR 62–69 ex VAT / SAR 72–79 incl. 15% VAT** for 100–1,000 registrations (Cloud SQL db-f1-micro Dammam $0.0168/h is ~90%). Resend paid plan likely at ~1,000 registrations |
 | Known bugs | none open. Fixed: admin audit-log test used a UTC date for a Riyadh-date filter (failed 00:00–03:00 Riyadh) |
 | Machine housekeeping | 7 orphaned test PostgreSQL `io_worker` processes left running by the owner's decision. `node scripts/cleanup-orphan-test-postgres.mjs` lists them (dry run); `--yes` only with authorisation. Never stop the dev DB on 54329 |
@@ -56,6 +56,12 @@ Before each push: GitHub API 0 deployments / 0 environments for `Traced.Life`; n
 - Enabled so far (free): Artifact Registry API plus the default APIs Google enables on new projects. No budget, service account, secret, database, bucket or repository exists yet.
 
 ## Exact next action
+**28 Nov:** the browser pop-up is replaced by the branded pilot access page (signed HttpOnly cookie, API rate limit, launch switch; `docs/deploy/www-pilot-rollout.md`).
+- The admin account `68e1a2d9…` (info@tracedmena.life) has set its password: the setup link was consumed at 00:38, so the screenshotted token is dead.
+- **MFA is not enrolled yet.** At the next sign-in the owner must complete two-step setup; then Claude verifies `mfa_enabled_at`.
+- Tests 293/293; the parallel-test race on the `traced_app` password is fixed.
+
+Earlier notes follow.
 **Pilot on www (28 Nov):** the owner opens the newest setup email, passes the pilot prompt (user `traced` + pilot password), sets a password and enrols MFA. Claude then verifies `last_login_at`/`mfa_enabled_at` for account `68e1a2d9…`. Production deploys: `vercel deploy --prod --scope linus-bio-mena` from the reviewed checkout (the build refuses the portal without the pilot password). Re-run `vm_13_e2e.sh` after API changes. The earlier notes follow.
 **Preview super admin = info@tracedmena.life** (account `68e1a2d9…`, moved from `info+admin@` with the audited `vm_14_change_email.sh`; report §13). The owner must open the newest setup email and enrol MFA, then Claude verifies `last_login_at`/`mfa_enabled_at`. The rest follows.
 - **Owner:** manual testing per `docs/deploy/preview-testing-guide.md` (plus-addressed accounts on info@tracedmena.life); give a preview admin address so it can be created with `vm_08`; sign in to Vercel in the browser pane if a visual pass by Claude is wanted.

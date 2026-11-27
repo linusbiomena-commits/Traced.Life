@@ -52,3 +52,34 @@
 - **Invitation:** `vm_15_resend_setup.sh info@tracedmena.life` sent a fresh setup email (first attempt). Exactly **1 usable** setup link for account `68e1a2d9…`; the 2 earlier links are dead; audited.
 - **No-Vercel-account test:** the built-in browser has no Vercel login. `https://www.tracedmena.life/traced/admin/accept-invite/` stays on www and shows the TRACED pilot gate (401); there is **no Vercel redirect**. The steps after the prompt need the owner's pilot password and are completed by the owner.
 - The `vercel.app` Preview build has no `TRACED_PILOT_PASSWORD`, so its portal paths now fail closed (503) behind Vercel Authentication. The pilot is on www.
+
+## Branded pilot access page (28 Nov 2026, replaces the browser pop-up)
+
+**How it works** (`middleware.ts`, `scripts/build-pilot-pages.mjs`, API `POST /api/v1/pilot/attempt`):
+- **Redirect:** a visitor without a pilot cookie who opens any portal page (on any host, any encoding) is redirected (303) to the branded page `/traced/pilot-access/` (Arabic `/ar/traced/pilot-access/`) with `?next=<requested path>`. The browser keeps the original `#token=…`, so invitation, verification and reset links keep working.
+- **No pop-up:** there is no `WWW-Authenticate` header, so browsers never show their own prompt.
+- **Password check:** the page posts the password to `POST /api/pilot/access`, handled by the middleware, in this order:
+  1. same-origin check;
+  2. the attempt is counted by the API rate limiter: **10 per client per 15 minutes**, plus 300 a quarter-hour overall, and it fails closed if the API is unreachable;
+  3. constant-time comparison with `TRACED_PILOT_PASSWORD`.
+- **Cookie:** on success it sets `__Host-traced_pilot`: Secure, **HttpOnly**, SameSite=Lax, Path=/, 12 hours, bound to the host. It is signed with HMAC-SHA256 keyed by the pilot password, so **changing the password ends every pilot session**.
+- **Secrets stay server-side:** the password exists only in the Vercel environment, never in page code or the API. The pilot cookie is stripped before requests are forwarded to the API.
+- **Redirect safety:** the page only redirects to same-site `/traced/…` or `/ar/traced/…` paths (no open redirect).
+- **API and assets:** without the cookie they answer 401 JSON (`PILOT_ACCESS_REQUIRED`).
+- After the gate, TRACED sign-in, roles and MFA are unchanged.
+
+**Verified live (28 Nov):**
+- the public site, the access pages and their CSS/JS: 200;
+- portal pages on www and `tracedlife.vercel.app`, including `%61ccount` and upper-case variants: 303 to the access page;
+- `/api/v1/auth/me`: 401 JSON; `/portal/` assets: 401; `WWW-Authenticate` headers: 0;
+- cross-site POST 403, GET 405, 10 wrong passwords → 401 then **429** (Retry-After), no cookie set;
+- in the browser: branded EN page, `?next` and `#token` preserved, language switch keeps them, rate-limit message shown;
+- Arabic page RTL; phone width (375 px) with no horizontal scroll.
+
+**Tests:** `vercel-middleware.test.ts` (12), `pilot-attempt.test.ts` (3); full suite **293/293** twice.
+
+## Market launch: switching the gate off (only after final release approval)
+1. In Vercel Production, set **both** `TRACED_PILOT_GATE=off` and `TRACED_LAUNCH_APPROVED=yes`. Either one alone keeps the gate on, and the production build refuses the portal unless the gate is configured or both are set.
+2. Switch the API to production mode on the clean database: `vm_07 … production` (database `traced`, approved consent texts and collection instructions only, development identity verification refused, mail capture refused).
+3. Redeploy production. Users then open the normal TRACED registration, sign-in and password-setup pages directly; the access page just forwards to the requested page.
+4. Optionally remove `TRACED_PILOT_PASSWORD` afterwards.
