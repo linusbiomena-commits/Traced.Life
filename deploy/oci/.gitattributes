@@ -1,0 +1,3 @@
+# Scripts run on Linux (and are uploaded from this checkout by vmrun.sh): always LF.
+*.sh text eol=lf
+*.yaml text eol=lf
