@@ -1,0 +1,9 @@
+# Vercel deploys the PUBLIC website only (see scripts/build-public-site.mjs).
+# Upload nothing except the static site and its build script: no server code,
+# docs, tests, .env files or local databases.
+/*
+!/dist
+!/scripts
+/scripts/*
+!/scripts/build-public-site.mjs
+!/vercel.json

@@ -19,7 +19,10 @@
 | Machine housekeeping | 7 orphaned test PostgreSQL `io_worker` processes left running by the owner's decision. `node scripts/cleanup-orphan-test-postgres.mjs` lists them (dry run); `--yes` only with authorisation. Never stop the dev DB on 54329 |
 | Outstanding approvals | Stage 8B provisioning; decisions D1–D13 (`docs/deploy/phase-8-preparation.md` §13); release gate items (§12); repository privacy (P2); F-03 decision |
 
-## Push safety evidence
+## Public website (live since 2026-11-27)
+https://tracedlife.vercel.app serves the public TRACED pages only (Vercel team `linus-bio-mena`, project `tracedlife`). Build: `vercel.json` → `node scripts/build-public-site.mjs` → `.vercel-public`; `.vercelignore` limits uploads to `dist/`, the script and `vercel.json`. The project is connected to `linusbiomena-commits/Traced.Life` with production branch `main`; pushes to `feature/traced-portal` create protected previews. The portal stays undeployed until Stage 8B onwards are authorised.
+
+## Push safety evidence (before the public website)
 Before each push: GitHub API 0 deployments / 0 environments for `Traced.Life`; no `vercel.json`, `.vercel/` or workflow files at the repo root. The live `linusbiomena.vercel.app/traced/` is byte-identical to the separate *LinusBio MENA Website* `dist` (last modified 23 Nov) and returns 404 for every portal path, so it is not deployed from this repository.
 
 ## Exact next action
