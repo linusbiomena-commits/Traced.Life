@@ -1,5 +1,11 @@
 # TRACED: Changelog
 
+## 2026-11-27: Hosting moved to Oracle Cloud (governance only; nothing billable)
+- Public website (no portal) live at https://tracedlife.vercel.app (`scripts/build-public-site.mjs`, `vercel.json`, `.vercelignore`).
+- Google Cloud: project `traced-production` created, then blocked (Dammam refused for the billing account); kept empty.
+- Oracle Cloud tenancy `karamait` (Riyadh): compartment `TRACED`, tag namespace `KaRamaIT` with cost-tracking tags and defaults, budget EUR 23.25/month with 50/80/100% + forecast alerts, groups `TRACED-Operators` and `KaRamaIT-Finance-Readers`, dynamic group `TRACED-Instances`, three least-privilege policies.
+- `docs/deploy/oci-plan.md`: tenancy facts, IAM matrix, expenditure reporting, proposed Riyadh architecture, EUR pricing, cost estimate (EUR 0 within Always Free; worst case ≈ SAR 64 incl. VAT), risks and decisions.
+
 ## 2026-11-27: Phase 8 preparation (Stage 8A done; nothing provisioned)
 - Local manual-testing worktree upgraded to `dee1101`; dev DB migrated 0009 → 0011 after an online backup with verified restore (32/32 tables); data verified unchanged.
 - New local-only CLI `npm run dev:db-backup` (online physical backup + restore test); `.dev-db-backups/` and `.dev-audit-checkpoints/` gitignored.

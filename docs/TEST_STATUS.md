@@ -1,6 +1,6 @@
 # TRACED: Test Status
 
-Last updated: **2026-11-27**, Phase 8 preparation (branch `feature/traced-portal`), Windows 11, Node 22, Microsoft Edge.
+Last updated: **2026-11-27**, Phase 8 (Oracle Cloud governance; no application change), Windows 11, Node 22, Microsoft Edge.
 
 | Check | Command | Result |
 |---|---|---|
@@ -43,5 +43,6 @@ Last updated: **2026-11-27**, Phase 8 preparation (branch `feature/traced-portal
 - No physical-device or printer tests; no Cloud SQL `db-f1-micro` measurement (local synthetic run only); no OWASP ZAP run (automated probes instead); backup drill is a local cold copy, not Cloud SQL PITR.
 - **Observed once, not reproduced (Phase 7):** in one full browser run the staff "full collection with the simulated camera" test failed a visibility check; it passed alone and in the next two full runs (30/30 each). Details were overwritten by the following run. Watch for it; if it recurs, keep `test-results/e2e-artifacts` before re-running.
 - **Fixed 2026-11-27:** `admin.test.ts` audit-log filter test built "today" as a UTC date while the filter uses Riyadh dates, so it failed between 00:00 and 03:00 Riyadh. It now uses `riyadhToday()`.
-- **Not yet proven:** `server/sql/production-roles.sql` under Cloud SQL's non-superuser owner. It was changed to assert rather than set superuser-only attributes, but it can only be proven on the real instance (Stage 8C).
+- **Not yet proven:** `server/sql/production-roles.sql` on the production database. Hosting is now a self-managed PostgreSQL on Oracle Cloud (real superuser), the same model as the local tests; it still has to be run on the real server.
+- **No cloud infrastructure tests yet:** the Oracle tenancy only has governance resources (compartment, tags, budget, IAM); there is no server or database to test.
 - All test data is synthetic (`example.com`, `[DEV]` branches).

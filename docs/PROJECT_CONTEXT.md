@@ -19,6 +19,6 @@
 
 **Roles:** customer, collection_staff, lab_operator, admin, super_admin, auditor (see `server/migrations/0003_seed_roles_permissions.sql`).
 
-**Key documents:** `docs/architecture.md` (GCP plan), `docs/development.md` (developer guide), `docs/identity-verification.md`, `docs/device-testing.md`, `docs/audit-hardening-plan.md`, `docs/phase-{0..7}-report.md`, `docs/security/`, `docs/deploy/` (Phase 8 preparation: `docs/deploy/phase-8-preparation.md`), `docs/manual-testing.md`, `docs/phase-5-plan.md`.
+**Key documents:** `docs/architecture.md` (GCP plan), `docs/development.md` (developer guide), `docs/identity-verification.md`, `docs/device-testing.md`, `docs/audit-hardening-plan.md`, `docs/phase-{0..7}-report.md`, `docs/security/`, `docs/deploy/` (current hosting plan: `docs/deploy/oci-plan.md` on Oracle Cloud Riyadh; Google plan `phase-8-preparation.md` superseded), `docs/manual-testing.md`, `docs/phase-5-plan.md`.
 
 Idea and business ownership: LinusBio MENA. Volume expectation: about 100 registrations per month initially.
