@@ -191,7 +191,7 @@ Both scenarios are inside SAR 110.
 | Buckets | `traced-db-backups`, `traced-audit-checkpoints` | private, `traced-master-key`, Standard tier |
 | Policy | `TRACED-Services-Policy` | Object Storage (Riyadh) may use `traced-master-key` and apply lifecycle rules in TRACED |
 | Policy change | `TRACED-Workload-Policy` | + Run Command on itself only |
-| **Not created** | `traced-app-1` | Out of host capacity; waiting for the Pay As You Go upgrade |
+| **Not created** | `traced-app-1` | Out of host capacity (5 attempts on 27 Nov 2026, the last a single owner-requested attempt at 13:54 UTC with upgrade state SUBMITTED); waiting for the Pay As You Go upgrade |
 
 No SSH key exists. The server will be managed only through OCI Run Command, with output written to `traced-db-backups/ops/out/`. Administration is through Run Command and the OCI Console; the Bastion plugin stays disabled.
 
