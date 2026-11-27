@@ -45,6 +45,9 @@ appendFileSync(
   '\n/* Public-only deployment: the portal is not live yet, hide its header entry. */\n.traced-account-nav__wrap { display: none !important; }\n',
 );
 
+// Never upload local Vercel/CLI files (e.g. the .env.local OIDC token written by `vercel link`).
+writeFileSync(path.join(OUT, '.vercelignore'), '.env*\n.gitignore\n.vercel\n');
+
 writeFileSync(
   path.join(OUT, 'vercel.json'),
   JSON.stringify(
