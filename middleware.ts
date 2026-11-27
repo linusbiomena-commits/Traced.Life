@@ -18,6 +18,9 @@
 // X-Forwarded-For from the browser does not change the client IP the API logs (docs/architecture.md §2a),
 // and a direct request to https://<api-host>/api/v1/... without the header is not treated as proxied.
 
+// The edge runtime provides process.env; declared here because the build installs no @types/node.
+declare const process: { env: Record<string, string | undefined> };
+
 export const config = { matcher: ['/api/v1/:path*'] };
 
 export default function middleware(request: Request): Response {
