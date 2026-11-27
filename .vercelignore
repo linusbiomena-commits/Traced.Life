@@ -7,3 +7,4 @@
 /scripts/*
 !/scripts/build-public-site.mjs
 !/vercel.json
+!/middleware.ts
