@@ -127,6 +127,10 @@ describe('Oracle Cloud database layout', () => {
     await denied(app.query(`INSERT INTO schema_migrations (version, checksum) VALUES ('9999_x.sql', 'x')`));
   });
 
+  it('traced_app cannot run the migration runner (why the preview sets AUTO_MIGRATE=false)', async () => {
+    await expect(migrate(app)).rejects.toMatchObject({ code: '42501' });
+  });
+
   it('traced_readonly cannot write and cannot read personal-data tables', async () => {
     // Refused twice over: the role's sessions are read-only (25006) and it has no INSERT grant.
     await expect(ro.query(`INSERT INTO collection_branches DEFAULT VALUES`)).rejects.toMatchObject({ code: '25006' });

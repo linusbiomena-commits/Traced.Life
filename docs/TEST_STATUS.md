@@ -5,7 +5,7 @@ Last updated: **2026-11-27**, Phase 8 (Oracle Cloud governance; no application c
 | Check | Command | Result |
 |---|---|---|
 | TypeScript | `npm run typecheck` | clean |
-| Unit + integration (Vitest, real embedded PostgreSQL 18) | `npm test` | **271 / 271 pass**, 24 files (27 Nov 2026: + oci-db-layout; Phase 7 added authz-matrix, auth-hardening, audit-integrity, db-roles, pii-export, outbox-reliability, security-probes) |
+| Unit + integration (Vitest, real embedded PostgreSQL 18) | `npm test` | **272 / 272 pass**, 24 files (27 Nov 2026: + oci-db-layout (9); Phase 7 added authz-matrix, auth-hardening, audit-integrity, db-roles, pii-export, outbox-reliability, security-probes) |
 | Portal shells + account-link patch | `npm run check:portal` | 86 portal shells up to date; all 56 TRACED pages patched (no public page changed) |
 | Dependencies | `npm audit` | 0 vulnerabilities |
 | Secrets / sensitive data in tracked files | `git grep` pattern scan + screenshot QR check | none found |

@@ -11,7 +11,7 @@ const config = loadConfig();
 const db = createPool(config.databaseUrl, config.dbPoolMax);
 const mailer = createMailer({ transport: config.mailTransport, devDir: config.mailDevDir, resendApiKey: config.resendApiKey, mailFrom: config.mailFrom, replyTo: config.mailReplyTo });
 
-if (config.env === 'development') {
+if (config.env === 'development' && config.autoMigrate) {
   const result = await migrate(db);
   if (result.applied.length) log.info('migrations applied', { applied: result.applied });
 }

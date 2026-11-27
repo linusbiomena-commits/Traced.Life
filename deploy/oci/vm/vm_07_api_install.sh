@@ -3,7 +3,12 @@
 # Needs, before running: owner approval for public API exposure, the API host name (DNS A record to the
 # reserved public IP), Vault secrets traced-resend-api-key and traced-proxy-secret, and an NSG rule for 443.
 #
-# Usage (root): vm_07_api_install.sh <vault-ocid> <namespace> <git-commit> <api-host> <app-origin> <mail-from>
+# Usage (root): vm_07_api_install.sh <vault-ocid> <namespace> <git-commit> <api-host> <app-origin> <mail-from> [mode]
+#   mode = preview (default): RESTRICTED PREVIEW with synthetic data only. Database traced_preview,
+#          NODE_ENV=development so provisional consents/instructions and the development identity
+#          verification work for end-to-end testing. Never use it with real people's data.
+#   mode = production: database traced, NODE_ENV=production (approved consents/instructions only,
+#          development identity verification refused). Only after the release gate.
 #   e.g. ... 67e0161 api.example.sa https://tracedlife.vercel.app "TRACED <no-reply@example.sa>"
 #
 # Result:
@@ -13,7 +18,9 @@
 #   timers          outbox every 5 min, audit checkpoint daily 02:30 Riyadh, checkpoint upload every 15 min
 # Secrets are fetched from Vault at each start into /run/traced/api.env (tmpfs, 0600) and are never on disk.
 set -euo pipefail
-VAULT="$1"; NS="$2"; REF="$3"; API_HOST="$4"; APP_ORIGIN="$5"; MAIL_FROM="$6"
+VAULT="$1"; NS="$2"; REF="$3"; API_HOST="$4"; APP_ORIGIN="$5"; MAIL_FROM="$6"; MODE="${7:-preview}"
+case "$MODE" in preview) DB=traced_preview; NODE_ENV=development; DEVIDV=true;; production) DB=traced; NODE_ENV=production; DEVIDV=false;; *) echo "mode must be preview or production"; exit 2;; esac
+docker exec traced-postgres psql -U postgres -Atc "select 1 from pg_database where datname='$DB'" | grep -q 1 || { echo "database $DB missing: run vm_02_migrate.sh <vault> <commit> $DB"; exit 1; }
 docker image inspect "traced-api:$REF" >/dev/null || { echo "image traced-api:$REF missing: run vm_02_migrate.sh first"; exit 1; }
 install -d -m 700 /etc/traced
 install -d -m 750 -o 1000 -g 1000 /var/lib/traced/checkpoints   # uid 1000 = "node" in the image
@@ -26,6 +33,10 @@ REF=$REF
 API_HOST=$API_HOST
 APP_ORIGIN=$APP_ORIGIN
 MAIL_FROM=$MAIL_FROM
+MODE=$MODE
+DB=$DB
+NODE_ENV=$NODE_ENV
+DEVIDV=$DEVIDV
 EOF
 chmod 600 /etc/traced/api.conf
 
@@ -40,10 +51,10 @@ sec() { oci secrets secret-bundle get-secret-bundle-by-name --vault-id "$VAULT" 
 install -d -m 700 /run/traced
 umask 077
 {
-  echo "NODE_ENV=production"
+  echo "NODE_ENV=$NODE_ENV"
   echo "HOST=0.0.0.0"
   echo "PORT=8080"
-  echo "DATABASE_URL=postgres://traced_app:$(sec traced-db-app-password)@traced-postgres:5432/traced"
+  echo "DATABASE_URL=postgres://traced_app:$(sec traced-db-app-password)@traced-postgres:5432/$DB"
   echo "DB_POOL_MAX=10"
   echo "APP_ORIGIN=$APP_ORIGIN"
   echo "COOKIE_SECURE=true"
@@ -56,7 +67,9 @@ umask 077
   echo "MAIL_FROM=$MAIL_FROM"
   echo "RESEND_API_KEY=$(sec traced-resend-api-key)"
   echo "CUSTOMER_STATUS_EMAILS=false"
-  echo "DEV_IDENTITY_VERIFICATION=false"
+  echo "DEV_IDENTITY_VERIFICATION=$DEVIDV"
+  echo "TRACED_DEPLOYMENT_MODE=$MODE"
+  echo "AUTO_MIGRATE=false"   # migrations run separately as traced_migrator (vm_02)
   # Chain: browser -> Vercel (adds x-traced-proxy-auth) -> Caddy -> API. Two proxy hops.
   echo "TRUSTED_PROXY_HOPS=2"
   echo "TRUSTED_PROXY_SECRET=$(sec traced-proxy-secret)"

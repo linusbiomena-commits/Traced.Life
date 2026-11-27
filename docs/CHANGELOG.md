@@ -1,5 +1,16 @@
 # TRACED: Changelog
 
+## 2026-11-27 (late): API go-live preparation
+- `docs/deploy/api-go-live-guide.md`: domain, reserved IP (free), DNS, Resend setup and verification, key into Vault, sender, Vercel restricted preview, proxy secret, first super admins.
+- Restricted preview design:
+  - separate database `traced_preview`;
+  - `vm_07 … preview` runs in development mode for synthetic end-to-end testing;
+  - production mode only after the release gate.
+- `scripts/build-public-site.mjs`: `TRACED_BUILD_PORTAL=1` includes the portal in Vercel **Preview** builds; it is refused in production builds.
+- `AUTO_MIGRATE` config switch (default true): the preview API connects as `traced_app`, which cannot run the migration runner (proved by a new layout test).
+- `deploy/oci/store-resend-key.ps1` (the owner stores the key with hidden input), `vm_08_create_admin.sh`, a dependency-free Vercel middleware template; `vm_02` now takes a database name.
+- Found: production registration needs **approved consent texts** (8, EN/AR); the current ones are provisional. Added as hard blocker D-N.
+
 ## 2026-11-27 (night): Oracle server and database live
 - Pay As You Go upgrade completed. `traced-app-1` (A1.Flex 1 OCPU / 4 GB / 50 GB, Ubuntu 24.04, Riyadh) launched on the first attempt; no SSH, no inbound ports, SSH/rpcbind disabled.
 - PostgreSQL 18.7 container (no published port), `traced` owned by `traced_migrator`, migrations 0001–0011 applied and checksums re-verified, production roles applied, security verification passed.

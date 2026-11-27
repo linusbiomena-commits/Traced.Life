@@ -19,9 +19,19 @@ const OUT = path.join(ROOT, '.vercel-public');
 // scripts/build-portal-pages.mjs starts with one of these; not imported because that
 // script regenerates files when loaded).
 const portalTop = ['account', 'staff', 'admin', 'lab', 'c', 's'];
-const excluded = new Set([path.join(DIST, 'portal')]);
-for (const prefix of ['traced', path.join('ar', 'traced')]) {
-  for (const top of portalTop) excluded.add(path.join(DIST, prefix, top));
+// Restricted preview only: TRACED_BUILD_PORTAL=1 (set as a Vercel environment variable for the PREVIEW
+// environment only) keeps the portal pages and their header entry. Production never sets it, and the
+// build refuses to include the portal in a Vercel production build even if it is set by mistake.
+const includePortal = process.env.TRACED_BUILD_PORTAL === '1';
+if (includePortal && process.env.VERCEL_ENV === 'production') {
+  console.error('TRACED_BUILD_PORTAL=1 is not allowed in a Vercel production build (portal launch needs a separate approval).');
+  process.exit(1);
+}
+const excluded = new Set(includePortal ? [] : [path.join(DIST, 'portal')]);
+if (!includePortal) {
+  for (const prefix of ['traced', path.join('ar', 'traced')]) {
+    for (const top of portalTop) excluded.add(path.join(DIST, prefix, top));
+  }
 }
 
 if (!existsSync(path.join(DIST, 'traced', 'index.html'))) {
@@ -38,10 +48,12 @@ cpSync(DIST, OUT, {
   },
 });
 
-appendFileSync(
-  path.join(OUT, 'traced-account-nav.css'),
-  '\n/* Public-only deployment: the portal is not live yet, hide its header entry. */\n.traced-account-nav__wrap { display: none !important; }\n',
-);
+if (!includePortal) {
+  appendFileSync(
+    path.join(OUT, 'traced-account-nav.css'),
+    '\n/* Public-only deployment: the portal is not live yet, hide its header entry. */\n.traced-account-nav__wrap { display: none !important; }\n',
+  );
+}
 
 let files = 0;
 let bytes = 0;
@@ -53,4 +65,4 @@ let bytes = 0;
     else { files++; bytes += s.size; }
   }
 })(OUT);
-console.log(`public site → ${path.relative(ROOT, OUT)}: ${files} files, ${(bytes / 1048576).toFixed(1)} MB; excluded ${excluded.size} portal paths`);
+console.log(`${includePortal ? 'RESTRICTED PREVIEW (portal included)' : 'public site'} → ${path.relative(ROOT, OUT)}: ${files} files, ${(bytes / 1048576).toFixed(1)} MB; excluded ${excluded.size} portal paths`);

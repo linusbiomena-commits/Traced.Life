@@ -58,6 +58,7 @@ const config: Config = {
   mailTransport: 'dev',
   mailDevDir: MAIL_DIR,
   serveStatic: true,
+  autoMigrate: false,
   devIdentityVerification: true,
   // Phase 7: throw-away checkpoint signing key and sink folder (deleted with this run's directory).
   auditCheckpointKey: randomBytes(32).toString('base64'),

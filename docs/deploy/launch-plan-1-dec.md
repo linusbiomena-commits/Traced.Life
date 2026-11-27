@@ -26,6 +26,9 @@
 
 ## 3. Everything I need from you (one list)
 
+Step-by-step setup for D-A…D-H: `docs/deploy/api-go-live-guide.md`.
+
+
 | # | Decision / credential | Why | Needed by |
 |---|---|---|---|
 | D-A | **API host name**, for example `api.traced.life` or `api.<company-domain>`, and who manages that DNS zone | TLS certificate (Let's Encrypt) and the Vercel rewrite target | 28 Nov |
@@ -41,7 +44,7 @@
 | D-K | O3: separate `TRACED-Audit` compartment; retention period and when to **lock** the audit bucket (irreversible) | independent audit evidence claim | before claiming it |
 | D-L | Company account conversion in Oracle (KaRama IT LTD, VAT number) | invoices | any time (owner action) |
 | D-M | Monitoring: approve an OCI Notifications topic emailing info@karamaitco.com (free; Oracle sends a confirmation email) + alarms (CPU, memory, disk, instance down, backup failure) | operations | 29 Nov |
-| D-N | Clinical/legal content approvals: consent text (EN/AR), collection instructions (currently provisional), customer status email wording (stays off) | launch content | before real patients |
+| D-N | **Approved consent texts (hard blocker for any production registration):** privacy notice, sample-collection consent, accuracy declaration, guardian authorisation, each EN + AR (8 texts) with an approval reference. Production serves only `approved` texts; the current ones are provisional placeholders. Also collection instructions (approved in the admin portal) and customer status email wording (stays off) | production refuses provisional content | before the production switch (ideally 30 Nov) |
 | D-O | Final release approval on 1 Dec | gate | 1 Dec |
 
 ## 4. What cannot be safely enabled by 1 December (unless the approvals arrive)

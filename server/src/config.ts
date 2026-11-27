@@ -41,6 +41,9 @@ const schema = z.object({
   // Shared secret for the scheduled outbox run (Cloud Scheduler → /api/v1/internal/outbox/run).
   INTERNAL_CRON_SECRET: z.string().min(32).optional(),
   SERVE_STATIC: bool.default(false),
+  // Development only: apply pending migrations at start-up. Set false where the server connects with a
+  // role that cannot run DDL (e.g. the OCI restricted preview as traced_app); migrations then run separately.
+  AUTO_MIGRATE: bool.default(true),
   // Phase 6 customer status emails (sample received, report available, recollection required).
   // Off by default until the wording is approved; the dashboard timeline works either way.
   CUSTOMER_STATUS_EMAILS: bool.default(false),
@@ -79,6 +82,7 @@ export type Config = {
   dbPoolMax?: number;
   internalCronSecret?: string;
   serveStatic: boolean;
+  autoMigrate: boolean;
   customerStatusEmails?: boolean;
   schedulerOidcAudience?: string;
   schedulerOidcServiceAccount?: string;
@@ -145,6 +149,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     dbPoolMax: e.DB_POOL_MAX,
     internalCronSecret: e.INTERNAL_CRON_SECRET,
     serveStatic: e.SERVE_STATIC,
+    autoMigrate: e.AUTO_MIGRATE,
     customerStatusEmails: e.CUSTOMER_STATUS_EMAILS,
     schedulerOidcAudience: e.SCHEDULER_OIDC_AUDIENCE,
     schedulerOidcServiceAccount: e.SCHEDULER_OIDC_SERVICE_ACCOUNT,
