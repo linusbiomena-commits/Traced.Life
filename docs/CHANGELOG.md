@@ -1,5 +1,10 @@
 # TRACED: Changelog
 
+## 2026-11-27 (late): audited email change; preview super admin = info@tracedmena.life
+- `changeUserEmail` service + `change-user-email` CLI + `vm_14_change_email.sh`: keeps id/roles/history, revokes sessions, expires links, audits, optional fresh invitation; refused in production; tests (3).
+- Preview: synthetic customer moved to `test-customer-info@preview.tracedmena.test`; super admin moved from `info+admin@` to info@tracedmena.life with a fresh setup email. Audit chain intact.
+- `vm_08`: the invitation container joins the edge network, so the first send succeeds.
+
 ## 2026-11-27 (late): preview connected; deployed e2e 61/61
 - Vercel → API connected (proxy secret = Vault content in the base64 form the Console shows).
 - Preview-only mail capture (`MAIL_CAPTURE_DOMAINS`, refused in production) and deployed journey `vm_13_e2e.sh`: 61/61.

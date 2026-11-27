@@ -151,3 +151,21 @@ After the owner adds `TRACED_PROXY_SECRET`:
   - Access denials; password reset; Arabic email.
   - Captured mail is deleted after each run.
 - **Not yet done:** visual browser pass of the portals on the preview. Vercel Authentication requires the owner's Vercel sign-in in the browser; I do not enter credentials. Manual guide: `docs/deploy/preview-testing-guide.md`.
+
+## 13. Preview super administrator login changed to info@tracedmena.life (27 Nov, owner request)
+
+- **New audited procedure:** `changeUserEmail` (`server/src/modules/accounts/accounts.service.ts`), CLI `server/src/cli/change-user-email.ts`, server wrapper `deploy/oci/vm/vm_14_change_email.sh`.
+  - Keeps the account id, roles, MFA requirement and all history. The new address starts unverified.
+  - Revokes all sessions and expires every unused emailed link.
+  - Writes an `account.email_changed` audit entry (reason, no addresses). An optional fresh setup invitation is audited as `staff.invite_resent`.
+  - Runs as `traced_app` (no extra database rights). **Refused when `NODE_ENV=production`.** Tests: `account-email-change.test.ts` (3).
+- **Applied on `traced_preview`:**
+  1. The synthetic customer `7781e185…` moved from info@tracedmena.life to `test-customer-info@preview.tracedmena.test` (same id; 1 unused link expired).
+  2. The preview super admin `68e1a2d9…` moved from `info+admin@tracedmena.life` to **info@tracedmena.life** (same id, role `super_admin`; the old setup link expired). A fresh setup email was **sent** on the first attempt.
+- **Verified:**
+  - exactly one usable setup link exists;
+  - `super_admin` has `requires_mfa = true`;
+  - both audit entries are present and the **audit chain is intact**;
+  - no other account uses info@ or `info+admin@`.
+- **Pending (owner):** open the newest "Set up your account" email in info@, choose a password, then enrol two-step verification. Claude then confirms `last_login_at` and `mfa_enabled_at` on the account.
+- Production (`traced`) was not touched. It has no accounts yet.
