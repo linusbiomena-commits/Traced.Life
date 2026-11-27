@@ -119,13 +119,24 @@ describe('POST /api/pilot/access', () => {
 });
 
 describe('API rewrite (with pilot cookie)', () => {
-  it('rewrites /api/v1 with the proxy secret, strips the pilot cookie, keeps the TRACED session cookie', async () => {
+  it('forwards ALL original headers (Origin, X-CSRF-Token, Content-Type...), sets the proxy secret, strips the pilot cookie and Authorization', async () => {
     const pilot = await cookieFor();
-    const r = await get(`${WWW}/api/v1/auth/me?x=1`, { cookie: `${pilot}; traced_session=abc`, 'x-traced-proxy-auth': 'forged' });
-    expect(r.headers.get('x-middleware-rewrite')).toBe('https://api.tracedmena.life/api/v1/auth/me?x=1');
-    expect(r.headers.get('x-middleware-override-headers')).toBe('x-traced-proxy-auth,cookie,authorization');
+    const r = await middleware(new Request(`${WWW}/api/v1/auth/mfa/setup?x=1`, {
+      method: 'POST',
+      headers: { cookie: `${pilot}; __Host-traced_sid=abc; _clck=1`, origin: WWW, 'x-csrf-token': 'csrf-123', 'content-type': 'application/json', 'x-traced-proxy-auth': 'forged', authorization: 'Basic eA==', 'accept-language': 'ar' },
+      body: '{}',
+    }));
+    expect(r.headers.get('x-middleware-rewrite')).toBe('https://api.tracedmena.life/api/v1/auth/mfa/setup?x=1');
+    const list = r.headers.get('x-middleware-override-headers')!.split(',');
+    // Vercel forwards ONLY the listed headers: everything the API needs must be listed with its value.
+    for (const h of ['origin', 'x-csrf-token', 'content-type', 'accept-language', 'cookie', 'x-traced-proxy-auth']) expect(list, h).toContain(h);
+    expect(r.headers.get('x-middleware-request-origin')).toBe(WWW);
+    expect(r.headers.get('x-middleware-request-x-csrf-token')).toBe('csrf-123');
+    expect(r.headers.get('x-middleware-request-content-type')).toBe('application/json');
     expect(r.headers.get('x-middleware-request-x-traced-proxy-auth')).toBe(ENV.TRACED_PROXY_SECRET);
-    expect(r.headers.get('x-middleware-request-cookie')).toBe('traced_session=abc');
+    expect(r.headers.get('x-middleware-request-cookie')).toBe('__Host-traced_sid=abc; _clck=1');
+    expect(list).not.toContain('authorization');
+    expect(r.headers.get('x-middleware-request-authorization')).toBeNull();
   });
 
   it('blocks internal routes', async () => {

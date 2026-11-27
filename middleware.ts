@@ -13,8 +13,9 @@
 //    HttpOnly cookie (__Host-traced_pilot, Secure, SameSite=Lax, 12 h, bound to the host) is set.
 //    The password is only in the Vercel environment; it never reaches the browser or the API.
 //    TRACED's own sign-in, roles and MFA apply after the gate. Public marketing pages are never gated.
-// 2. Same-origin API: /api/v1/* is rewritten to TRACED_API_ORIGIN with x-traced-proxy-auth =
-//    TRACED_PROXY_SECRET (server/src/lib/client-ip.ts). The pilot cookie is not forwarded.
+// 2. Same-origin API: /api/v1/* is rewritten to TRACED_API_ORIGIN with all original request headers,
+//    x-traced-proxy-auth = TRACED_PROXY_SECRET (server/src/lib/client-ip.ts); the pilot cookie and any
+//    Authorization header are not forwarded.
 // 3. Launch switch: the gate is ON unless BOTH TRACED_PILOT_GATE=off and TRACED_LAUNCH_APPROVED=yes are set
 //    (two deliberate switches, after final release approval). With the gate off, the portals and API are
 //    reached directly and the access page forwards to the requested page.
@@ -113,20 +114,32 @@ async function pilotAccess(request: Request, url: URL): Promise<Response> {
   });
 }
 
-/** Rewrites /api/v1 to the API: proxy secret set, pilot cookie removed from the forwarded Cookie header. */
-function apiRewrite(request: Request, url: URL): Response {
+/**
+ * Rewrites /api/v1 to the API. Vercel's x-middleware-override-headers is the COMPLETE list of request headers
+ * to forward (any header not listed is dropped), so every original header is re-listed with its value,
+ * then: x-traced-proxy-auth is set (overwriting anything the client sent), the pilot cookie is removed from
+ * Cookie, and Authorization is dropped. (Fix 28 Nov 2026: listing only the changed headers dropped Origin,
+ * X-CSRF-Token and Content-Type, so every signed-in write failed the CSRF check.)
+ */
+const NOT_FORWARDED = new Set(['host', 'connection', 'content-length', 'authorization', 'cookie', 'x-traced-proxy-auth']);
+export function apiRewrite(request: Request, url: URL): Response {
   const origin = process.env.TRACED_API_ORIGIN;
   const secret = process.env.TRACED_PROXY_SECRET;
   if (!origin || !secret) return err(503, 'API_NOT_CONFIGURED', 'API not configured.');
   if (url.pathname.startsWith('/api/v1/internal/')) return new Response('Not found', { status: 404 });
+  const headers: Record<string, string> = { 'x-middleware-rewrite': new URL(url.pathname + url.search, origin).toString() };
+  const names: string[] = [];
+  request.headers.forEach((value, name) => {
+    const n = name.toLowerCase();
+    if (NOT_FORWARDED.has(n) || n.startsWith('x-middleware-')) return;
+    names.push(n);
+    headers[`x-middleware-request-${n}`] = value;
+  });
+  names.push('x-traced-proxy-auth');
+  headers['x-middleware-request-x-traced-proxy-auth'] = secret;
   const cookie = (request.headers.get('cookie') ?? '').split(/;\s*/).filter((c) => c && !c.startsWith(`${PILOT_COOKIE}=`)).join('; ');
-  const headers: Record<string, string> = {
-    'x-middleware-rewrite': new URL(url.pathname + url.search, origin).toString(),
-    // Overwrite x-traced-proxy-auth and cookie; drop authorization (listed without a value = removed).
-    'x-middleware-override-headers': 'x-traced-proxy-auth,cookie,authorization',
-    'x-middleware-request-x-traced-proxy-auth': secret,
-  };
-  if (cookie) headers['x-middleware-request-cookie'] = cookie;
+  if (cookie) { names.push('cookie'); headers['x-middleware-request-cookie'] = cookie; }
+  headers['x-middleware-override-headers'] = names.join(',');
   return new Response(null, { headers });
 }
 
