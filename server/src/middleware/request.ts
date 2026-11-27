@@ -4,6 +4,7 @@ import type { AppEnv, Deps } from '../context.ts';
 import { PROXY_AUTH_HEADER, resolveClientIp } from '../lib/client-ip.ts';
 import { safeEqual } from '../lib/crypto.ts';
 import { AppError, Errors } from '../lib/errors.ts';
+import { log } from '../lib/logger.ts';
 import { csrfTokenFor, loadSession, readSessionCookie } from '../modules/auth/sessions.ts';
 
 
@@ -57,8 +58,21 @@ export function csrfProtection(deps: Deps): MiddlewareHandler<AppEnv> {
     if (!UNSAFE.has(c.req.method)) return next();
 
     const origin = c.req.header('origin');
-    if (origin !== undefined && origin !== deps.config.appOrigin) throw Errors.csrf();
-    if (origin === undefined && c.req.header('sec-fetch-site') === 'cross-site') throw Errors.csrf();
+    // Security log for rejected requests: reason and shapes only (cookie NAMES, header presence/length),
+    // never cookie values, tokens or personal data.
+    const reject = (reason: string) => {
+      const cookieHeader = c.req.header('cookie') ?? '';
+      log.warn('csrf rejected', {
+        requestId: c.get('requestId'), path: c.req.path, reason,
+        originMatches: origin === deps.config.appOrigin, originPresent: origin !== undefined,
+        csrfHeaderLength: (c.req.header('x-csrf-token') ?? '').length,
+        cookieNames: cookieHeader.split(/;\s*/).filter(Boolean).map((p) => p.split('=')[0]).slice(0, 10),
+        sessionCookies: (cookieHeader.match(/(?:^|;\s*)(?:__Host-)?traced_sid=/g) ?? []).length,
+      });
+      return Errors.csrf();
+    };
+    if (origin !== undefined && origin !== deps.config.appOrigin) throw reject('origin');
+    if (origin === undefined && c.req.header('sec-fetch-site') === 'cross-site') throw reject('cross_site');
 
     // Cross-site forms and no-cors fetches always carry a non-JSON Content-Type.
     const contentType = c.req.header('content-type');
@@ -71,7 +85,7 @@ export function csrfProtection(deps: Deps): MiddlewareHandler<AppEnv> {
     const liveToken = c.get('sessionToken');
     if (liveToken) {
       const sent = c.req.header('x-csrf-token') ?? '';
-      if (!safeEqual(sent, csrfTokenFor(deps, liveToken))) throw Errors.csrf();
+      if (!safeEqual(sent, csrfTokenFor(deps, liveToken))) throw reject('token');
     }
     await next();
   };
