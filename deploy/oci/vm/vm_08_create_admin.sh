@@ -10,5 +10,8 @@ EMAIL="$1"; ROLE="${2:-super_admin}"; LOCALE="${3:-en}"
 [ -f /run/traced/api.env ] || { echo "API not configured (run vm_07_api_install.sh first)"; exit 1; }
 . /etc/traced/api.conf
 echo "mode: $MODE, database: $DB"
-docker run --rm --network traced-db --env-file /run/traced/api.env "traced-api:$REF" \
-  node --import tsx server/src/cli/create-user.ts --email "$EMAIL" --role "$ROLE" --locale "$LOCALE"
+# Database network (internal) + edge network (outbound HTTPS to Resend), so the first send succeeds.
+cid=$(docker create --network traced-db --env-file /run/traced/api.env "traced-api:$REF" \
+  node --import tsx server/src/cli/create-user.ts --email "$EMAIL" --role "$ROLE" --locale "$LOCALE")
+docker network connect traced-edge "$cid"
+docker start -a "$cid"; rc=$?; docker rm "$cid" >/dev/null; exit $rc
