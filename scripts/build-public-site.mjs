@@ -25,9 +25,12 @@ const portalTop = ['account', 'staff', 'admin', 'lab', 'c', 's'];
 // build leaves the current live deployment in place.
 const includePortal = process.env.TRACED_BUILD_PORTAL === '1';
 if (includePortal && process.env.VERCEL_ENV === 'production') {
-  const gateReady = (process.env.TRACED_PILOT_PASSWORD ?? '').length >= 12 && existsSync(path.join(ROOT, 'middleware.ts'));
+  const pw = process.env.TRACED_PILOT_PASSWORD ?? '';
+  const mw = existsSync(path.join(ROOT, 'middleware.ts'));
+  const gateReady = pw.length >= 12 && mw;
   if (!gateReady) {
-    console.error('Refusing to build the portal for production: the pilot gate (TRACED_PILOT_PASSWORD + middleware.ts) is not configured.');
+    // Reports only presence/length checks, never the value.
+    console.error(`Refusing to build the portal for production: pilot gate not configured (password set: ${pw.length > 0 ? 'yes' : 'no'}, 12+ characters: ${pw.length >= 12 ? 'yes' : 'no'}, middleware.ts present: ${mw ? 'yes' : 'no'}).`);
     process.exit(1);
   }
 }
