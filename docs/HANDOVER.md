@@ -26,7 +26,7 @@ https://tracedlife.vercel.app serves the public TRACED pages only (Vercel team `
 Before each push: GitHub API 0 deployments / 0 environments for `Traced.Life`; no `vercel.json`, `.vercel/` or workflow files at the repo root. The live `linusbiomena.vercel.app/traced/` is byte-identical to the separate *LinusBio MENA Website* `dist` (last modified 23 Nov) and returns 404 for every portal path, so it is not deployed from this repository.
 
 ## Phase 8B status (2026-11-27)
-- gcloud: `C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdkin` (not on the Git Bash PATH). Account `info@karamaitco.com`, organization `karama.tech` (248110031194).
+- gcloud: `C:\Program Files (x86)\Google\Cloud SDK\google-cloud-sdk\bin` (not on the Git Bash PATH). Account `info@karamaitco.com`, organization `karama.tech` (248110031194).
 - CLI configuration `traced` (account above, project `traced-production`); the `default` configuration is unchanged and stays active. Always pass `--configuration=traced --project=traced-production`.
 - Project **`traced-production`** ("TRACED Production", number 348373850999, in the karama.tech organization). Owner: `info@karamaitco.com` only.
 - Billing: linked by the owner in the Console to **My Billing Account** `01986E-D718F1-EB1000` (direct Google, USD).
