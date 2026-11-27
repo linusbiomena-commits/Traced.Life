@@ -7,7 +7,7 @@
 | Branch | `feature/traced-portal` (GitHub default branch) |
 | Commits | Phase 7: `91ea577`, `f594b4c`, `9ca24b3`, `8682bb3`, `dee1101`; Phase 8 preparation commit after `dee1101` (see `git log -1`) |
 | Push status | see `git status -sb` (pushed if the pre-push checks passed; see the commit/push note in the latest session) |
-| Current phase | **Phase 8C restricted preview: connected and tested.** Vercel preview → api.tracedmena.life → `traced_preview`; deployed end-to-end journey **61/61** (`vm_13_e2e.sh`). Production DB `traced` clean. Guides: `docs/deploy/preview-testing-guide.md`, report `docs/deploy/phase-8c-report.md` §12 |
+| Current phase | **Restricted pilot LIVE at https://www.tracedmena.life** (28 Nov): marketing public; portals + `/api/v1` behind the pilot gate on every host; API origin www on `traced_preview`; production DB `traced` clean (0 users). Rollback checkpoint `dpl_9WTxpjM6hhSyzXJjHX8RKw8vpF9n`. Docs: `docs/deploy/www-pilot-rollout.md`, `preview-testing-guide.md` |
 | Local migrations | dev DB (`.dev-db`, port 54329) at **0011** since 2026-11-26 |
 | Production migrations | **none**: no production database exists |
 | Local servers | dev DB on :54329 (preview `traced-db`), manual portal on :8787 (preview `traced-portal-manual`, worktree `../Traced Website (manual testing)` detached at `dee1101`). Both were restarted on 2026-11-27 after an unclean stop (app restart); data re-verified identical |
@@ -56,6 +56,7 @@ Before each push: GitHub API 0 deployments / 0 environments for `Traced.Life`; n
 - Enabled so far (free): Artifact Registry API plus the default APIs Google enables on new projects. No budget, service account, secret, database, bucket or repository exists yet.
 
 ## Exact next action
+**Pilot on www (28 Nov):** the owner opens the newest setup email, passes the pilot prompt (user `traced` + pilot password), sets a password and enrols MFA. Claude then verifies `last_login_at`/`mfa_enabled_at` for account `68e1a2d9…`. Production deploys: `vercel deploy --prod --scope linus-bio-mena` from the reviewed checkout (the build refuses the portal without the pilot password). Re-run `vm_13_e2e.sh` after API changes. The earlier notes follow.
 **Preview super admin = info@tracedmena.life** (account `68e1a2d9…`, moved from `info+admin@` with the audited `vm_14_change_email.sh`; report §13). The owner must open the newest setup email and enrol MFA, then Claude verifies `last_login_at`/`mfa_enabled_at`. The rest follows.
 - **Owner:** manual testing per `docs/deploy/preview-testing-guide.md` (plus-addressed accounts on info@tracedmena.life); give a preview admin address so it can be created with `vm_08`; sign in to Vercel in the browser pane if a visual pass by Claude is wanted.
 - **Claude:** fix reported bugs with tests and re-run `vm_13_e2e.sh` after each API change.

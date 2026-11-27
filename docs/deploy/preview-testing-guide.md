@@ -1,13 +1,11 @@
 # TRACED restricted preview: manual testing guide
 
-**27 Nov 2026.** The preview is the complete TRACED platform: the Vercel portal → `api.tracedmena.life` on the Oracle server in Riyadh → the **synthetic** database `traced_preview`.
+**28 Nov 2026.** The restricted pilot is the complete TRACED platform at **www.tracedmena.life**: Vercel → `api.tracedmena.life` on the Oracle server in Riyadh → the **synthetic** database `traced_preview`.
 
 **Use synthetic people and data only. Never enter a real patient.** The production database `traced` is separate and untouched.
 
 ## 1. Access
-- The preview is protected by **Vercel Authentication**. Sign in to Vercel with the account that owns the `linus-bio-mena` team.
-- Other testers: the team is on the Hobby plan, which may not allow adding members. Open the deployment in the Vercel dashboard → **Share** to create a temporary share link, and revoke it after testing.
-- Base address: **https://tracedlife-git-feature-traced-portal-linus-bio-mena.vercel.app**
+- Base address: **https://www.tracedmena.life**. The pilot gate asks for username `traced` and the pilot password, which the owner shares separately; **no Vercel account is needed**.
 
 | Portal | English | Arabic |
 |---|---|---|

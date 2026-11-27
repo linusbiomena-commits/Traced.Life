@@ -35,3 +35,20 @@
 | Portal exposure concern | Remove `TRACED_PILOT_PASSWORD` from Production and redeploy: the gate fails closed (503) on all portal paths; marketing pages unaffected | 2 minutes |
 | API origin | Re-run `vm_07 … preview` with the previous origin | 2 minutes |
 | Invitation | Re-run `vm_15` (each run expires the previous link) | 1 minute |
+
+## Result (28 Nov 2026, 00:11 Riyadh)
+
+- **Rollback checkpoint:** previous Production deployment `dpl_9WTxpjM6hhSyzXJjHX8RKw8vpF9n` (`tracedlife-bsy2bls5s…`, public-only). Promote it to roll back.
+- Three Production builds were **refused** by the safeguard while `TRACED_PILOT_PASSWORD` was missing or under 12 characters. The live site stayed on the checkpoint each time.
+- **Live:** `dpl` at `tracedlife-4xkyn1hq8-linus-bio-mena.vercel.app`, aliased to **www.tracedmena.life** (portal included behind the gate; build from `feature/traced-portal` at `0ae2882`; nothing merged into `main`).
+- **Verified from the internet:**
+  - marketing pages `/`, `/traced/`, `/ar/traced/`, FAQs and product: **200**;
+  - every portal path and `/api/v1` on www **and** `tracedlife.vercel.app`: **401** with `WWW-Authenticate: Basic realm="TRACED restricted pilot"`, `no-store`, `noindex`;
+  - `tracedmena.life` → **308** → www;
+  - bypass attempts (`%61dmin`, upper case, `index.html`, `%2F`): **401**; `//traced/admin/` → 308 to `/traced/admin/` → 401;
+  - the deployment URL is behind Vercel Authentication;
+  - API direct `/auth/me`: **403**, health 200; ports 22 and 5432 closed.
+- **API:** `APP_ORIGIN=https://www.tracedmena.life`, still preview mode on **`traced_preview`**. Production database `traced`: **0 users**, untouched.
+- **Invitation:** `vm_15_resend_setup.sh info@tracedmena.life` sent a fresh setup email (first attempt). Exactly **1 usable** setup link for account `68e1a2d9…`; the 2 earlier links are dead; audited.
+- **No-Vercel-account test:** the built-in browser has no Vercel login. `https://www.tracedmena.life/traced/admin/accept-invite/` stays on www and shows the TRACED pilot gate (401); there is **no Vercel redirect**. The steps after the prompt need the owner's pilot password and are completed by the owner.
+- The `vercel.app` Preview build has no `TRACED_PILOT_PASSWORD`, so its portal paths now fail closed (503) behind Vercel Authentication. The pilot is on www.

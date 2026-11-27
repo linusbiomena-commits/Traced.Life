@@ -1,5 +1,12 @@
 # TRACED: Changelog
 
+## 2026-11-28: restricted pilot live on www.tracedmena.life
+- Production (www, plus `tracedlife.vercel.app`) now serves the portal behind the path-based pilot gate; the marketing site stays public. Alternate hosts and encoded paths are gated.
+- The API origin moved to `https://www.tracedmena.life` (preview mode, `traced_preview`). All emailed links use www, and no Vercel account is needed.
+- Fresh admin invitation to info@tracedmena.life; old links invalidated (audited).
+- Safeguard: production builds are refused unless the pilot password (12+) is configured. It refused 3 builds before the password was set.
+- Rollback checkpoint recorded (`dpl_9WTxpjM6hhSyzXJjHX8RKw8vpF9n`).
+
 ## 2026-11-27 (late): audited email change; preview super admin = info@tracedmena.life
 - `changeUserEmail` service + `change-user-email` CLI + `vm_14_change_email.sh`: keeps id/roles/history, revokes sessions, expires links, audits, optional fresh invitation; refused in production; tests (3).
 - Preview: synthetic customer moved to `test-customer-info@preview.tracedmena.test`; super admin moved from `info+admin@` to info@tracedmena.life with a fresh setup email. Audit chain intact.
