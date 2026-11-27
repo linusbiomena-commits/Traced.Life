@@ -3,13 +3,15 @@
 # Needs, before running: owner approval for public API exposure, the API host name (DNS A record to the
 # reserved public IP), Vault secrets traced-resend-api-key and traced-proxy-secret, and an NSG rule for 443.
 #
-# Usage (root): vm_07_api_install.sh <vault-ocid> <namespace> <git-commit> <api-host> <app-origin> <mail-from> [mode]
+# Usage (root): vm_07_api_install.sh <vault-ocid> <namespace> <git-commit> <api-host> <app-origin> <from-name> <from-address> <reply-to> [mode]
 #   mode = preview (default): RESTRICTED PREVIEW with synthetic data only. Database traced_preview,
 #          NODE_ENV=development so provisional consents/instructions and the development identity
 #          verification work for end-to-end testing. Never use it with real people's data.
 #   mode = production: database traced, NODE_ENV=production (approved consents/instructions only,
 #          development identity verification refused). Only after the release gate.
-#   e.g. ... 67e0161 api.example.sa https://tracedlife.vercel.app "TRACED <no-reply@example.sa>"
+#   e.g. ... <commit> api.tracedmena.life https://<preview-host> TRACED info@tracedmena.life info@tracedmena.life preview
+# Caddy forwards /api/v1/* ONLY when the request carries x-traced-proxy-auth = traced-proxy-secret (i.e. it came
+# through the Vercel middleware); everything else under /api/v1 gets 403, except /api/v1/health.
 #
 # Result:
 #   traced-api      node container, NODE_ENV=production, listens on the internal network only (no host port)
@@ -18,7 +20,10 @@
 #   timers          outbox every 5 min, audit checkpoint daily 02:30 Riyadh, checkpoint upload every 15 min
 # Secrets are fetched from Vault at each start into /run/traced/api.env (tmpfs, 0600) and are never on disk.
 set -euo pipefail
-VAULT="$1"; NS="$2"; REF="$3"; API_HOST="$4"; APP_ORIGIN="$5"; MAIL_FROM="$6"; MODE="${7:-preview}"
+VAULT="$1"; NS="$2"; REF="$3"; API_HOST="$4"; APP_ORIGIN="$5"; FROM_NAME="$6"; FROM_ADDR="$7"; REPLY_TO="$8"; MODE="${9:-preview}"
+for a in "$FROM_ADDR" "$REPLY_TO"; do [[ "$a" =~ ^[^@[:space:]]+@[^@[:space:]]+$ ]] || { echo "invalid address $a"; exit 2; }; done
+[[ "$FROM_NAME" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "from-name must be one word"; exit 2; }
+MAIL_FROM="$FROM_NAME <$FROM_ADDR>"
 case "$MODE" in preview) DB=traced_preview; NODE_ENV=development; DEVIDV=true;; production) DB=traced; NODE_ENV=production; DEVIDV=false;; *) echo "mode must be preview or production"; exit 2;; esac
 docker exec traced-postgres psql -U postgres -Atc "select 1 from pg_database where datname='$DB'" | grep -q 1 || { echo "database $DB missing: run vm_02_migrate.sh <vault> <commit> $DB"; exit 1; }
 docker image inspect "traced-api:$REF" >/dev/null || { echo "image traced-api:$REF missing: run vm_02_migrate.sh first"; exit 1; }
@@ -32,7 +37,8 @@ NS=$NS
 REF=$REF
 API_HOST=$API_HOST
 APP_ORIGIN=$APP_ORIGIN
-MAIL_FROM=$MAIL_FROM
+MAIL_FROM='$MAIL_FROM'
+MAIL_REPLY_TO=$REPLY_TO
 MODE=$MODE
 DB=$DB
 NODE_ENV=$NODE_ENV
@@ -65,6 +71,7 @@ umask 077
   echo "INTERNAL_CRON_SECRET=$(sec traced-internal-cron-secret)"
   echo "MAIL_TRANSPORT=resend"
   echo "MAIL_FROM=$MAIL_FROM"
+  echo "MAIL_REPLY_TO=$MAIL_REPLY_TO"
   echo "RESEND_API_KEY=$(sec traced-resend-api-key)"
   echo "CUSTOMER_STATUS_EMAILS=false"
   echo "DEV_IDENTITY_VERIFICATION=$DEVIDV"
@@ -75,32 +82,46 @@ umask 077
   echo "TRUSTED_PROXY_SECRET=$(sec traced-proxy-secret)"
 } > /run/traced/api.env.tmp
 mv /run/traced/api.env.tmp /run/traced/api.env
+# Caddy only needs the proxy secret (gate for /api/v1/*).
+echo "TRACED_PROXY_SECRET=$(sec traced-proxy-secret)" > /run/traced/caddy.env.tmp && mv /run/traced/caddy.env.tmp /run/traced/caddy.env
 EOF
 chmod 700 /usr/local/sbin/traced-api-env
 
 cat > /etc/traced/Caddyfile <<EOF
 {
-  email ops@invalid.example
-  servers { trusted_proxies static private_ranges }
+  admin off
+  # Keep the incoming X-Forwarded-For (from Vercel) and append the peer; the API decides whom to trust
+  # (TRUSTED_PROXY_HOPS=2 only when x-traced-proxy-auth matches, else 1 hop = the address Caddy saw).
+  servers {
+    trusted_proxies static 0.0.0.0/0 ::/0
+  }
 }
 $API_HOST {
   encode gzip
   header {
     Strict-Transport-Security "max-age=31536000"
     X-Content-Type-Options nosniff
+    Referrer-Policy no-referrer
+    X-Frame-Options DENY
     -Server
   }
-  @internal path /api/v1/internal/*
-  respond @internal 404
-  @api path /api/v1/*
-  reverse_proxy @api traced-api:8080
-  respond 404
+  route {
+    respond /api/v1/internal/* 404
+    reverse_proxy /api/v1/health traced-api:8080
+    @proxied {
+      path /api/v1/*
+      header X-Traced-Proxy-Auth "{\$TRACED_PROXY_SECRET}"
+    }
+    reverse_proxy @proxied traced-api:8080
+    respond /api/v1/* "Forbidden" 403
+    respond 404
+  }
 }
 EOF
 
 cat > /etc/systemd/system/traced-api.service <<'EOF'
 [Unit]
-Description=TRACED API (production) and Caddy reverse proxy
+Description=TRACED API and Caddy reverse proxy (mode in /etc/traced/api.conf)
 After=docker.service network-online.target
 Requires=docker.service
 [Service]
@@ -115,7 +136,7 @@ ExecStart=/usr/bin/docker run -d --name traced-api --restart unless-stopped --ne
   -v /var/lib/traced/checkpoints:/var/lib/traced/checkpoints traced-api:${REF}
 ExecStart=/usr/bin/docker network connect traced-edge traced-api
 ExecStart=/usr/bin/docker run -d --name traced-caddy --restart unless-stopped --network traced-edge \
-  -p 80:80 -p 443:443 -v /etc/traced/Caddyfile:/etc/caddy/Caddyfile:ro -v /var/lib/traced/caddy:/data \
+  -p 80:80 -p 443:443 --env-file /run/traced/caddy.env -v /etc/traced/Caddyfile:/etc/caddy/Caddyfile:ro -v /var/lib/traced/caddy:/data \
   --memory 256m caddy:2
 ExecStop=/usr/bin/docker rm -f traced-caddy traced-api
 [Install]
