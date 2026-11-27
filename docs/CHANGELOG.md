@@ -1,5 +1,14 @@
 # TRACED: Changelog
 
+## 2026-11-27 (night): Oracle server and database live
+- Pay As You Go upgrade completed. `traced-app-1` (A1.Flex 1 OCPU / 4 GB / 50 GB, Ubuntu 24.04, Riyadh) launched on the first attempt; no SSH, no inbound ports, SSH/rpcbind disabled.
+- PostgreSQL 18.7 container (no published port), `traced` owned by `traced_migrator`, migrations 0001–0011 applied and checksums re-verified, production roles applied, security verification passed.
+- Nightly encrypted backups (gpg AES-256, Vault passphrase) to Riyadh Object Storage; real backup + restore check passed (34/34 tables).
+- Fixes: postgres data-directory ownership; Dockerfile builds with npm 11.6.2 (lockfile author); verification probes; fail-fast on expired OCI session.
+- Prepared (not run): `vm_07_api_install.sh` (API + Caddy HTTPS + timers + checkpoint upload), `docs/deploy/vercel-middleware.example.ts`.
+- `docs/deploy/launch-plan-1-dec.md` (consolidated decisions, safety matrix, regression checklist), `docs/deploy/oci-hosting-report.md`, `docs/deploy/sccc-assessment.md`.
+- Tests: 271/271 unit/integration, 30/30 browser.
+
 ## 2026-11-27 (evening): Oracle hosting approved; server launch paused
 - Created in Riyadh (free): network with no inbound access, Vault + software key + 9 generated secrets, encrypted private buckets for backups (35-day lifecycle) and audit checkpoints (400-day retention, unlocked), Object Storage service policy, Run Command permission.
 - `traced-app-1` (A1.Flex 1 OCPU / 4 GB) not created: Out of host capacity. Retries stopped; Pay As You Go upgrade requested by the owner. One more owner-requested attempt at 13:54 UTC also returned Out of host capacity.

@@ -9,6 +9,9 @@ oci_() { "$OCI_EXE" --profile "${OCI_PROFILE:-TRACED}" --auth security_token "$@
 # Windows oci.exe cannot read Git Bash /tmp paths: keep work files in deploy/oci/.work (gitignored).
 WORK="$HERE/.work"; mkdir -p "$WORK"
 winpath() { if command -v cygpath >/dev/null; then cygpath -m "$1"; else printf '%s' "$1"; fi; }
+# Fail fast when the session token has expired (it can only be refreshed while still valid).
+if ! "$OCI_EXE" session validate --profile "${OCI_PROFILE:-TRACED}" --auth security_token </dev/null >/dev/null 2>&1; then
+  echo "OCI session expired: run  oci session authenticate --region me-riyadh-1 --profile-name ${OCI_PROFILE:-TRACED}" >&2; exit 4; fi
 TEN=$(grep -A8 "^\[${OCI_PROFILE:-TRACED}\]" ~/.oci/config | grep '^tenancy' | cut -d= -f2 | tr -d ' ')
 CMP=$(oci_ iam compartment list --compartment-id "$TEN" --name TRACED --query 'data[0].id' --raw-output)
 vault_id() { oci_ kms management vault list --compartment-id "$CMP" --all --query "data[?\"display-name\"=='traced-vault' && \"lifecycle-state\"=='ACTIVE'].id | [0]" --raw-output; }

@@ -1,12 +1,6 @@
 # TRACED on Oracle Cloud Infrastructure (OCI): setup record and hosting plan
 
-**Status (27 Nov 2026, evening):** hosting **approved by the owner**. Created in Riyadh, all within free allowances:
-- network (no inbound access);
-- Vault `traced-vault` (DEFAULT type) with software key `traced-master-key` and 9 generated secrets;
-- buckets `traced-db-backups` (35-day lifecycle) and `traced-audit-checkpoints` (400-day retention rule, **unlocked**);
-- the Run Command policy.
-
-**The server `traced-app-1` does not exist.** Four launch attempts failed with *Out of host capacity* (one earlier attempt was throttled with HTTP 429). The owner requested the **Pay As You Go upgrade** (Console: "Your upgrade is in progress"), and provisioning is paused until Oracle confirms it. Shape (A1.Flex 1 OCPU / 4 GB / 50 GB) and region (me-riyadh-1) stay unchanged. Scripts: `deploy/oci/`.
+**Status (27 Nov 2026, night):** server `traced-app-1` **running** (A1, Riyadh) with PostgreSQL 18.7, migrations 0001–0011, verified permissions and tested encrypted backups (`oci-hosting-report.md`). The API is not started. Launch plan and decisions: `launch-plan-1-dec.md`.
 
 This replaces the Google Cloud plan (`phase-8-preparation.md`) as the hosting direction. Google Cloud could not be used: Dammam (me-central2) was refused for the project's billing account (see `docs/HANDOVER.md`, Phase 8B). The Google project `traced-production` is kept, empty, and is not deleted.
 

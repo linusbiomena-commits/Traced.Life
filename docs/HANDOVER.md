@@ -1,13 +1,13 @@
 # TRACED: Continuation Checkpoint
 
-**Last updated:** 2026-11-27, Oracle Cloud hosting approved; server launch paused for the Pay As You Go upgrade, Claude account 2.
+**Last updated:** 2026-11-27 (evening), Oracle server + database live and verified; API not started; launch target 1 Dec 2026, Claude account 2.
 
 | Item | State |
 |---|---|
 | Branch | `feature/traced-portal` (GitHub default branch) |
 | Commits | Phase 7: `91ea577`, `f594b4c`, `9ca24b3`, `8682bb3`, `dee1101`; Phase 8 preparation commit after `dee1101` (see `git log -1`) |
 | Push status | see `git status -sb` (pushed if the pre-push checks passed; see the commit/push note in the latest session) |
-| Current phase | **Phase 8 on Oracle Cloud: hosting approved; server launch PAUSED.** Network, Vault (9 secrets), buckets and IAM exist in Riyadh. `traced-app-1` was not created (Out of host capacity). Owner requested the Pay As You Go upgrade ("in progress"); resume only on the owner's word after Oracle confirms |
+| Current phase | **Phase 8 on Oracle Cloud (Riyadh): server `traced-app-1` RUNNING, PostgreSQL 18.7 migrated 0001–0011 and verified, encrypted backups + real restore test passed.** The API is not started (needs Resend + API host name). Launch target **1 Dec 2026** (`docs/deploy/launch-plan-1-dec.md`) |
 | Local migrations | dev DB (`.dev-db`, port 54329) at **0011** since 2026-11-26 |
 | Production migrations | **none**: no production database exists |
 | Local servers | dev DB on :54329 (preview `traced-db`), manual portal on :8787 (preview `traced-portal-manual`, worktree `../Traced Website (manual testing)` detached at `dee1101`). Both were restarted on 2026-11-27 after an unclean stop (app restart); data re-verified identical |
@@ -17,7 +17,7 @@
 | Cost estimate | ≈ USD 16.6–18.3/month ex VAT ≈ **SAR 62–69 ex VAT / SAR 72–79 incl. 15% VAT** for 100–1,000 registrations (Cloud SQL db-f1-micro Dammam $0.0168/h is ~90%). Resend paid plan likely at ~1,000 registrations |
 | Known bugs | none open. Fixed: admin audit-log test used a UTC date for a Riyadh-date filter (failed 00:00–03:00 Riyadh) |
 | Machine housekeeping | 7 orphaned test PostgreSQL `io_worker` processes left running by the owner's decision. `node scripts/cleanup-orphan-test-postgres.mjs` lists them (dry run); `--yes` only with authorisation. Never stop the dev DB on 54329 |
-| Outstanding approvals | resume server provisioning after the Pay As You Go upgrade; company account (O1); O3 (TRACED-Audit compartment); D9 API host name/DNS; Resend (before the API can run in production); decisions D1–D13 (`docs/deploy/phase-8-preparation.md` §13); release gate items (§12); repository privacy (P2); F-03 decision |
+| Outstanding approvals | the consolidated list D-A…D-O in `docs/deploy/launch-plan-1-dec.md` §3 (API host name/DNS, open 443, Resend + key in Vault, sender, Resend privacy, site origin + portal deploy, first super admins, proxy secret, identity verification, pilot model, audit compartment, company account, monitoring, content approvals, release) |
 
 ## Public website (live since 2026-11-27)
 https://tracedlife.vercel.app serves the public TRACED pages only (Vercel team `linus-bio-mena`, project `tracedlife`). Build: `vercel.json` → `node scripts/build-public-site.mjs` → `.vercel-public`; `.vercelignore` limits uploads to `dist/`, the script and `vercel.json`. The project is connected to `linusbiomena-commits/Traced.Life` with production branch `main`; pushes to `feature/traced-portal` create protected previews. The portal stays undeployed until Stage 8B onwards are authorised.
@@ -25,7 +25,18 @@ https://tracedlife.vercel.app serves the public TRACED pages only (Vercel team `
 ## Push safety evidence (before the public website)
 Before each push: GitHub API 0 deployments / 0 environments for `Traced.Life`; no `vercel.json`, `.vercel/` or workflow files at the repo root. The live `linusbiomena.vercel.app/traced/` is byte-identical to the separate *LinusBio MENA Website* `dist` (last modified 23 Nov) and returns 404 for every portal path, so it is not deployed from this repository.
 
-## Oracle Cloud status (2026-11-27, current direction)
+## Oracle Cloud status (2026-11-27 evening)
+- **Server and database live:** see `docs/deploy/oci-hosting-report.md` for every check actually run.
+  - `traced-app-1` was launched at 14:08 UTC after the Pay As You Go upgrade completed (plan PAYG, account type still PERSONAL).
+  - It is managed only through OCI Run Command (`deploy/oci/vmrun.sh`); there is no SSH and no inbound port.
+  - PostgreSQL 18.7 container has no published port; the `traced` database is owned by `traced_migrator`; migrations 0001–0011 applied and checksums verified; production roles applied.
+  - `vm_03` security checks passed.
+  - Nightly encrypted backup runs at 01:30 Riyadh time; a real backup + restore check passed with 34/34 tables.
+- **API:** image `traced-api:67e0161` built on the server, **not started**. `vm_07_api_install.sh` (Caddy HTTPS, timers, checkpoint upload) is prepared and not run.
+- **Session tokens expire after about 1 h** and can only be refreshed while still valid; re-run `oci session authenticate` (browser) when `lib.sh` reports it.
+- **Backup host:** SCCC by stc assessed (`docs/deploy/sccc-assessment.md`): over budget, KMS secrets USD 500/month, key facts unverified. Recommendation: stay on Oracle.
+
+## Oracle Cloud history (2026-11-27)
 - Full record and plan: `docs/deploy/oci-plan.md`.
 - OCI CLI 3.97.1 in `%USERPROFILE%\oci-cli-venv` (`Scripts\oci.exe`). Auth: `oci session authenticate --region me-riyadh-1 --profile-name TRACED` (browser sign-in, session token about 1 h; `oci session refresh --profile TRACED`). Use `--profile TRACED --auth security_token`. No API keys exist.
 - Tenancy `karamait`, home region **me-riyadh-1** (only subscribed region, one AD). Subscription FREE_TIER in its trial (PROMO), account type PERSONAL, currency EUR, billing country SA.
@@ -45,4 +56,4 @@ Before each push: GitHub API 0 deployments / 0 environments for `Traced.Life`; n
 - Enabled so far (free): Artifact Registry API plus the default APIs Google enables on new projects. No budget, service account, secret, database, bucket or repository exists yet.
 
 ## Exact next action
-Wait for the owner to confirm that Oracle finished the Pay As You Go upgrade and to authorise resuming provisioning. Then: `oci session authenticate` (profile TRACED), run `deploy/oci/launch-vm.sh` (a few attempts at most, minutes apart; never another shape or region), then `vm_01`…`vm_04` through `deploy/oci/vmrun.sh`, verify, and write `docs/deploy/oci-hosting-report.md`. Create no other billable resource; do not start the API publicly or with real email; accept no real patient data.
+Get the owner's decisions D-A…D-H (`docs/deploy/launch-plan-1-dec.md` §3; target 28 Nov 18:00 Riyadh). Then: reserve the public IP, have DNS pointed, open 443/80 on `traced-nsg-app`, the owner stores `traced-resend-api-key` in Vault, generate `traced-proxy-secret`, run `vm_07_api_install.sh`, test on a Vercel preview with `docs/deploy/vercel-middleware.example.ts`, create the first super admins, run the 30 Nov regression on the deployed preview. Never start collection in production without an approved identity verification method; never accept real patient data before the release gate.

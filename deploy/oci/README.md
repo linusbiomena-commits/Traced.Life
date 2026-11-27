@@ -17,7 +17,7 @@ oci session refresh --profile TRACED                                  # extend (
 | `create-network.sh` | VCN `traced-vcn` 10.20.0.0/16, internet gateway (outbound), route table, security list and NSG with **no ingress**; empties the VCN default list | **applied 27 Nov 2026** |
 | `create-secrets.sh` | generates 9 secrets locally and stores them in `traced-vault` (software key `traced-master-key`) | **applied** |
 | `create-buckets.sh` | `TRACED-Services-Policy`; buckets `traced-db-backups` (35-day lifecycle) and `traced-audit-checkpoints` (400-day retention rule, **unlocked**), both private and encrypted with `traced-master-key` | **applied** |
-| `launch-vm.sh` | `traced-app-1`: A1.Flex 1 OCPU / 4 GB, 50 GB boot, Ubuntu 24.04 aarch64, no SSH key, no inbound ports, Run Command agent | **not yet**: "Out of host capacity" on 27 Nov; paused until the Pay As You Go upgrade is confirmed |
+| `launch-vm.sh` | `traced-app-1`: A1.Flex 1 OCPU / 4 GB, 50 GB boot, Ubuntu 24.04 aarch64, no SSH key, no inbound ports, Run Command agent | **applied 27 Nov 14:08 UTC** (after the Pay As You Go upgrade) |
 | `vmrun.sh` | runs a `vm/` script on the VM as root through OCI Run Command; output via `traced-db-backups/ops/out/` | needs the VM |
 
 `TRACED-Workload-Policy` also allows the VM to run Run Command scripts on itself:
@@ -31,7 +31,13 @@ deploy/oci/vmrun.sh vm/vm_01_db.sh $V                  # PostgreSQL 18 container
 deploy/oci/vmrun.sh vm/vm_02_migrate.sh $V <commit>    # build API image at <commit>, migrate twice, production-roles.sql
 deploy/oci/vmrun.sh vm/vm_03_verify.sh $V              # schema, checksums, audit chain, role denials, exposure
 deploy/oci/vmrun.sh vm/vm_04_backup_install.sh $V $NS  # nightly encrypted backup timer + restore check
+deploy/oci/vmrun.sh vm/vm_05_backup_test.sh           # one backup now + full restore check
+deploy/oci/vmrun.sh vm/vm_06_harden.sh                # disable ssh/rpcbind
+# PREPARED, NOT RUN (needs approval + domain + Resend key in Vault + proxy secret + NSG 443):
+deploy/oci/vmrun.sh vm/vm_07_api_install.sh $V $NS <commit> <api-host> <app-origin> '<mail-from>'
 ```
+
+`vm_00_status.sh`: read-only status. **Ran on the server 27 Nov:** `vm_00`–`vm_06` (results in `docs/deploy/oci-hosting-report.md`).
 
 - `vm/cloud-init.yaml`: Docker, PostgreSQL client, gpg, the OCI CLI (instance principal), unattended upgrades, and sudo for the Run Command user.
 - The database container publishes no port and sits on an internal Docker network.

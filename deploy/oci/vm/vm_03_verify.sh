@@ -12,11 +12,11 @@ echo "== migrations"; q "select version, left(checksum,12) from schema_migration
 echo "== counts"
 q "select 'tables', count(*) from pg_tables where schemaname='public'"
 q "select 'indexes', count(*) from pg_indexes where schemaname='public'"
-q "select 'constraints '||contype, count(*) from pg_constraint c join pg_namespace n on n.oid=c.connamespace where n.nspname='public' group by contype order by 1"
+q "select 'constraints '||contype::text, count(*) from pg_constraint c join pg_namespace n on n.oid=c.connamespace where n.nspname='public' group by contype order by 1"
 q "select 'triggers', count(*) from pg_trigger t join pg_class c on c.oid=t.tgrelid join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and not t.tgisinternal"
 echo "== append-only triggers on evidence tables"
 q "select c.relname, string_agg(t.tgname, ',' order by t.tgname) from pg_trigger t join pg_class c on c.oid=t.tgrelid where not t.tgisinternal and c.relname in ('audit_logs','custody_events','consent_records','registration_status_history','audit_checkpoints','sample_label_prints') group by c.relname order by 1"
-echo "== audit chain"; q "select * from audit_verify_chain()"
+echo "== audit chain"; q "select coalesce('BROKEN at chain_seq ' || audit_verify_chain(), 'intact (audit_verify_chain() is NULL)')"
 echo "== custody digest (empty db)"; q "select custody_events_digest(0) is not null"
 echo "== role attributes"
 q "select rolname, rolsuper, rolcreaterole, rolcreatedb, rolreplication, rolbypassrls, rolconnlimit from pg_roles where rolname like 'traced%' order by 1"
@@ -27,7 +27,8 @@ app() { docker exec -e PGPASSWORD="$APW" traced-postgres psql -h 127.0.0.1 -U tr
 echo "== traced_app (TCP + SCRAM) checks"
 echo "connect/select audit_logs: $(app 'select count(*) from audit_logs')"
 for t in audit_logs custody_events consent_records registration_status_history audit_checkpoints; do
-  echo "UPDATE $t: $(app "update $t set id = id where false")"
+  col=$(q "select column_name from information_schema.columns where table_schema='public' and table_name='$t' and is_identity='NO' and is_generated='NEVER' order by ordinal_position limit 1")
+  echo "UPDATE $t.$col: $(app "update $t set $col = $col where false")"
   echo "DELETE $t: $(app "delete from $t where false")"
   echo "TRUNCATE $t: $(app "truncate $t")"
 done
