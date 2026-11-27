@@ -19,7 +19,7 @@
     "test:watch": "vitest",
     "seed:dev": "node --env-file-if-exists=.env --import tsx server/src/cli/seed-dev.ts",
     "build:portal": "node scripts/build-portal-pages.mjs && node scripts/patch-traced-account-links.mjs",
-    "check:portal": "node scripts/build-portal-pages.mjs --check && node scripts/patch-traced-account-links.mjs --check",
+    "check:portal": "node scripts/build-portal-pages.mjs --check && node scripts/build-pilot-pages.mjs --check && node scripts/patch-traced-account-links.mjs --check",
     "test:e2e": "playwright test",
     "backfill:phase3": "node --env-file-if-exists=.env --import tsx server/src/cli/backfill-phase3.ts",
     "dev:test-accounts": "node --env-file-if-exists=.env --import tsx server/src/cli/dev-test-accounts.ts",

@@ -19,20 +19,22 @@ const OUT = path.join(ROOT, '.vercel-public');
 // scripts/build-portal-pages.mjs starts with one of these; not imported because that
 // script regenerates files when loaded).
 const portalTop = ['account', 'staff', 'admin', 'lab', 'c', 's'];
-// TRACED_BUILD_PORTAL=1 keeps the operational portal pages (restricted pilot). The portal is only ever
-// served behind the pilot gate in middleware.ts, so a Vercel PRODUCTION build refuses to include it unless
-// the gate is configured (TRACED_PILOT_PASSWORD, 12+ characters) and the middleware file exists; the failed
-// build leaves the current live deployment in place.
+// TRACED_BUILD_PORTAL=1 keeps the operational portal pages. A Vercel PRODUCTION build includes them only when
+// they are protected or launch is approved: either the pilot gate is on with TRACED_PILOT_PASSWORD (12+) and
+// middleware.ts present, or BOTH TRACED_PILOT_GATE=off and TRACED_LAUNCH_APPROVED=yes are set (final release).
+// A refused build leaves the current live deployment in place.
 const includePortal = process.env.TRACED_BUILD_PORTAL === '1';
 if (includePortal && process.env.VERCEL_ENV === 'production') {
   const pw = process.env.TRACED_PILOT_PASSWORD ?? '';
   const mw = existsSync(path.join(ROOT, 'middleware.ts'));
-  const gateReady = pw.length >= 12 && mw;
+  const launched = process.env.TRACED_PILOT_GATE === 'off' && process.env.TRACED_LAUNCH_APPROVED === 'yes';
+  const gateReady = mw && (launched || pw.length >= 12);
   if (!gateReady) {
     // Reports only presence/length checks, never the value.
-    console.error(`Refusing to build the portal for production: pilot gate not configured (password set: ${pw.length > 0 ? 'yes' : 'no'}, 12+ characters: ${pw.length >= 12 ? 'yes' : 'no'}, middleware.ts present: ${mw ? 'yes' : 'no'}).`);
+    console.error(`Refusing to build the portal for production: pilot gate not configured (password set: ${pw.length > 0 ? 'yes' : 'no'}, 12+ characters: ${pw.length >= 12 ? 'yes' : 'no'}, middleware.ts present: ${mw ? 'yes' : 'no'}, launch approved: ${launched ? 'yes' : 'no'}).`);
     process.exit(1);
   }
+  console.log(launched ? 'Portal build: LAUNCH mode (pilot gate off by approval).' : 'Portal build: restricted pilot (gate on).');
 }
 const excluded = new Set(includePortal ? [] : [path.join(DIST, 'portal')]);
 if (!includePortal) {
@@ -72,4 +74,4 @@ let bytes = 0;
     else { files++; bytes += s.size; }
   }
 })(OUT);
-console.log(`${includePortal ? 'RESTRICTED PREVIEW (portal included)' : 'public site'} → ${path.relative(ROOT, OUT)}: ${files} files, ${(bytes / 1048576).toFixed(1)} MB; excluded ${excluded.size} portal paths`);
+console.log(`${includePortal ? 'portal included' : 'public site'} → ${path.relative(ROOT, OUT)}: ${files} files, ${(bytes / 1048576).toFixed(1)} MB; excluded ${excluded.size} portal paths`);

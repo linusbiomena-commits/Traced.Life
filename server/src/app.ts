@@ -5,6 +5,9 @@ import { secureHeaders } from 'hono/secure-headers';
 import type { AppEnv, Deps } from './context.ts';
 import { AppError } from './lib/errors.ts';
 import { log } from './lib/logger.ts';
+import { safeEqual } from './lib/crypto.ts';
+import { PROXY_AUTH_HEADER } from './lib/client-ip.ts';
+import { enforceRateLimits } from './middleware/rate-limit.ts';
 import { csrfProtection, requestContext, sessionLoader } from './middleware/request.ts';
 import { adminRoutes } from './modules/admin/index.ts';
 import { authRoutes } from './modules/auth/auth.routes.ts';
@@ -57,6 +60,19 @@ export function createApi(deps: Deps): Hono<AppEnv> {
   api.get('/health', async (c) => {
     await deps.db.query('SELECT 1');
     return c.json({ status: 'ok' });
+  });
+  // Restricted-pilot gate (middleware.ts on Vercel): counts each pilot-password attempt per client so the
+  // shared pilot password cannot be brute-forced. Only the Vercel middleware can call it (proxy secret);
+  // the password itself never reaches the API. Disabled (404) when no proxy secret is configured.
+  api.post('/pilot/attempt', async (c) => {
+    const secret = deps.config.trustedProxySecret;
+    if (!secret) return c.json({ error: { code: 'NOT_FOUND', message: 'Not found.' } }, 404);
+    if (!safeEqual(c.req.header(PROXY_AUTH_HEADER) ?? '', secret)) return c.json({ error: { code: 'FORBIDDEN', message: 'Forbidden.' } }, 403);
+    await enforceRateLimits(deps.db, [
+      { key: `pilot:ip:${c.get('ip') ?? 'unknown'}`, limit: 10, windowSeconds: 900 },
+      { key: 'pilot:global', limit: 300, windowSeconds: 900 },
+    ]);
+    return c.body(null, 204);
   });
   api.route('/auth', authRoutes(deps));
   api.route('/admin', adminRoutes(deps));

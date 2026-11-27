@@ -31,7 +31,7 @@ async function* htmlFiles(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (['account', 'c', 's', 'staff', 'admin', 'lab'].includes(entry.name)) continue; // the portal's own pages
+      if (['account', 'c', 's', 'staff', 'admin', 'lab', 'pilot-access'].includes(entry.name)) continue; // the portal's own pages + pilot gate page
       yield* htmlFiles(full);
     } else if (entry.name === 'index.html') yield full;
   }
