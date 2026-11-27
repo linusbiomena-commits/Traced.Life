@@ -41,7 +41,7 @@ const ALLOWED: Record<string, (route: string) => boolean> = {
 };
 // Admin-area routes an ordinary admin must NOT reach (super-admin only).
 const SUPER_ONLY = ['POST /admin/exports/personal-data', 'POST /admin/staff/:id/mfa-reset', 'POST /admin/audit-integrity/checkpoint'];
-const SKIP = new Set(['POST /auth/sign-out', 'POST /internal/outbox/run', 'POST /internal/audit/checkpoint']);
+const SKIP = new Set(['POST /auth/sign-out', 'POST /internal/outbox/run', 'POST /internal/audit/checkpoint', 'POST /pilot/attempt']);
 
 describe('authorization sweep over every API route', () => {
   it('each role reaches only the routes of its own areas; super-admin-only routes stay super-admin only', async () => {
@@ -76,7 +76,7 @@ describe('authorization sweep over every API route', () => {
         `| Route | ${names.join(' | ')} |`, `|---|${names.map(() => '---').join('|')}|`,
         ...Object.entries(matrix).sort(([a], [b]) => a.split(' ')[1]!.localeCompare(b.split(' ')[1]!)).map(([k, v]) => `| \`${k}\` | ${names.map((n) => cell(v[n]!)).join(' | ')} |`),
         '',
-        'Not swept (would end the session or need a scheduler credential): `POST /auth/sign-out`, `POST /internal/*` (secret or Google-signed token required; see docs/deploy/phase-8-plan.md).',
+        'Not swept (would end the session or need a scheduler credential): `POST /auth/sign-out`, `POST /internal/*` (secret or Google-signed token required; see docs/deploy/phase-8-plan.md), `POST /pilot/attempt` (Vercel proxy secret only; covered by pilot-attempt.test.ts).',
       ];
       mkdirSync(path.resolve('docs/security'), { recursive: true });
       writeFileSync(path.resolve('docs/security/permission-matrix.md'), `${lines.join('\n')}\n`);

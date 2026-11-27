@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import pg from 'pg';
@@ -104,7 +104,9 @@ export async function setupTestApp(opts: { appRole?: boolean } = {}) {
   let appDb: Pool = db;
   if (opts.appRole) {
     await db.query(readFileSync(path.resolve('server/sql/production-roles.sql'), 'utf8'));
-    const pw = randomBytes(16).toString('hex');
+    // traced_app is a cluster-wide role shared by every test file of this run: derive ONE password per run
+    // (from the run's database credentials) so files running in parallel never overwrite each other's.
+    const pw = createHash('sha256').update(`traced_app|${base}`).digest('hex').slice(0, 32);
     await db.query(`ALTER ROLE traced_app PASSWORD '${pw}'`);
     appDb = createPool(`${base.replace(/\/\/[^@]+@/, `//traced_app:${pw}@`)}/${dbName}`, 20);
   }
