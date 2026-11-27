@@ -1,5 +1,9 @@
 # TRACED: Changelog
 
+## 2026-11-28: pilot-only optional MFA; CSRF security log
+- `PILOT_MFA_OPTIONAL` (owner request): privileged roles sign in without two-step verification in the restricted pilot. It is refused in production. Tests (3).
+- CSRF rejections are logged with shapes only (reason, origin match, header length, cookie names).
+
 ## 2026-11-28: branded pilot access page (no browser pop-up)
 - `middleware.ts`: portal pages redirect to `/traced/pilot-access/` or `/ar/traced/pilot-access/` (token fragment kept). `POST /api/pilot/access` checks the origin, counts the attempt with the API rate limiter (10/client/15 min, fail closed) and sets a signed HttpOnly `__Host-` cookie (12 h). API and assets answer 401 JSON without the cookie.
 - API `POST /api/v1/pilot/attempt` (proxy-secret only).

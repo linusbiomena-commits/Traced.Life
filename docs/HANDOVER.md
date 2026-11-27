@@ -56,6 +56,8 @@ Before each push: GitHub API 0 deployments / 0 environments for `Traced.Life`; n
 - Enabled so far (free): Artifact Registry API plus the default APIs Google enables on new projects. No budget, service account, secret, database, bucket or repository exists yet.
 
 ## Exact next action
+**28 Nov (owner request):** two-step verification is **optional in the restricted pilot** (`PILOT_MFA_OPTIONAL=true` in preview mode; `loadConfig` refuses it in production, so launch accounts must enrol MFA). CSRF rejections are now logged (`vm_16_csrf_log.sh`) to diagnose the owner's "session has changed" error at two-step setup.
+
 **28 Nov:** the browser pop-up is replaced by the branded pilot access page (signed HttpOnly cookie, API rate limit, launch switch; `docs/deploy/www-pilot-rollout.md`).
 - The admin account `68e1a2d9…` (info@tracedmena.life) has set its password: the setup link was consumed at 00:38, so the screenshotted token is dead.
 - **MFA is not enrolled yet.** At the next sign-in the owner must complete two-step setup; then Claude verifies `mfa_enabled_at`.
