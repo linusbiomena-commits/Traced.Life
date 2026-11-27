@@ -83,6 +83,8 @@ umask 077
     # Restricted preview only: synthetic @preview.tracedmena.test mail is written to files for the e2e journey.
     echo "MAIL_CAPTURE_DOMAINS=preview.tracedmena.test"
     echo "MAIL_DEV_DIR=/var/lib/traced/devmail"
+    # Owner request (28 Nov 2026): plain sign-in for privileged roles during the pilot; refused in production.
+    echo "PILOT_MFA_OPTIONAL=true"
   fi
   # Chain: browser -> Vercel (adds x-traced-proxy-auth) -> Caddy -> API. Two proxy hops.
   echo "TRUSTED_PROXY_HOPS=2"

@@ -47,6 +47,9 @@ const schema = z.object({
   // Development only: apply pending migrations at start-up. Set false where the server connects with a
   // role that cannot run DDL (e.g. the OCI restricted preview as traced_app); migrations then run separately.
   AUTO_MIGRATE: bool.default(true),
+  // Restricted pilot only (owner request, 28 Nov 2026): privileged roles may use plain sign-in without
+  // two-step verification. Refused in production, where MFA stays mandatory for privileged roles.
+  PILOT_MFA_OPTIONAL: bool.default(false),
   // Phase 6 customer status emails (sample received, report available, recollection required).
   // Off by default until the wording is approved; the dashboard timeline works either way.
   CUSTOMER_STATUS_EMAILS: bool.default(false),
@@ -87,6 +90,7 @@ export type Config = {
   internalCronSecret?: string;
   serveStatic: boolean;
   autoMigrate: boolean;
+  pilotMfaOptional: boolean;
   customerStatusEmails?: boolean;
   schedulerOidcAudience?: string;
   schedulerOidcServiceAccount?: string;
@@ -114,6 +118,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     if (e.SERVE_STATIC) throw new Error('SERVE_STATIC is for local development only');
     if (e.DEV_IDENTITY_VERIFICATION) throw new Error('DEV_IDENTITY_VERIFICATION must never be enabled in production');
     if (e.MAIL_CAPTURE_DOMAINS?.trim()) throw new Error('MAIL_CAPTURE_DOMAINS is for the restricted preview only, never production');
+    if (e.PILOT_MFA_OPTIONAL) throw new Error('PILOT_MFA_OPTIONAL is for the restricted pilot only; production requires two-step verification for privileged roles');
     // Production must state its proxy chain explicitly; a guessed value either trusts forgeable
     // headers or puts every client into one rate-limit bucket.
     if (e.TRUSTED_PROXY_HOPS === undefined) throw new Error('TRUSTED_PROXY_HOPS must be set explicitly in production');
@@ -156,6 +161,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     internalCronSecret: e.INTERNAL_CRON_SECRET,
     serveStatic: e.SERVE_STATIC,
     autoMigrate: e.AUTO_MIGRATE,
+    pilotMfaOptional: e.NODE_ENV !== 'production' && e.PILOT_MFA_OPTIONAL,
     customerStatusEmails: e.CUSTOMER_STATUS_EMAILS,
     schedulerOidcAudience: e.SCHEDULER_OIDC_AUDIENCE,
     schedulerOidcServiceAccount: e.SCHEDULER_OIDC_SERVICE_ACCOUNT,

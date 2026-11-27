@@ -113,7 +113,8 @@ export async function loadSession(db: Queryable, deps: Deps, token: string): Pro
     locale: row.locale,
     roles: row.roles,
     permissions: new Set(row.permissions),
-    requiresMfa: row.requires_mfa,
+    // Restricted pilot only: PILOT_MFA_OPTIONAL (refused in production) lets privileged roles skip two-step verification.
+    requiresMfa: row.requires_mfa && !deps.config.pilotMfaOptional,
     mfaEnrolled: row.mfa_enabled_at !== null,
     mfaVerified: row.mfa_verified_at !== null,
   };

@@ -125,6 +125,7 @@ export async function setupTestApp(opts: { appRole?: boolean } = {}) {
     serveStatic: false,
     mailCaptureDomains: [],
     autoMigrate: false,
+    pilotMfaOptional: false,
     devIdentityVerification: true,
     internalCronSecret: 'test-cron-secret-0123456789abcdef0123456789',
     customerStatusEmails: true, // Phase 6 status emails are exercised in tests
