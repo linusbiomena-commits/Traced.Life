@@ -18,6 +18,9 @@ oci session refresh --profile TRACED                                  # extend (
 | `create-secrets.sh` | generates 9 secrets locally and stores them in `traced-vault` (software key `traced-master-key`) | **applied** |
 | `create-buckets.sh` | `TRACED-Services-Policy`; buckets `traced-db-backups` (35-day lifecycle) and `traced-audit-checkpoints` (400-day retention rule, **unlocked**), both private and encrypted with `traced-master-key` | **applied** |
 | `launch-vm.sh` | `traced-app-1`: A1.Flex 1 OCPU / 4 GB, 50 GB boot, Ubuntu 24.04 aarch64, no SSH key, no inbound ports, Run Command agent | **applied 27 Nov 14:08 UTC** (after the Pay As You Go upgrade) |
+| `reserve-ip.sh` | reserved public IP `traced-api-ip` (free) on the server's primary private IP, replacing the ephemeral one | **applied 27 Nov: 84.13.153.140** |
+| `create-proxy-secret.sh` | generates `traced-proxy-secret` into Vault (never printed) | **applied 27 Nov** |
+| `store-resend-key.ps1` | **owner runs it**: stores the Resend key in Vault with hidden input | waiting for the owner |
 | `vmrun.sh` | runs a `vm/` script on the VM as root through OCI Run Command; output via `traced-db-backups/ops/out/` | needs the VM |
 
 `TRACED-Workload-Policy` also allows the VM to run Run Command scripts on itself:

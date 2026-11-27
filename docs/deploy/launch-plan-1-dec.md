@@ -31,14 +31,14 @@ Step-by-step setup for D-A…D-H: `docs/deploy/api-go-live-guide.md`.
 
 | # | Decision / credential | Why | Needed by |
 |---|---|---|---|
-| D-A | **API host name**, for example `api.traced.life` or `api.<company-domain>`, and who manages that DNS zone | TLS certificate (Let's Encrypt) and the Vercel rewrite target | 28 Nov |
+| D-A | ✅ **api.tracedmena.life** (domain tracedmena.life, DNS at Squarespace; decided 27 Nov). **API host name**, for example `api.traced.life` or `api.<company-domain>`, and who manages that DNS zone | TLS certificate (Let's Encrypt) and the Vercel rewrite target | 28 Nov |
 | D-B | Approve: reserve a public IP (free), add DNS A record, open TCP 443 (and 80 for certificate issuance) on `traced-nsg-app` | the API becomes reachable; the database stays private | 28 Nov |
 | D-C | **Resend**: account, verified sending domain (SPF, DKIM, DMARC records in DNS), and a send-only API key. **Store the key yourself** in OCI Vault as secret `traced-resend-api-key` (Console → Identity & Security → Vault → `traced-vault` → Secrets → Create; key `traced-master-key`). I must not handle API keys | production refuses to start without it; sign-up verification, password reset and staff/admin invitations are all email | 28 Nov |
 | D-D | **Sender address** (`MAIL_FROM`, e.g. `TRACED <no-reply@traced.life>`) and reply-to | email headers | 28 Nov |
 | D-E | **Privacy approval for Resend** (processes email addresses in the US: PDPL cross-border transfer), or name an in-region provider | legal | 28 Nov |
 | D-F | **Site origin** (`APP_ORIGIN`): `https://tracedlife.vercel.app` or a custom domain; approve deploying the **portal pages + middleware** to Vercel (preview first, production at release) | portal pages are currently excluded from the live site | 29 Nov |
 | D-G | **First super administrators**: two named people and their work emails (MFA is enforced at first sign-in). Physical **devices/printers** for branch testing | bootstrap (`create-user` sends a one-time link by email) | 29 Nov |
-| D-H | Approve a proxy secret: I generate it into Vault (`traced-proxy-secret`); you paste the same value into Vercel env `TRACED_PROXY_SECRET` (I can show you where; I will not type it into Vercel) | trusted client-IP chain | 29 Nov |
+| D-H | ✅ `traced-proxy-secret` generated into Vault (27 Nov); owner copies it into Vercel. Approve a proxy secret: I generate it into Vault (`traced-proxy-secret`); you paste the same value into Vercel env `TRACED_PROXY_SECRET` (I can show you where; I will not type it into Vercel) | trusted client-IP chain | 29 Nov |
 | D-I | **Identity verification method** for collection (`docs/identity-verification.md`) | without it, production sample collection stays **blocked** (see §4) | before real collection |
 | D-J | Pilot model for 1 Dec: (a) production with **registration only**, collection blocked; or (b) additionally a **separate non-public pilot** instance with synthetic data (development identity verification is refused in production by design) | §4 | 28 Nov |
 | D-K | O3: separate `TRACED-Audit` compartment; retention period and when to **lock** the audit bucket (irreversible) | independent audit evidence claim | before claiming it |

@@ -1,5 +1,10 @@
 # TRACED: Changelog
 
+## 2026-11-27 (late): domain and fixed IP
+- Domain **tracedmena.life** (Squarespace DNS); API host **api.tracedmena.life**.
+- Reserved public IP **84.13.153.140** (`traced-api-ip`, free) attached to `traced-app-1` (`deploy/oci/reserve-ip.sh`). The server still has no open inbound ports.
+- `traced-proxy-secret` generated into Vault (`deploy/oci/create-proxy-secret.sh`).
+
 ## 2026-11-27 (late): API go-live preparation
 - `docs/deploy/api-go-live-guide.md`: domain, reserved IP (free), DNS, Resend setup and verification, key into Vault, sender, Vercel restricted preview, proxy secret, first super admins.
 - Restricted preview design:

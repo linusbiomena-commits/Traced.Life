@@ -2,6 +2,16 @@
 
 **27 Nov 2026.** Step-by-step setup for the API, email and portal integration. Steps marked **[You]** need your accounts or decisions; steps marked **[Claude]** I run after you confirm. Nothing here exposes PostgreSQL (it never gets a port) or changes the public website at https://tracedlife.vercel.app.
 
+## Decided values (27 Nov 2026)
+
+| Item | Value |
+|---|---|
+| Domain | **tracedmena.life**. DNS is at **Squarespace Domains** (`nsd1–4.squarespacedns.com`). The root shows Squarespace's default site, there are no MX records, and the root SPF is `v=spf1 -all` |
+| API host | **api.tracedmena.life** |
+| Reserved public IP | **84.13.153.140** (`traced-api-ip`, free), attached to `traced-app-1`. Ports 22/80/443/5432 are still closed |
+| Mail subdomain (suggested) | **mail.tracedmena.life**, sender `TRACED <no-reply@mail.tracedmena.life>`. Its own SPF/DKIM do not conflict with the root's `v=spf1 -all` |
+| Proxy secret | generated into Vault as `traced-proxy-secret` (never printed) |
+
 ## 0. The shape of it
 
 ```
@@ -45,11 +55,15 @@ Choose a host name under a domain you control (for example `api.traced.life` or 
 
 | Type | Name | Value | TTL | Purpose |
 |---|---|---|---|---|
-| A | `api` | the reserved IP from §2 | 300 | API host |
+| A | `api` | **84.13.153.140** | 300 (or Squarespace's lowest) | API host `api.tracedmena.life` |
 | CAA (optional) | `@` | `0 issue "letsencrypt.org"` | 3600 | allow only Let's Encrypt; **skip it** if other services on this domain use other certificate authorities |
 | Resend records | from §5 | exactly as Resend shows | default | email |
 
-If the DNS is on Cloudflare, set the `api` record to **DNS only** (grey cloud). Proxied mode breaks certificate issuance and the proxy chain.
+**Squarespace Domains:** account.squarespace.com → **Domains** → `tracedmena.life` → **DNS** (DNS Settings) → **Custom records** → **Add record**.
+- Type **A**, host `api`, data `84.13.153.140`.
+- Add the Resend records the same way. Squarespace usually expects the host part only, for example `send.mail` instead of `send.mail.tracedmena.life`.
+- Do not change the existing records for the root (`@`) or `www`; they belong to the Squarespace site.
+- Skip the CAA record if Squarespace does not offer it.
 
 ## 4. Resend account **[You]**
 
