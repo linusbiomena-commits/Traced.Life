@@ -35,6 +35,7 @@ Last updated: 2026-11-26 (Phase 5 approved and implemented). Only **Approved** i
 | A29 | Hosting on **Oracle Cloud**, tenancy `karamait` as the central KaRama IT account; region me-riyadh-1 (Jeddah alternative); one compartment `TRACED` only for now; cost tags `KaRamaIT.Project/Environment/CostCenter`; budget SAR 110 incl. VAT (EUR 23.25) with 50/80/100% + forecast alerts; no paid resources before approval of exact configuration and cost | Owner, 2026-11-27 |
 | A30 | OCI hosting configuration and cost approved (`docs/deploy/oci-plan.md`); server launch paused after Out of host capacity; owner requested the Pay As You Go upgrade; no shape or region change | Owner, 2026-11-27 |
 | A31 | Launch target 1 Dec 2026 (owner); security not traded for the date; restricted pilot with synthetic data if real-patient approvals are outstanding. Oracle A1 server launched after the Pay As You Go upgrade; SCCC kept as an assessed (not opened) backup | Owner, 2026-11-27 |
+| A32 | Phase 8C approved: API at https://api.tracedmena.life; Resend with sender `TRACED <info@tracedmena.life>` and reply-to info@tracedmena.life (Tokyo sending region, privacy approval pending); restricted Vercel preview; monitoring alerts to info@karamaitco.com. Preview runs on a separate synthetic database `traced_preview` | Owner, 2026-11-27 |
 | A19 | Client IP: count trusted proxy hops from the right (`TRUSTED_PROXY_HOPS`, optional CIDRs / proxy secret); production must set it explicitly | Phase 5 milestone 1 |
 
 ## Proposed / awaiting approval

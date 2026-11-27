@@ -1,5 +1,13 @@
 # TRACED: Changelog
 
+## 2026-11-27 (night): Phase 8C restricted preview live
+- API at https://api.tracedmena.life (Caddy + Let's Encrypt, TLS 1.3, HSTS); preview mode on synthetic `traced_preview`; NSG opens 443/80 only.
+- Caddy forwards `/api/v1/*` only with the Vercel proxy secret (403 otherwise); `/internal` 404.
+- Resend: sender `TRACED <info@tracedmena.life>`, reply-to info@; 9/9 test emails sent (retry verified). Privacy review `docs/security/resend-privacy-review.md`.
+- Jobs: outbox, audit checkpoint + append-only upload (overwrite/delete refused), nightly backup, health metrics; 7 OCI alarms (topic `traced-ops-alerts`).
+- Vercel: Preview-only env (`TRACED_BUILD_PORTAL`, `TRACED_API_ORIGIN`), root `middleware.ts`; `trailingSlash` removed (it pre-empted the middleware); camera allowed same-origin; portal pages `no-store`/`noindex`.
+- New scripts: `open-web-ports.sh`, `create-monitoring.sh`, `vm_09`–`vm_12`. Report `docs/deploy/phase-8c-report.md`.
+
 ## 2026-11-27 (late): domain and fixed IP
 - Domain **tracedmena.life** (Squarespace DNS); API host **api.tracedmena.life**.
 - Reserved public IP **84.13.153.140** (`traced-api-ip`, free) attached to `traced-app-1` (`deploy/oci/reserve-ip.sh`). The server still has no open inbound ports.

@@ -21,6 +21,8 @@ oci session refresh --profile TRACED                                  # extend (
 | `reserve-ip.sh` | reserved public IP `traced-api-ip` (free) on the server's primary private IP, replacing the ephemeral one | **applied 27 Nov: 84.13.153.140** |
 | `create-proxy-secret.sh` | generates `traced-proxy-secret` into Vault (never printed) | **applied 27 Nov** |
 | `store-resend-key.ps1` | **owner runs it**: stores the Resend key in Vault with hidden input | waiting for the owner |
+| `open-web-ports.sh` | NSG ingress TCP 443 + 80 only | **applied 27 Nov (Phase 8C)** |
+| `create-monitoring.sh` | topic `traced-ops-alerts`, email subscription, 7 alarms | **applied 27 Nov** (subscription to be confirmed by email) |
 | `vmrun.sh` | runs a `vm/` script on the VM as root through OCI Run Command; output via `traced-db-backups/ops/out/` | needs the VM |
 
 `TRACED-Workload-Policy` also allows the VM to run Run Command scripts on itself:

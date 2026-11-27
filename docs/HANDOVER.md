@@ -1,13 +1,13 @@
 # TRACED: Continuation Checkpoint
 
-**Last updated:** 2026-11-27 (evening), Oracle server + database live and verified; API not started; launch target 1 Dec 2026, Claude account 2.
+**Last updated:** 2026-11-27 (night), Phase 8C: API live at https://api.tracedmena.life in restricted-preview mode; portal preview on Vercel; Claude account 2.
 
 | Item | State |
 |---|---|
 | Branch | `feature/traced-portal` (GitHub default branch) |
 | Commits | Phase 7: `91ea577`, `f594b4c`, `9ca24b3`, `8682bb3`, `dee1101`; Phase 8 preparation commit after `dee1101` (see `git log -1`) |
 | Push status | see `git status -sb` (pushed if the pre-push checks passed; see the commit/push note in the latest session) |
-| Current phase | **Phase 8 on Oracle Cloud (Riyadh): server `traced-app-1` RUNNING, PostgreSQL 18.7 migrated 0001–0011 and verified, encrypted backups + real restore test passed.** The API is not started (needs Resend + API host name). Launch target **1 Dec 2026** (`docs/deploy/launch-plan-1-dec.md`) |
+| Current phase | **Phase 8C (restricted preview).** API https://api.tracedmena.life (preview mode, DB `traced_preview`), Caddy HTTPS with proxy-secret gate, Resend email verified, jobs + monitoring live. Vercel preview https://tracedlife-git-feature-traced-portal-linus-bio-mena.vercel.app waits for `TRACED_PROXY_SECRET` (owner). Production DB `traced` clean. Report: `docs/deploy/phase-8c-report.md` |
 | Local migrations | dev DB (`.dev-db`, port 54329) at **0011** since 2026-11-26 |
 | Production migrations | **none**: no production database exists |
 | Local servers | dev DB on :54329 (preview `traced-db`), manual portal on :8787 (preview `traced-portal-manual`, worktree `../Traced Website (manual testing)` detached at `dee1101`). Both were restarted on 2026-11-27 after an unclean stop (app restart); data re-verified identical |
@@ -56,6 +56,15 @@ Before each push: GitHub API 0 deployments / 0 environments for `Traced.Life`; n
 - Enabled so far (free): Artifact Registry API plus the default APIs Google enables on new projects. No budget, service account, secret, database, bucket or repository exists yet.
 
 ## Exact next action
-Domain decided: **tracedmena.life** (DNS at Squarespace), API host **api.tracedmena.life**, reserved IP **84.13.153.140** attached, `traced-proxy-secret` in Vault (27 Nov). Waiting for the owner: the DNS A record, Resend with `mail.tracedmena.life` verified, the key stored in Vault, the sender address, and two admin emails.
-Follow `docs/deploy/api-go-live-guide.md` §11 as the owner's inputs arrive: domain, Resend domain verified, key in Vault, sender address, two admin emails. Restricted preview first: `vm_02 … traced_preview`, `vm_07 … preview`, Vercel Preview env (`TRACED_BUILD_PORTAL=1`, API origin, proxy secret), and root `middleware.ts` from the template. Switch to production only after the release gate and approved consent texts (D-N). The earlier plan text follows.
-Get the owner's decisions D-A…D-H (`docs/deploy/launch-plan-1-dec.md` §3; target 28 Nov 18:00 Riyadh). Then: reserve the public IP, have DNS pointed, open 443/80 on `traced-nsg-app`, the owner stores `traced-resend-api-key` in Vault, generate `traced-proxy-secret`, run `vm_07_api_install.sh`, test on a Vercel preview with `docs/deploy/vercel-middleware.example.ts`, create the first super admins, run the 30 Nov regression on the deployed preview. Never start collection in production without an approved identity verification method; never accept real patient data before the release gate.
+Waiting for the owner (`docs/deploy/phase-8c-report.md` §6, §9):
+- add `TRACED_PROXY_SECRET` in Vercel (Preview, branch `feature/traced-portal`);
+- confirm the Oracle alert subscription;
+- check the TRACED email in info@tracedmena.life;
+- send the first two super-admin names and emails.
+
+Then:
+1. Redeploy the preview (`vercel redeploy` or push).
+2. Verify sign-in through the portal.
+3. Run the full UI regression with plus-addressed accounts (`info+…@tracedmena.life`) on `traced_preview`.
+
+Production switch (`vm_07 … production`) only after the release gate and approved consent texts. Never point the preview at `traced`.
