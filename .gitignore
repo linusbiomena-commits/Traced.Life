@@ -14,3 +14,4 @@ test-results/
 .dev-db-backups/
 .dev-audit-checkpoints/
 .dev-mail/
+.vercel-public/
