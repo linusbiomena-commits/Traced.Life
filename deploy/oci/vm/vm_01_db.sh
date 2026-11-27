@@ -10,7 +10,10 @@ sec() { oci secrets secret-bundle get-secret-bundle-by-name --vault-id "$VAULT" 
           --query 'data."secret-bundle-content".content' --raw-output | base64 -d; }
 
 docker network inspect traced-db >/dev/null 2>&1 || docker network create --internal traced-db >/dev/null
-install -d -m 700 /var/lib/traced/pgdata
+# The postgres:18 image runs as uid/gid 999 and must own its mount point (root:700 makes it crash-loop).
+install -d -m 755 /var/lib/traced
+install -d -m 700 -o 999 -g 999 /var/lib/traced/pgdata
+trap '[ -f /run/traced/pg_super ] && shred -u /run/traced/pg_super || true' EXIT
 
 PGARGS=(-c shared_buffers=384MB -c effective_cache_size=1GB -c max_connections=60
         -c password_encryption=scram-sha-256 -c log_min_duration_statement=500
