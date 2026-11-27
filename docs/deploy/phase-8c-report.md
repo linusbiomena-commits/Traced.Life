@@ -132,3 +132,22 @@ After the owner adds `TRACED_PROXY_SECRET`:
 1. Redeploy the preview and verify sign-in through the portal.
 2. Run the full UI regression (§7) with plus-addressed test accounts on `traced_preview`.
 3. Create the two real super administrators in **production** (`traced`) only at the production switch, with `vm_08_create_admin.sh` after `vm_07 … production`. For the preview, create preview admins with plus-addresses.
+
+## 12. Update (27 Nov, late): preview connected and tested end to end
+
+- **Proxy secret:** the owner added `TRACED_PROXY_SECRET` in Vercel (Preview, branch only). The first test returned 403. A presence-only diagnostic showed the header arrived but in the **base64 form** the OCI Console displays. The shared value is now defined as exactly that form, on Caddy, the API and Vercel (`vm_07` updated). Via Vercel `/api/v1/auth/me` → API `401` (correct); direct → `403`.
+- **Incident (preview only):** a malformed temporary Caddy diagnostic stopped Caddy for about 2 minutes. It was restored from backup. Diagnostics now validate the config before applying it and roll back automatically.
+- **Fixes:**
+  - `vm_07` restarts the service on re-run (`enable --now` did not apply a new image);
+  - label printing requires `size` (journey fixed; `db-roles.test.ts` now asserts 200 instead of `< 500`).
+- **Preview-only mail capture:** `MAIL_CAPTURE_DOMAINS` writes mail for `@preview.tracedmena.test` to files instead of sending it. It is refused when `NODE_ENV=production`, and unit tests cover the guard and domain matching, including lookalike domains.
+- **Deployed end-to-end journey (`vm_13_e2e.sh`): 61/61 pass.**
+  - Super admin invitation + MFA; admin invites collection staff, laboratory and auditor (MFA).
+  - Customer sign-up → email verification → sign-in; registration; QR.
+  - Staff validation (age/gender only) → development identity check (preview only) → collection → label print → package → ready → dispatch.
+  - Lab receipt → analysis → report-available status; customer progress.
+  - Rejection → admin recollection (lab refused) → new QR → `-S02`.
+  - Admin lists, audit log, CSV report, audit checkpoint + verify, auditor read-only; personal-data export with a fresh code; MFA reset.
+  - Access denials; password reset; Arabic email.
+  - Captured mail is deleted after each run.
+- **Not yet done:** visual browser pass of the portals on the preview. Vercel Authentication requires the owner's Vercel sign-in in the browser; I do not enter credentials. Manual guide: `docs/deploy/preview-testing-guide.md`.

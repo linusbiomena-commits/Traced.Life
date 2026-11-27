@@ -24,7 +24,7 @@ docker run --rm --network traced-db --env-file /run/traced/api.env -v /var/lib/t
   node --import tsx server/src/cli/create-user.ts --email "superadmin-$RUN@preview.tracedmena.test" --role super_admin --locale en 2>&1 | tail -1
 
 echo "== journey"
-mkdir -p /opt/traced/e2e && cp /opt/traced/app/deploy/oci/e2e/preview-journey.mjs /opt/traced/e2e/ 2>/dev/null || true
+mkdir -p /opt/traced/e2e && oci os object get --namespace "$NS" --bucket-name traced-db-backups --name ops/preview-journey.mjs --file /opt/traced/e2e/preview-journey.mjs >/dev/null  # uploaded by vmrun-e2e (admin PC)
 docker run --rm --network traced-edge -e BASE=http://traced-api:8080/api/v1 -e ORIGIN="$APP_ORIGIN" -e MAILDIR=/mail -e RUN_ID="$RUN" \
   -v /var/lib/traced/devmail:/mail:ro -v /opt/traced/e2e:/e2e:ro "traced-api:$REF" \
   sh -c 'mkdir -p /tmp/q && cd /tmp/q && npm init -y >/dev/null 2>&1 && npm install --silent --no-audit --no-fund jsqr@1.4.0 pngjs@7.0.0 >/dev/null 2>&1 && cd /app && node /e2e/preview-journey.mjs'

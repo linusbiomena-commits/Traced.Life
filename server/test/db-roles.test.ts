@@ -41,7 +41,7 @@ describe('application running as traced_app', () => {
     });
     expect(collected.status).toBe(200);
     const sampleRowId = collected.body.collection.sample.id;
-    expect((await staff.c.post(`/staff/samples/${sampleRowId}/label-print`, { reason: 'first print' })).status).toBeLessThan(500);
+    expect((await staff.c.post(`/staff/samples/${sampleRowId}/label-print`, { size: '50x30' })).status).toBe(200);
     const code = decodeQrPng((await getBinary(t, staff.c, `/staff/samples/${sampleRowId}/qr.png`)).body)!;
     expect((await act(staff.c, 'staff', code, 'package', 'collected')).status).toBe(200);
     expect((await act(staff.c, 'staff', code, 'ready_for_dispatch', 'packaged')).status).toBe(200);

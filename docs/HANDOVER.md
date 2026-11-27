@@ -7,13 +7,13 @@
 | Branch | `feature/traced-portal` (GitHub default branch) |
 | Commits | Phase 7: `91ea577`, `f594b4c`, `9ca24b3`, `8682bb3`, `dee1101`; Phase 8 preparation commit after `dee1101` (see `git log -1`) |
 | Push status | see `git status -sb` (pushed if the pre-push checks passed; see the commit/push note in the latest session) |
-| Current phase | **Phase 8C (restricted preview).** API https://api.tracedmena.life (preview mode, DB `traced_preview`), Caddy HTTPS with proxy-secret gate, Resend email verified, jobs + monitoring live. Vercel preview https://tracedlife-git-feature-traced-portal-linus-bio-mena.vercel.app waits for `TRACED_PROXY_SECRET` (owner). Production DB `traced` clean. Report: `docs/deploy/phase-8c-report.md` |
+| Current phase | **Phase 8C restricted preview: connected and tested.** Vercel preview → api.tracedmena.life → `traced_preview`; deployed end-to-end journey **61/61** (`vm_13_e2e.sh`). Production DB `traced` clean. Guides: `docs/deploy/preview-testing-guide.md`, report `docs/deploy/phase-8c-report.md` §12 |
 | Local migrations | dev DB (`.dev-db`, port 54329) at **0011** since 2026-11-26 |
 | Production migrations | **none**: no production database exists |
 | Local servers | dev DB on :54329 (preview `traced-db`), manual portal on :8787 (preview `traced-portal-manual`, worktree `../Traced Website (manual testing)` detached at `dee1101`). Both were restarted on 2026-11-27 after an unclean stop (app restart); data re-verified identical |
 | Local backup | `.dev-db-backups/2026-11-26T17-43-44-118Z/` (online backup taken before the upgrade, restore verified 32/32 tables; gitignored; contains test personal data) |
 | Completed (this stage) | dev DB online backup CLI (`npm run dev:db-backup`) + verified restore; worktree upgrade to `dee1101`; migrations 0010–0011 applied; data integrity verified twice; Phase 7 manual-testing guide (`docs/manual-testing.md` §7–8); verified Dammam prices; `docs/deploy/phase-8-preparation.md` (project, IAM matrix, Cloud Run/SQL commands, secret inventory, Vercel review, scheduler, checkpoint destination, Resend, billing, release gate, decisions D1–D13); `docs/deploy/cost-estimate.md` rewritten; `production-roles.sql` made Cloud SQL compatible; time-of-day test bug fixed |
-| Tests | typecheck clean; `npm test` **272/272** (27 Nov 2026, incl. 9 Oracle layout tests); `check:portal` pass; browser suite last run 30/30 twice (Phase 7; UI unchanged since). Open: one earlier intermittent staff camera failure, not reproduced |
+| Tests | typecheck clean; `npm test` **274/274** (27 Nov 2026, incl. 9 Oracle layout tests); `check:portal` pass; browser suite last run 30/30 twice (Phase 7; UI unchanged since). Open: one earlier intermittent staff camera failure, not reproduced |
 | Cost estimate | ≈ USD 16.6–18.3/month ex VAT ≈ **SAR 62–69 ex VAT / SAR 72–79 incl. 15% VAT** for 100–1,000 registrations (Cloud SQL db-f1-micro Dammam $0.0168/h is ~90%). Resend paid plan likely at ~1,000 registrations |
 | Known bugs | none open. Fixed: admin audit-log test used a UTC date for a Riyadh-date filter (failed 00:00–03:00 Riyadh) |
 | Machine housekeeping | 7 orphaned test PostgreSQL `io_worker` processes left running by the owner's decision. `node scripts/cleanup-orphan-test-postgres.mjs` lists them (dry run); `--yes` only with authorisation. Never stop the dev DB on 54329 |
@@ -56,15 +56,7 @@ Before each push: GitHub API 0 deployments / 0 environments for `Traced.Life`; n
 - Enabled so far (free): Artifact Registry API plus the default APIs Google enables on new projects. No budget, service account, secret, database, bucket or repository exists yet.
 
 ## Exact next action
-Waiting for the owner (`docs/deploy/phase-8c-report.md` §6, §9):
-- add `TRACED_PROXY_SECRET` in Vercel (Preview, branch `feature/traced-portal`);
-- confirm the Oracle alert subscription;
-- check the TRACED email in info@tracedmena.life;
-- send the first two super-admin names and emails.
-
-Then:
-1. Redeploy the preview (`vercel redeploy` or push).
-2. Verify sign-in through the portal.
-3. Run the full UI regression with plus-addressed accounts (`info+…@tracedmena.life`) on `traced_preview`.
-
-Production switch (`vm_07 … production`) only after the release gate and approved consent texts. Never point the preview at `traced`.
+- **Owner:** manual testing per `docs/deploy/preview-testing-guide.md` (plus-addressed accounts on info@tracedmena.life); give a preview admin address so it can be created with `vm_08`; sign in to Vercel in the browser pane if a visual pass by Claude is wanted.
+- **Claude:** fix reported bugs with tests and re-run `vm_13_e2e.sh` after each API change.
+- **Production switch** (`vm_07 … production`, no capture, approved consents) only after the release gate.
+- **Proxy secret** = the Vault content as the Console shows it (base64).

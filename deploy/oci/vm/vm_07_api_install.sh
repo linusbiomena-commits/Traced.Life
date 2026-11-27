@@ -188,7 +188,8 @@ mk_timer audit-checkpoint "*-*-* 02:30:00 Asia/Riyadh" "/usr/local/sbin/traced-i
 mk_timer checkpoint-upload "*:0/15" "/usr/local/sbin/traced-checkpoint-upload"
 
 systemctl daemon-reload
-systemctl enable --now traced-api.service
+systemctl enable traced-api.service
+systemctl restart traced-api.service   # also applies a new image, mode or secrets on re-runs
 systemctl enable --now traced-outbox.timer traced-audit-checkpoint.timer traced-checkpoint-upload.timer
 sleep 5
 docker ps --format '{{.Names}} {{.Status}} {{.Ports}}'

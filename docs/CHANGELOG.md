@@ -1,5 +1,11 @@
 # TRACED: Changelog
 
+## 2026-11-27 (late): preview connected; deployed e2e 61/61
+- Vercel → API connected (proxy secret = Vault content in the base64 form the Console shows).
+- Preview-only mail capture (`MAIL_CAPTURE_DOMAINS`, refused in production) and deployed journey `vm_13_e2e.sh`: 61/61.
+- Fixes: `vm_07` restarts on re-run; label print needs `size` (role test now strict); diagnostics validate Caddy config first.
+- `docs/deploy/preview-testing-guide.md` (portal URLs, test accounts, what to test).
+
 ## 2026-11-27 (night): Phase 8C restricted preview live
 - API at https://api.tracedmena.life (Caddy + Let's Encrypt, TLS 1.3, HSTS); preview mode on synthetic `traced_preview`; NSG opens 443/80 only.
 - Caddy forwards `/api/v1/*` only with the Vercel proxy secret (403 otherwise); `/internal` 404.

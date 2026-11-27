@@ -28,4 +28,4 @@ The approvals listed in `docs/DECISIONS.md` ("Unresolved"): identity verificatio
 **Not ready.** Nothing is provisioned or deployed. Production collection is deliberately blocked until an approved identity-verification method and approved instructions exist.
 
 ## Estimated completion
-About **95%** of total development effort (Phases 0–7 + Phase 8 preparation, public website and OCI governance ≈ 365 h of ≈ 375–400 h; remaining ≈ 10–20 h: deployed UI regression, consent-text loader, bug fixes, production switch, launch support). This counts engineering effort only and excludes business, legal and clinical approvals.
+About **96%** of total development effort (Phases 0–7 + Phase 8 preparation, public website and OCI governance ≈ 365 h of ≈ 375–400 h; remaining ≈ 10–20 h: deployed UI regression, consent-text loader, bug fixes, production switch, launch support). This counts engineering effort only and excludes business, legal and clinical approvals.

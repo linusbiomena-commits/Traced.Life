@@ -123,7 +123,7 @@ async function main() {
   const col = await staff.c.post(`/staff/collection-sessions/${val.body.collectionSessionId}/collect`, { instructionsId: instr?.id, checklist: (instr?.checklist ?? []).map((i) => i.id) });
   ok('sample collected', col.status === 200, `status ${col.status}`);
   const sampleId = col.body?.collection?.sample?.id;
-  ok('physical sample label printed', (await staff.c.post(`/staff/samples/${sampleId}/label-print`, { reason: 'first print' })).status < 300);
+  ok('physical sample label printed', (await staff.c.post(`/staff/samples/${sampleId}/label-print`, { size: '50x30' })).status === 200);
   const scode = qrText((await staff.c.get(`/staff/samples/${sampleId}/qr.png`)).buf);
   ok('sample label QR decodable', !!scode);
   const act = (c, side, code, action, expectedStatus, extra = {}) => c.post(`/${side}/samples/action`, { code, action, expectedStatus, idempotencyKey: randomUUID(), ...extra });
