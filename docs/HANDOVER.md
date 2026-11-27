@@ -13,7 +13,7 @@
 | Local servers | dev DB on :54329 (preview `traced-db`), manual portal on :8787 (preview `traced-portal-manual`, worktree `../Traced Website (manual testing)` detached at `dee1101`). Both were restarted on 2026-11-27 after an unclean stop (app restart); data re-verified identical |
 | Local backup | `.dev-db-backups/2026-11-26T17-43-44-118Z/` (online backup taken before the upgrade, restore verified 32/32 tables; gitignored; contains test personal data) |
 | Completed (this stage) | dev DB online backup CLI (`npm run dev:db-backup`) + verified restore; worktree upgrade to `dee1101`; migrations 0010–0011 applied; data integrity verified twice; Phase 7 manual-testing guide (`docs/manual-testing.md` §7–8); verified Dammam prices; `docs/deploy/phase-8-preparation.md` (project, IAM matrix, Cloud Run/SQL commands, secret inventory, Vercel review, scheduler, checkpoint destination, Resend, billing, release gate, decisions D1–D13); `docs/deploy/cost-estimate.md` rewritten; `production-roles.sql` made Cloud SQL compatible; time-of-day test bug fixed |
-| Tests | typecheck clean; `npm test` **293/293** (27 Nov 2026, incl. 9 Oracle layout tests); `check:portal` pass; browser suite last run 30/30 twice (Phase 7; UI unchanged since). Open: one earlier intermittent staff camera failure, not reproduced |
+| Tests | typecheck clean; `npm test` **296/296** (27 Nov 2026, incl. 9 Oracle layout tests); `check:portal` pass; browser suite last run 30/30 twice (Phase 7; UI unchanged since). Open: one earlier intermittent staff camera failure, not reproduced |
 | Cost estimate | ≈ USD 16.6–18.3/month ex VAT ≈ **SAR 62–69 ex VAT / SAR 72–79 incl. 15% VAT** for 100–1,000 registrations (Cloud SQL db-f1-micro Dammam $0.0168/h is ~90%). Resend paid plan likely at ~1,000 registrations |
 | Known bugs | none open. Fixed: admin audit-log test used a UTC date for a Riyadh-date filter (failed 00:00–03:00 Riyadh) |
 | Machine housekeeping | 7 orphaned test PostgreSQL `io_worker` processes left running by the owner's decision. `node scripts/cleanup-orphan-test-postgres.mjs` lists them (dry run); `--yes` only with authorisation. Never stop the dev DB on 54329 |
@@ -56,6 +56,8 @@ Before each push: GitHub API 0 deployments / 0 environments for `Traced.Life`; n
 - Enabled so far (free): Artifact Registry API plus the default APIs Google enables on new projects. No budget, service account, secret, database, bucket or repository exists yet.
 
 ## Exact next action
+**Fixed 28 Nov:** "Your session has changed" (CSRF_REJECTED) on every signed-in write through www. Vercel's `x-middleware-override-headers` is the complete list of forwarded headers; the middleware listed only the changed ones, so Origin, X-CSRF-Token and Content-Type were dropped. The middleware now re-lists every header (`apiRewrite` in `middleware.ts`; test asserts it). Found with the CSRF security log. Tests 296/296.
+
 **28 Nov (owner request):** two-step verification is **optional in the restricted pilot** (`PILOT_MFA_OPTIONAL=true` in preview mode; `loadConfig` refuses it in production, so launch accounts must enrol MFA). CSRF rejections are now logged (`vm_16_csrf_log.sh`) to diagnose the owner's "session has changed" error at two-step setup.
 
 **28 Nov:** the browser pop-up is replaced by the branded pilot access page (signed HttpOnly cookie, API rate limit, launch switch; `docs/deploy/www-pilot-rollout.md`).

@@ -1,5 +1,8 @@
 # TRACED: Changelog
 
+## 2026-11-28: fix for signed-in writes through www
+- The middleware's API rewrite now forwards all request headers. Vercel's override list is exhaustive, and Origin, X-CSRF-Token and Content-Type had been dropped, so every signed-in POST failed the CSRF check. Tests 296/296.
+
 ## 2026-11-28: pilot-only optional MFA; CSRF security log
 - `PILOT_MFA_OPTIONAL` (owner request): privileged roles sign in without two-step verification in the restricted pilot. It is refused in production. Tests (3).
 - CSRF rejections are logged with shapes only (reason, origin match, header length, cookie names).
