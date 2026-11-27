@@ -321,6 +321,33 @@ test('settings: save profile, change password, sign out', async ({ page }) => {
   await expect(page.locator('main')).toContainText('050 000 0000');
 });
 
+test('sign out: a refused request never pretends; a real sign-out ends the session (Back cannot restore it)', async ({ page }) => {
+  const email = uniqueEmail('signout.flow');
+  await signUpAndSignIn(page, 'en', email);
+  await expect(page).toHaveURL(/\/traced\/account\/$/);
+  await expect(page.getByRole('heading', { name: /Welcome/ })).toBeVisible();
+  // Regression (28 Nov 2026): when the server refused sign-out, the portal still went to the sign-in page,
+  // which sent the still-signed-in user straight back. Now it stays and says so.
+  await page.route('**/api/v1/auth/sign-out', (route) => route.fulfill({ status: 403, contentType: 'application/json', body: JSON.stringify({ error: { code: 'CSRF_REJECTED', message: 'x' } }) }));
+  await page.locator('main').getByRole('button', { name: 'Sign out' }).click();
+  await expect(page.getByRole('alert')).toContainText('You are still signed in');
+  await expect(page).toHaveURL(/\/traced\/account\/$/);
+  await page.unroute('**/api/v1/auth/sign-out');
+  // Real sign-out.
+  await page.locator('main').getByRole('button', { name: 'Sign out' }).click();
+  await expect(page).toHaveURL(/\/traced\/account\/sign-in\/\?signedOut=1/);
+  await page.goto('/traced/account/');
+  await expect(page).toHaveURL(/\/traced\/account\/sign-in\//);
+  await page.goBack();
+  await expect(page.getByRole('heading', { name: /Welcome/ })).toHaveCount(0);
+  // Sign in again works.
+  await page.goto('/traced/account/sign-in/');
+  await page.getByLabel('Email address').fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(PASSWORD);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page).toHaveURL(/\/traced\/account\/$/);
+});
+
 test('double-clicking submit creates exactly one registration; another customer cannot open it', async ({ page, browser }) => {
   const email = uniqueEmail('dbl.flow');
   await signUpAndSignIn(page, 'en', email);

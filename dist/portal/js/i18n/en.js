@@ -74,6 +74,7 @@ export default {
   'error.INVALID_OR_EXPIRED_TOKEN': 'This link is invalid, has expired or has already been used.',
   'error.WEAK_PASSWORD': 'Choose a stronger password: at least 12 characters, not containing your email.',
   'error.CSRF_REJECTED': 'Your session has changed. Please reload the page and try again.',
+  'error.signOutFailed': 'You are still signed in. Sign out did not complete.',
   'error.UNAUTHENTICATED': 'Please sign in again.',
   'error.EMAIL_NOT_VERIFIED': 'Please verify your email address first.',
   'error.FORBIDDEN': 'You don’t have access to this.',

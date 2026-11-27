@@ -151,8 +151,15 @@ export async function signOut() {
   const labPage = LAB_PAGES.has(current);
   try {
     await api('POST', '/auth/sign-out', {});
-  } catch {
-    /* already signed out */
+  } catch (err) {
+    // Only "no session" (401) means already signed out. Any other failure (network, 403, 5xx) leaves the
+    // server session alive, so never pretend: stay on the page and show the error (fix 28 Nov 2026).
+    if (err?.status !== 401) {
+      const app = document.getElementById('app');
+      if (app) app.prepend(alertBox('error', t('error.signOutFailed'), errorMessage(err)));
+      window.scrollTo(0, 0);
+      return;
+    }
   }
   go(pageUrl(adminPage ? 'admin-sign-in' : labPage ? 'lab-sign-in' : staffPage ? 'staff-sign-in' : 'sign-in', { signedOut: '1' }));
 }
