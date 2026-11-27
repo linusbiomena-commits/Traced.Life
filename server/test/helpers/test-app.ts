@@ -121,6 +121,7 @@ export async function setupTestApp(opts: { appRole?: boolean } = {}) {
     mailTransport: 'memory',
     mailDevDir: '',
     serveStatic: false,
+    mailCaptureDomains: [],
     autoMigrate: false,
     devIdentityVerification: true,
     internalCronSecret: 'test-cron-secret-0123456789abcdef0123456789',

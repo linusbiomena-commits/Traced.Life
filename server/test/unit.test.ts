@@ -5,6 +5,7 @@ import { decrypt, encrypt, hmac, randomCode, randomToken, safeEqual } from '../s
 import { hashPassword, passwordProblem, verifyPassword } from '../src/lib/password.ts';
 import { buildLink } from '../src/modules/auth/links.ts';
 import { matchTotp, newTotpSecret } from '../src/modules/auth/mfa.ts';
+import { CaptureRoutingMailer, MemoryMailer } from '../src/modules/mail/mailer.ts';
 import { renderTemplate } from '../src/modules/mail/templates.ts';
 import { PERMISSIONS, ROLE_PERMISSIONS } from '../src/modules/rbac/catalogue.ts';
 import { totpCode } from './helpers/test-app.ts';
@@ -112,5 +113,26 @@ describe('config', () => {
     expect(() => loadConfig({ ...base, NODE_ENV: 'production', COOKIE_SECURE: 'false' })).toThrow(/COOKIE_SECURE/);
     expect(() => loadConfig({ ...base, NODE_ENV: 'production', APP_ORIGIN: 'http://insecure.example' })).toThrow(/https/);
     expect(() => loadConfig({ ...base, NODE_ENV: 'production' })).toThrow(/MAIL_TRANSPORT must be resend/);
+  });
+
+  it('allows email capture domains only outside production (restricted preview)', () => {
+    const prod = { ...base, NODE_ENV: 'production', COOKIE_SECURE: 'true', MAIL_TRANSPORT: 'resend', RESEND_API_KEY: 're_test_123', MAIL_FROM: 'TRACED <a@b.sa>', TRUSTED_PROXY_HOPS: '1', INTERNAL_CRON_SECRET: 'x'.repeat(32) };
+    expect(() => loadConfig(prod)).not.toThrow();
+    expect(() => loadConfig({ ...prod, MAIL_CAPTURE_DOMAINS: 'preview.tracedmena.test' })).toThrow(/MAIL_CAPTURE_DOMAINS/);
+    expect(loadConfig({ ...base, MAIL_CAPTURE_DOMAINS: ' Preview.Tracedmena.Test , x.test ' }).mailCaptureDomains).toEqual(['preview.tracedmena.test', 'x.test']);
+  });
+});
+
+describe('capture routing mailer', () => {
+  it('captures only the listed synthetic domains; everything else goes to the real provider', async () => {
+    const primary = new MemoryMailer();
+    const capture = new MemoryMailer();
+    const m = new CaptureRoutingMailer(primary, capture, ['preview.tracedmena.test']);
+    const msg = { template: 'verify_email' as const, locale: 'en' as const, data: { link: 'https://x/verify#t' } };
+    await m.send({ ...msg, to: 'cust1@PREVIEW.tracedmena.test' });
+    await m.send({ ...msg, to: 'info@tracedmena.life' });
+    await m.send({ ...msg, to: 'evil@preview.tracedmena.test.attacker.example' });
+    expect(capture.sent.map((s) => s.to)).toEqual(['cust1@PREVIEW.tracedmena.test']);
+    expect(primary.sent.map((s) => s.to)).toEqual(['info@tracedmena.life', 'evil@preview.tracedmena.test.attacker.example']);
   });
 });

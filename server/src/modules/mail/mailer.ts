@@ -53,7 +53,7 @@ export class MemoryMailer implements Mailer {
  * plain text, and attachments) and prints the subject and link. Sends nothing.
  */
 export class DevFileMailer implements Mailer {
-  constructor(private readonly dir: string) {}
+  constructor(private readonly dir: string, private readonly logLinks = true) {}
   async send(message: MailMessage): Promise<SendResult> {
     const rendered = renderTemplate(message.template, message.locale, message.data);
     await mkdir(this.dir, { recursive: true });
@@ -66,7 +66,7 @@ export class DevFileMailer implements Mailer {
     }
     await writeFile(path.join(this.dir, `${base}.html`), preview, 'utf8');
     await writeFile(path.join(this.dir, `${base}.txt`), `To: ${message.to}\nSubject: ${rendered.subject}\n\n${rendered.text}\n`, 'utf8');
-    console.log(`[dev-mail] ${message.template} -> ${message.to}${message.data.link ? `\n           ${message.data.link}` : ''}`);
+    if (this.logLinks) console.log(`[dev-mail] ${message.template} -> ${message.to}${message.data.link ? `\n           ${message.data.link}` : ''}`);
     return { provider: 'dev-file', messageId: id };
   }
 }
@@ -123,7 +123,27 @@ export class ResendMailer implements Mailer {
   }
 }
 
-export function createMailer(opts: { transport: 'dev' | 'memory' | 'resend'; devDir: string; resendApiKey?: string; mailFrom?: string; replyTo?: string }): Mailer {
+/**
+ * Restricted preview only (never production; enforced in config): recipients at the listed synthetic
+ * domains are written to files (no link printed to the log) instead of being sent, so automated
+ * end-to-end tests can follow verification/invitation links. Every other recipient uses the real provider.
+ */
+export class CaptureRoutingMailer implements Mailer {
+  constructor(private readonly primary: Mailer, private readonly capture: Mailer, private readonly domains: readonly string[]) {}
+  async send(message: MailMessage): Promise<SendResult> {
+    const domain = message.to.slice(message.to.lastIndexOf('@') + 1).toLowerCase();
+    return (this.domains.includes(domain) ? this.capture : this.primary).send(message);
+  }
+}
+
+type MailerOptions = { transport: 'dev' | 'memory' | 'resend'; devDir: string; resendApiKey?: string; mailFrom?: string; replyTo?: string; captureDomains?: readonly string[] };
+
+export function createMailer(opts: MailerOptions): Mailer {
+  const base = createBaseMailer(opts);
+  return opts.captureDomains?.length ? new CaptureRoutingMailer(base, new DevFileMailer(opts.devDir, false), opts.captureDomains) : base;
+}
+
+function createBaseMailer(opts: MailerOptions): Mailer {
   if (opts.transport === 'memory') return new MemoryMailer();
   if (opts.transport === 'resend') {
     if (!opts.resendApiKey || !opts.mailFrom) throw new Error('RESEND_API_KEY and MAIL_FROM are required for MAIL_TRANSPORT=resend');

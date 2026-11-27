@@ -38,7 +38,7 @@ if (values.locale !== 'en' && values.locale !== 'ar') {
 
 const config = loadConfig();
 const db = createPool(config.databaseUrl, 1);
-const mailer = createMailer({ transport: config.mailTransport, devDir: config.mailDevDir, resendApiKey: config.resendApiKey, mailFrom: config.mailFrom, replyTo: config.mailReplyTo });
+const mailer = createMailer({ transport: config.mailTransport, devDir: config.mailDevDir, resendApiKey: config.resendApiKey, mailFrom: config.mailFrom, replyTo: config.mailReplyTo, captureDomains: config.mailCaptureDomains });
 try {
   const { userId, setupLink } = await createStaffAccount(
     { config, db, mailer },

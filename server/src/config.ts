@@ -32,6 +32,9 @@ const schema = z.object({
   MAIL_DEV_DIR: z.string().default('.dev-mail'),
   MAIL_FROM: z.string().max(200).optional(),
   MAIL_REPLY_TO: z.email().optional(),
+  // Restricted preview only: comma-separated synthetic domains whose emails are captured to MAIL_DEV_DIR
+  // instead of sent (automated end-to-end tests). Refused in production.
+  MAIL_CAPTURE_DOMAINS: z.string().max(500).optional(),
   RESEND_API_KEY: z.string().regex(/^re_[A-Za-z0-9_]+$/, 'RESEND_API_KEY looks invalid').optional(),
   OUTBOX_INTERVAL_MS: z.coerce.number().int().min(1000).default(15000),
   // Development/test only: lets staff simulate identity-verification outcomes. Refused in production.
@@ -76,6 +79,7 @@ export type Config = {
   mailDevDir: string;
   mailFrom?: string;
   mailReplyTo?: string;
+  mailCaptureDomains: string[];
   resendApiKey?: string;
   outboxIntervalMs?: number;
   devIdentityVerification?: boolean;
@@ -109,6 +113,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     if (e.MAIL_TRANSPORT !== 'resend') throw new Error('MAIL_TRANSPORT must be resend in production');
     if (e.SERVE_STATIC) throw new Error('SERVE_STATIC is for local development only');
     if (e.DEV_IDENTITY_VERIFICATION) throw new Error('DEV_IDENTITY_VERIFICATION must never be enabled in production');
+    if (e.MAIL_CAPTURE_DOMAINS?.trim()) throw new Error('MAIL_CAPTURE_DOMAINS is for the restricted preview only, never production');
     // Production must state its proxy chain explicitly; a guessed value either trusts forgeable
     // headers or puts every client into one rate-limit bucket.
     if (e.TRUSTED_PROXY_HOPS === undefined) throw new Error('TRUSTED_PROXY_HOPS must be set explicitly in production');
@@ -143,6 +148,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     mailDevDir: e.MAIL_DEV_DIR,
     mailFrom: e.MAIL_FROM,
     mailReplyTo: e.MAIL_REPLY_TO,
+    mailCaptureDomains: (e.MAIL_CAPTURE_DOMAINS ?? '').split(',').map((d) => d.trim().toLowerCase()).filter(Boolean),
     resendApiKey: e.RESEND_API_KEY,
     outboxIntervalMs: e.OUTBOX_INTERVAL_MS,
     devIdentityVerification: e.NODE_ENV !== 'production' && e.DEV_IDENTITY_VERIFICATION,

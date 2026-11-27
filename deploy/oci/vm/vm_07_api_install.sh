@@ -30,6 +30,7 @@ docker image inspect "traced-api:$REF" >/dev/null || { echo "image traced-api:$R
 install -d -m 700 /etc/traced
 install -d -m 750 -o 1000 -g 1000 /var/lib/traced/checkpoints   # uid 1000 = "node" in the image
 install -d -m 700 /var/lib/traced/caddy
+install -d -m 750 -o 1000 -g 1000 /var/lib/traced/devmail   # preview-only captured synthetic mail
 
 cat > /etc/traced/api.conf <<EOF
 VAULT=$VAULT
@@ -54,6 +55,7 @@ set -euo pipefail
 export OCI_CLI_AUTH=instance_principal
 sec() { oci secrets secret-bundle get-secret-bundle-by-name --vault-id "$VAULT" --secret-name "$1" \
           --query 'data."secret-bundle-content".content' --raw-output | base64 -d; }
+raw() { oci secrets secret-bundle get-secret-bundle-by-name --vault-id "$VAULT" --secret-name "$1" --query 'data."secret-bundle-content".content' --raw-output; }
 install -d -m 700 /run/traced
 umask 077
 {
@@ -77,13 +79,20 @@ umask 077
   echo "DEV_IDENTITY_VERIFICATION=$DEVIDV"
   echo "TRACED_DEPLOYMENT_MODE=$MODE"
   echo "AUTO_MIGRATE=false"   # migrations run separately as traced_migrator (vm_02)
+  if [ "$MODE" = preview ]; then
+    # Restricted preview only: synthetic @preview.tracedmena.test mail is written to files for the e2e journey.
+    echo "MAIL_CAPTURE_DOMAINS=preview.tracedmena.test"
+    echo "MAIL_DEV_DIR=/var/lib/traced/devmail"
+  fi
   # Chain: browser -> Vercel (adds x-traced-proxy-auth) -> Caddy -> API. Two proxy hops.
   echo "TRUSTED_PROXY_HOPS=2"
-  echo "TRUSTED_PROXY_SECRET=$(sec traced-proxy-secret)"
+  # Proxy secret = the Vault content exactly as the OCI Console shows it (base64 form); the same text is in
+  # Vercel env TRACED_PROXY_SECRET. (27 Nov 2026: the Console displays base64, so that form is the shared value.)
+  echo "TRUSTED_PROXY_SECRET=$(raw traced-proxy-secret)"
 } > /run/traced/api.env.tmp
 mv /run/traced/api.env.tmp /run/traced/api.env
 # Caddy only needs the proxy secret (gate for /api/v1/*).
-echo "TRACED_PROXY_SECRET=$(sec traced-proxy-secret)" > /run/traced/caddy.env.tmp && mv /run/traced/caddy.env.tmp /run/traced/caddy.env
+echo "TRACED_PROXY_SECRET=$(raw traced-proxy-secret)" > /run/traced/caddy.env.tmp && mv /run/traced/caddy.env.tmp /run/traced/caddy.env
 EOF
 chmod 700 /usr/local/sbin/traced-api-env
 
@@ -133,7 +142,7 @@ ExecStartPre=-/usr/bin/docker network create traced-edge
 ExecStartPre=-/usr/bin/docker rm -f traced-api traced-caddy
 ExecStart=/usr/bin/docker run -d --name traced-api --restart unless-stopped --network traced-db \
   --env-file /run/traced/api.env --read-only --tmpfs /tmp --memory 768m \
-  -v /var/lib/traced/checkpoints:/var/lib/traced/checkpoints traced-api:${REF}
+  -v /var/lib/traced/checkpoints:/var/lib/traced/checkpoints -v /var/lib/traced/devmail:/var/lib/traced/devmail traced-api:${REF}
 ExecStart=/usr/bin/docker network connect traced-edge traced-api
 ExecStart=/usr/bin/docker run -d --name traced-caddy --restart unless-stopped --network traced-edge \
   -p 80:80 -p 443:443 --env-file /run/traced/caddy.env -v /etc/traced/Caddyfile:/etc/caddy/Caddyfile:ro -v /var/lib/traced/caddy:/data \
