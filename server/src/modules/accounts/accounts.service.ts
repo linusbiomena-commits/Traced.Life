@@ -104,3 +104,29 @@ export async function changeUserEmail(
     throw err;
   }
 }
+
+/**
+ * Re-sends the one-time setup invitation of a staff-side account that has not set a password yet (same rules
+ * as the admin portal's "Resend invite", for the command line). Issuing the new link expires every older
+ * unused setup link. The link uses the current APP_ORIGIN. Audited as staff.invite_resent.
+ */
+export async function resendStaffSetup(deps: Deps, input: { email: string; meta: AuditMeta }): Promise<{ userId: string; roles: RoleKey[] }> {
+  const email = input.email.trim().toLowerCase();
+  return withTx(deps.db, async (tx) => {
+    const { rows } = await tx.query<{ id: string; locale: Locale; status: string; password_set: boolean; roles: RoleKey[] | null }>(
+      `SELECT u.id, u.locale, u.status, u.password_hash IS NOT NULL AS password_set,
+              (SELECT array_agg(role_key ORDER BY role_key) FROM user_roles WHERE user_id = u.id) AS roles
+         FROM users u WHERE u.email = $1 FOR UPDATE`, [email]);
+    const user = rows[0];
+    if (!user) throw new AppError(404, 'NOT_FOUND', 'No account uses this address.');
+    const roles = user.roles ?? [];
+    if (!roles.some((r) => STAFF_SIDE_ROLES.includes(r))) throw new AppError(409, 'NOT_STAFF', 'Setup invitations are only for staff-side accounts.');
+    if (user.password_set || user.status !== 'active') throw new AppError(409, 'INVITE_NOT_PENDING', 'This account has already been set up or is not active.');
+    const token = await issueToken(tx, deps, user.id, 'account_setup', input.meta.actorUserId);
+    const adminSide = roles.some((r) => r === 'admin' || r === 'super_admin' || r === 'auditor');
+    await enqueueEmail(tx, deps, { kind: 'account_setup', locale: user.locale, to: email, userId: user.id,
+      data: { link: buildLink(deps.config.appOrigin, adminSide ? 'admin_setup' : 'staff_setup', user.locale, token) } });
+    await audit(tx, { ...input.meta, action: 'staff.invite_resent', outcome: 'success', targetType: 'user', targetId: user.id });
+    return { userId: user.id, roles };
+  });
+}

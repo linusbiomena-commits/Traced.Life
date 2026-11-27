@@ -3,18 +3,19 @@
 // Routing Middleware response headers directly (the same headers `rewrite()`/`next()` from
 // @vercel/functions emit).
 //
-// 1. Restricted-pilot gate. On the pilot host(s) only (TRACED_PILOT_HOSTS, e.g. preview.tracedmena.life),
-//    every request (pages, assets, API) needs HTTP Basic credentials: user "traced" + TRACED_PILOT_PASSWORD.
-//    Testers get the password separately from their invitation (never in an email link). No Vercel
-//    account is needed: custom domains are outside Vercel Authentication ("all except custom domains").
-//    TRACED's own sign-in, roles and MFA apply after the gate. Other hosts are not gated here
-//    (*.vercel.app previews stay behind Vercel Authentication; production has no pilot hosts).
+// 1. Restricted-pilot gate, by PATH on EVERY host (www.tracedmena.life, tracedmena.life, tracedlife.vercel.app,
+//    deployment URLs): the operational portal pages (/traced|/ar/traced + account, staff, admin, lab, c, s),
+//    the portal assets (/portal/) and the API (/api/v1/) need HTTP Basic credentials: user "traced" +
+//    TRACED_PILOT_PASSWORD. Without a configured password they fail closed (503). The public marketing
+//    pages are never gated. Testers get the password separately from their invitation (never in an email
+//    link); no Vercel account is needed. TRACED's own sign-in, roles and MFA apply after the gate.
 // 2. Same-origin API. /api/v1/* is rewritten to TRACED_API_ORIGIN (Caddy on the Oracle VM) with
 //    x-traced-proxy-auth = TRACED_PROXY_SECRET, so the API trusts only X-Forwarded-For values that came
 //    through Vercel (server/src/lib/client-ip.ts). The pilot Authorization header is not forwarded.
 //
-// Vercel environment variables (Preview, branch feature/traced-portal only; Sensitive; never in Git):
-//   TRACED_API_ORIGIN, TRACED_PROXY_SECRET, TRACED_PILOT_HOSTS, TRACED_PILOT_PASSWORD (12+ characters)
+// Vercel environment variables
+// (Production and Preview; Sensitive; never in Git):
+//   TRACED_API_ORIGIN, TRACED_PROXY_SECRET, TRACED_PILOT_PASSWORD (12+ characters)
 
 // The edge runtime provides process.env; declared here because the build installs no @types/node.
 declare const process: { env: Record<string, string | undefined> };
@@ -23,6 +24,14 @@ export const config = { matcher: ['/:path*'] };
 
 const PILOT_USER = 'traced';
 const REALM = 'TRACED restricted pilot';
+const GATED = [/^\/(ar\/)?traced\/(account|staff|admin|lab|c|s)(\/|$)/, /^\/portal(\/|$)/, /^\/api\/v1(\/|$)/];
+/** Normalised like the file server would (percent-decoding, repeated slashes, case) so encodings cannot bypass the gate. */
+export function isGatedPath(pathname: string): boolean {
+  let p = pathname;
+  for (let i = 0; i < 3; i++) { try { const d = decodeURIComponent(p); if (d === p) break; p = d; } catch { return true; } }
+  p = p.replace(/\\/g, '/').replace(/\/{2,}/g, '/').toLowerCase();
+  return GATED.some((re) => re.test(p));
+}
 
 function constantTimeEqual(a: string, b: string): boolean {
   let diff = a.length ^ b.length;
@@ -42,10 +51,7 @@ function basicCredentialsMatch(header: string | null, password: string): boolean
 
 export default function middleware(request: Request): Response {
   const url = new URL(request.url);
-  const pilotHosts = (process.env.TRACED_PILOT_HOSTS ?? '').split(',').map((h) => h.trim().toLowerCase()).filter(Boolean);
-  const isPilot = pilotHosts.includes(url.hostname.toLowerCase());
-
-  if (isPilot) {
+  if (isGatedPath(url.pathname)) {
     const password = process.env.TRACED_PILOT_PASSWORD ?? '';
     if (password.length < 12) return new Response('Pilot access is not configured.', { status: 503, headers: { 'cache-control': 'no-store' } });
     if (!basicCredentialsMatch(request.headers.get('authorization'), password)) {

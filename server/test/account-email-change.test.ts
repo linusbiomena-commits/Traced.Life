@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { changeUserEmail, createStaffAccount } from '../src/modules/accounts/accounts.service.ts';
+import { changeUserEmail, createStaffAccount, resendStaffSetup } from '../src/modules/accounts/accounts.service.ts';
 import { setupTestApp, type TestEnv } from './helpers/test-app.ts';
 
 // Audited login-email change (used to move the preview super admin to info@tracedmena.life). Runs as the
@@ -69,5 +69,21 @@ describe('changeUserEmail', () => {
     expect((await t.db.query('SELECT 1 FROM users WHERE email = $1', [staff.email])).rowCount).toBe(1);
     const prodDeps = { ...t.deps, config: { ...t.deps.config, env: 'production' as const } };
     await expect(changeUserEmail(prodDeps, { from: a.email, to: `z_${rand()}@example.com`, reason: 'Production must refuse', meta })).rejects.toMatchObject({ code: 'NOT_IN_PRODUCTION' });
+  });
+});
+
+describe('resendStaffSetup', () => {
+  it('issues a fresh setup link on the current origin and kills the previous one; refuses set-up accounts', async () => {
+    const addr = `pending_${rand()}@example.com`;
+    const created = await createStaffAccount(t.deps, { email: addr, roles: ['super_admin'], locale: 'en', meta });
+    const oldToken = created.setupLink.match(/#token=([A-Za-z0-9_-]+)/)![1]!;
+    await resendStaffSetup(t.deps, { email: addr, meta });
+    const mail = await t.waitForMail(addr, 'account_setup');
+    expect(mail.data.link!.startsWith(`${t.config.appOrigin}/traced/admin/accept-invite/#token=`)).toBe(true);
+    expect((await t.client().post('/auth/account-setup', { token: oldToken, password: PW })).status).not.toBe(200);
+    const fresh = mail.data.link!.match(/#token=([A-Za-z0-9_-]+)/)![1]!;
+    expect((await t.client().post('/auth/account-setup', { token: fresh, password: PW })).status).toBe(200);
+    await expect(resendStaffSetup(t.deps, { email: addr, meta })).rejects.toMatchObject({ code: 'INVITE_NOT_PENDING' });
+    expect((await t.db.query(`SELECT count(*)::int AS n FROM audit_logs WHERE action = 'staff.invite_resent' AND target_id = $1`, [created.userId])).rows[0].n).toBe(1);
   });
 });

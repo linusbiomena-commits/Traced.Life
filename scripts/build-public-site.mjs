@@ -19,13 +19,17 @@ const OUT = path.join(ROOT, '.vercel-public');
 // scripts/build-portal-pages.mjs starts with one of these; not imported because that
 // script regenerates files when loaded).
 const portalTop = ['account', 'staff', 'admin', 'lab', 'c', 's'];
-// Restricted preview only: TRACED_BUILD_PORTAL=1 (set as a Vercel environment variable for the PREVIEW
-// environment only) keeps the portal pages and their header entry. Production never sets it, and the
-// build refuses to include the portal in a Vercel production build even if it is set by mistake.
+// TRACED_BUILD_PORTAL=1 keeps the operational portal pages (restricted pilot). The portal is only ever
+// served behind the pilot gate in middleware.ts, so a Vercel PRODUCTION build refuses to include it unless
+// the gate is configured (TRACED_PILOT_PASSWORD, 12+ characters) and the middleware file exists; the failed
+// build leaves the current live deployment in place.
 const includePortal = process.env.TRACED_BUILD_PORTAL === '1';
 if (includePortal && process.env.VERCEL_ENV === 'production') {
-  console.error('TRACED_BUILD_PORTAL=1 is not allowed in a Vercel production build (portal launch needs a separate approval).');
-  process.exit(1);
+  const gateReady = (process.env.TRACED_PILOT_PASSWORD ?? '').length >= 12 && existsSync(path.join(ROOT, 'middleware.ts'));
+  if (!gateReady) {
+    console.error('Refusing to build the portal for production: the pilot gate (TRACED_PILOT_PASSWORD + middleware.ts) is not configured.');
+    process.exit(1);
+  }
 }
 const excluded = new Set(includePortal ? [] : [path.join(DIST, 'portal')]);
 if (!includePortal) {
