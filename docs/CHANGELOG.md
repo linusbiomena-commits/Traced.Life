@@ -1,5 +1,11 @@
 # TRACED: Changelog
 
+## 2026-11-27 (evening): Oracle hosting approved; server launch paused
+- Created in Riyadh (free): network with no inbound access, Vault + software key + 9 generated secrets, encrypted private buckets for backups (35-day lifecycle) and audit checkpoints (400-day retention, unlocked), Object Storage service policy, Run Command permission.
+- `traced-app-1` (A1.Flex 1 OCPU / 4 GB) not created: Out of host capacity. Retries stopped; Pay As You Go upgrade requested by the owner.
+- `deploy/oci/`: admin scripts (network, secrets, buckets, launch, Run Command runner) and VM scripts (PostgreSQL, migrations + roles, verification, nightly encrypted backup + restore check, cloud-init).
+- New test `server/test/oci-db-layout.test.ts` (8) for the Oracle database layout.
+
 ## 2026-11-27: Hosting moved to Oracle Cloud (governance only; nothing billable)
 - Public website (no portal) live at https://tracedlife.vercel.app (`scripts/build-public-site.mjs`, `vercel.json`, `.vercelignore`).
 - Google Cloud: project `traced-production` created, then blocked (Dammam refused for the billing account); kept empty.

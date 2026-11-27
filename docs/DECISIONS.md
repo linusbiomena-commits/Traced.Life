@@ -33,6 +33,7 @@ Last updated: 2026-11-26 (Phase 5 approved and implemented). Only **Approved** i
 | A27 | Public website (no portal) deployed to Vercel project `tracedlife` (team `linus-bio-mena`) | Owner, 2026-11-27 |
 | A28 | Google Cloud abandoned for TRACED: Dammam (me-central2) refused for the available billing account (CNTXT access not granted). Empty project `traced-production` kept, not deleted | Owner, 2026-11-27 |
 | A29 | Hosting on **Oracle Cloud**, tenancy `karamait` as the central KaRama IT account; region me-riyadh-1 (Jeddah alternative); one compartment `TRACED` only for now; cost tags `KaRamaIT.Project/Environment/CostCenter`; budget SAR 110 incl. VAT (EUR 23.25) with 50/80/100% + forecast alerts; no paid resources before approval of exact configuration and cost | Owner, 2026-11-27 |
+| A30 | OCI hosting configuration and cost approved (`docs/deploy/oci-plan.md`); server launch paused after Out of host capacity; owner requested the Pay As You Go upgrade; no shape or region change | Owner, 2026-11-27 |
 | A19 | Client IP: count trusted proxy hops from the right (`TRUSTED_PROXY_HOPS`, optional CIDRs / proxy secret); production must set it explicitly | Phase 5 milestone 1 |
 
 ## Proposed / awaiting approval

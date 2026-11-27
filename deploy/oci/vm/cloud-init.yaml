@@ -1,0 +1,26 @@
+#cloud-config
+# TRACED VM bootstrap: no SSH keys, no inbound ports. Managed through OCI Run Command (user ocarun).
+package_update: true
+package_upgrade: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - python3-venv
+  - postgresql-client
+  - gnupg
+  - jq
+  - unattended-upgrades
+write_files:
+  - path: /etc/sudoers.d/101-oracle-cloud-agent-run-command
+    permissions: '0440'
+    content: |
+      ocarun ALL=(ALL) NOPASSWD:ALL
+  - path: /etc/ssh/sshd_config.d/90-traced.conf
+    content: |
+      PasswordAuthentication no
+      PermitRootLogin no
+runcmd:
+  - systemctl enable --now docker
+  - python3 -m venv /opt/oci-cli && /opt/oci-cli/bin/pip install --quiet oci-cli && ln -sf /opt/oci-cli/bin/oci /usr/local/bin/oci
+  - mkdir -p /opt/traced && chmod 750 /opt/traced
+  - touch /var/lib/cloud/instance/traced-bootstrap-done

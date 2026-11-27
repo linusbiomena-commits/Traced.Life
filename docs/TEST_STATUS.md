@@ -5,7 +5,7 @@ Last updated: **2026-11-27**, Phase 8 (Oracle Cloud governance; no application c
 | Check | Command | Result |
 |---|---|---|
 | TypeScript | `npm run typecheck` | clean |
-| Unit + integration (Vitest, real embedded PostgreSQL 18) | `npm test` | **263 / 263 pass**, 23 files (Phase 7 added authz-matrix, auth-hardening, audit-integrity, db-roles, pii-export, outbox-reliability, security-probes) |
+| Unit + integration (Vitest, real embedded PostgreSQL 18) | `npm test` | **271 / 271 pass**, 24 files (27 Nov 2026: + oci-db-layout; Phase 7 added authz-matrix, auth-hardening, audit-integrity, db-roles, pii-export, outbox-reliability, security-probes) |
 | Portal shells + account-link patch | `npm run check:portal` | 86 portal shells up to date; all 56 TRACED pages patched (no public page changed) |
 | Dependencies | `npm audit` | 0 vulnerabilities |
 | Secrets / sensitive data in tracked files | `git grep` pattern scan + screenshot QR check | none found |
@@ -44,5 +44,6 @@ Last updated: **2026-11-27**, Phase 8 (Oracle Cloud governance; no application c
 - **Observed once, not reproduced (Phase 7):** in one full browser run the staff "full collection with the simulated camera" test failed a visibility check; it passed alone and in the next two full runs (30/30 each). Details were overwritten by the following run. Watch for it; if it recurs, keep `test-results/e2e-artifacts` before re-running.
 - **Fixed 2026-11-27:** `admin.test.ts` audit-log filter test built "today" as a UTC date while the filter uses Riyadh dates, so it failed between 00:00 and 03:00 Riyadh. It now uses `riyadhToday()`.
 - **Not yet proven:** `server/sql/production-roles.sql` on the production database. Hosting is now a self-managed PostgreSQL on Oracle Cloud (real superuser), the same model as the local tests; it still has to be run on the real server.
-- **No cloud infrastructure tests yet:** the Oracle tenancy only has governance resources (compartment, tags, budget, IAM); there is no server or database to test.
+- **Oracle database layout (new, 27 Nov 2026):** `server/test/oci-db-layout.test.ts`, 8 tests on a dedicated PostgreSQL 18 cluster. Non-superuser `traced_migrator` owns and migrates the schema (second run verifies checksums). The superuser applies `production-roles.sql`. `traced_app` and `traced_readonly` log in with passwords and are refused evidence changes, DDL, role switching, `COPY TO PROGRAM`, writes and personal data. Outsiders cannot connect. The restore-check query works.
+- **Not yet run anywhere:** the VM scripts in `deploy/oci/vm/` (Docker, `psql` meta-commands, cloud-init, ARM image build, gpg, systemd). No Docker/psql on the admin PC; they run first on the VM. All scripts pass `bash -n`. No cloud server exists yet.
 - All test data is synthetic (`example.com`, `[DEV]` branches).

@@ -1,6 +1,12 @@
 # TRACED on Oracle Cloud Infrastructure (OCI): setup record and hosting plan
 
-**Status (27 Nov 2026):** free governance setup done (compartment, tags, budget, IAM). **No compute instance, volume, bucket, vault, network or other billable resource exists.** Hosting waits for the owner's approval of the configuration and cost in §6–§8.
+**Status (27 Nov 2026, evening):** hosting **approved by the owner**. Created in Riyadh, all within free allowances:
+- network (no inbound access);
+- Vault `traced-vault` (DEFAULT type) with software key `traced-master-key` and 9 generated secrets;
+- buckets `traced-db-backups` (35-day lifecycle) and `traced-audit-checkpoints` (400-day retention rule, **unlocked**);
+- the Run Command policy.
+
+**The server `traced-app-1` does not exist.** Four launch attempts failed with *Out of host capacity* (one earlier attempt was throttled with HTTP 429). The owner requested the **Pay As You Go upgrade** (Console: "Your upgrade is in progress"), and provisioning is paused until Oracle confirms it. Shape (A1.Flex 1 OCPU / 4 GB / 50 GB) and region (me-riyadh-1) stay unchanged. Scripts: `deploy/oci/`.
 
 This replaces the Google Cloud plan (`phase-8-preparation.md`) as the hosting direction. Google Cloud could not be used: Dammam (me-central2) was refused for the project's billing account (see `docs/HANDOVER.md`, Phase 8B). The Google project `traced-production` is kept, empty, and is not deleted.
 
@@ -171,9 +177,29 @@ Both scenarios are inside SAR 110.
 6. **Recovery point:** up to 24 hours with nightly dumps (Cloud SQL would have had point-in-time recovery). Approve, or ask for WAL archiving.
 7. **Unchanged launch blockers:** identity verification (collection stays blocked), customer status emails off, Resend privacy approval, release gate in `phase-8-preparation.md` §12.
 
+## 8a. Created after approval (27 Nov 2026)
+
+| Resource | Name | Notes |
+|---|---|---|
+| VCN | `traced-vcn` 10.20.0.0/16 | DNS label `traced` |
+| Internet gateway / route table | `traced-igw` / `traced-rt-public` | outbound only |
+| Security list | `traced-sl-no-ingress` | no ingress rules; the VCN default list was emptied too |
+| Subnet | `traced-subnet-app` 10.20.1.0/24 | public IPs allowed for outbound traffic |
+| NSG | `traced-nsg-app` | egress only |
+| Vault / key | `traced-vault` (DEFAULT, free) / `traced-master-key` (AES-256, SOFTWARE, free) | |
+| Secrets (9) | `traced-pg-superuser-password`, `traced-db-migrator-password`, `traced-db-app-password`, `traced-db-readonly-password`, `traced-token-hmac-key`, `traced-data-encryption-key`, `traced-audit-checkpoint-key`, `traced-internal-cron-secret`, `traced-backup-passphrase` | generated locally, never printed; free (≤ 150) |
+| Buckets | `traced-db-backups`, `traced-audit-checkpoints` | private, `traced-master-key`, Standard tier |
+| Policy | `TRACED-Services-Policy` | Object Storage (Riyadh) may use `traced-master-key` and apply lifecycle rules in TRACED |
+| Policy change | `TRACED-Workload-Policy` | + Run Command on itself only |
+| **Not created** | `traced-app-1` | Out of host capacity; waiting for the Pay As You Go upgrade |
+
+No SSH key exists. The server will be managed only through OCI Run Command, with output written to `traced-db-backups/ops/out/`. Administration is through Run Command and the OCI Console; the Bastion plugin stays disabled.
+
+The API will **not** be started in production mode yet: production requires a real Resend key (`MAIL_TRANSPORT=resend`), which is not authorised. The next stage on the server is the database only: setup, migrations, roles, checks and backups.
+
 ## 9. Proposed next steps (each needs approval)
 
-1. Owner: decide O1 (Pay As You Go upgrade, company account) and O3 (audit compartment).
+1. Owner: confirm the Pay As You Go upgrade is complete (O1, requested 27 Nov 2026), then authorise resuming the server launch (`deploy/oci/launch-vm.sh`). Decide on the company account (part of O1) and O3 (audit compartment).
 2. Approve creation of: VCN + NSG, the A1 VM (1 OCPU / 4 GB / 50 GB), the Vault and secrets, the backup bucket, and the audit bucket (retention unlocked). Expected cost: scenario A (EUR 0), at most scenario B (SAR ≈ 64 incl. VAT).
 3. Code tasks in §8.5 on `feature/traced-portal`, tested locally.
 4. Install the database, apply migrations 0001–0011 on a clean database, apply `production-roles.sql`, then run the security checks with synthetic data only.

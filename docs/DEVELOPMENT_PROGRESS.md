@@ -13,10 +13,10 @@ Last updated: 2026-11-27 (Phase 8, Oracle Cloud).
 | 5A | Stage A: manual-testing preparation, login links, role routing | **Complete** | Stage A checkpoint commit; `docs/manual-testing.md` |
 | 6 | Physical sample labels and chain of custody | **Complete for the approved scope** (printer/devices untested) | `9f39578` + final Phase 6 commit; `docs/phase-6-report.md` (216 unit + 27 browser) |
 | 7 | Security hardening and production readiness | **Complete (local only)**; nothing provisioned | `91ea577`…`8682bb3` + docs commit; `docs/phase-7-report.md` |
-| 8 | Production infrastructure and deployment | Stage 8A done; public website live on Vercel; **Oracle Cloud** governance set up (compartment, tags, budget, IAM); hosting awaits approval | `docs/deploy/oci-plan.md` (current), `docs/deploy/phase-8-preparation.md` (Google, superseded) |
+| 8 | Production infrastructure and deployment | Stage 8A done; public website live on Vercel; **Oracle Cloud**: governance, network, Vault, buckets created; server launch paused (capacity; Pay As You Go upgrade pending); deployment scripts + layout test ready | `docs/deploy/oci-plan.md` (current), `docs/deploy/phase-8-preparation.md` (Google, superseded) |
 
 ## Current phase
-Phase 8: hosting moved to Oracle Cloud (Riyadh). Governance is set up; waiting for the owner's approval of the hosting configuration and cost.
+Phase 8: Oracle Cloud (Riyadh) hosting approved; network, Vault and buckets exist; the server launch waits for the Pay As You Go upgrade.
 
 ## In progress
 Nothing in progress.
@@ -28,4 +28,4 @@ The approvals listed in `docs/DECISIONS.md` ("Unresolved"): identity verificatio
 **Not ready.** Nothing is provisioned or deployed. Production collection is deliberately blocked until an approved identity-verification method and approved instructions exist.
 
 ## Estimated completion
-About **88%** of total development effort (Phases 0–7 + Phase 8 preparation, public website and OCI governance ≈ 338 h of ≈ 365–405 h; remaining ≈ 25–35 h: OCI hosting, checkpoint writer for Object Storage, deployment scripts, drills, launch support). This counts engineering effort only and excludes business, legal and clinical approvals.
+About **90%** of total development effort (Phases 0–7 + Phase 8 preparation, public website and OCI governance ≈ 345 h of ≈ 365–405 h; remaining ≈ 20–30 h: server launch and database bring-up, checkpoint writer for Object Storage, API deployment, drills, launch support). This counts engineering effort only and excludes business, legal and clinical approvals.
