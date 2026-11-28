@@ -1,6 +1,6 @@
 # TRACED: Development Progress (evidence-based)
 
-Last updated: 2026-11-27 (Phase 8, Oracle Cloud).
+Last updated: 2026-11-28 (Phase 8: restricted pilot live; final UAT passed).
 
 | Phase | Scope | Status | Evidence |
 |---|---|---|---|
@@ -16,6 +16,8 @@ Last updated: 2026-11-27 (Phase 8, Oracle Cloud).
 | 8 | Production infrastructure and deployment | Oracle server + DB (8A/8B) done; **8C restricted preview live**: HTTPS API, Resend, jobs, monitoring, Vercel preview (proxy secret pending); production switch after the release gate | `docs/deploy/phase-8c-report.md`, `oci-hosting-report.md` |
 
 ## Current phase
+**28 Nov:** restricted pilot live on www.tracedmena.life; final real-browser UAT passed for every role (`docs/deploy/final-user-acceptance-report.md`); Sign Out fixed (fddcc9c); tests 302/302. Remaining before real patients: approved consents/instructions, real identity verification, device tests, owner release decision.
+
 Phase 8: Oracle server and database live (27 Nov). Next: API + HTTPS + Vercel integration once decisions D-A…D-H arrive; launch target 1 Dec 2026.
 
 ## In progress

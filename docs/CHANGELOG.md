@@ -1,5 +1,11 @@
 # TRACED: Changelog
 
+## 2026-11-28: final user acceptance testing
+- Real-browser UAT on www.tracedmena.life for customer, collection staff, lab, admin, super admin and auditor, plus recollection, route inventory, gate, responsive and an X-Forwarded-For spoofing check: passed, no new bugs (`docs/deploy/final-user-acceptance-report.md`).
+- Sign Out fixed before the UAT (fddcc9c): a refused sign-out no longer pretends to succeed; regression tests for every role.
+- New read-only helper scripts `deploy/oci/vm/vm_17_uat_accounts.sh`, `vm_18_captured_link.sh`, `vm_19_ratelimit_ips.sh` (preview only; refuse non-synthetic addresses).
+- Tests 302/302.
+
 ## 2026-11-28: fix for signed-in writes through www
 - The middleware's API rewrite now forwards all request headers. Vercel's override list is exhaustive, and Origin, X-CSRF-Token and Content-Type had been dropped, so every signed-in POST failed the CSRF check. Tests 296/296.
 

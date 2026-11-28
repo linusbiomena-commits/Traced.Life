@@ -1,11 +1,13 @@
 # TRACED: Test Status
 
-Last updated: **2026-11-27**, Phase 8 (Oracle Cloud governance; no application change), Windows 11, Node 22, Microsoft Edge.
+Last updated: **2026-11-28**, final pilot UAT, Windows 11, Node 22.
+
+**Final UAT (28 Nov, real browser on www.tracedmena.life, all six roles):** passed; details, observations and not-tested items in `docs/deploy/final-user-acceptance-report.md`. Deployed journey `vm_13`: 61/61.
 
 | Check | Command | Result |
 |---|---|---|
 | TypeScript | `npm run typecheck` | clean |
-| Unit + integration (Vitest, real embedded PostgreSQL 18) | `npm test` | **296 / 296 pass**, 28 files (two consecutive clean runs on 28 Nov after fixing the parallel `traced_app` password race that caused the earlier intermittent failures) (27 Nov 2026: + oci-db-layout (9); Phase 7 added authz-matrix, auth-hardening, audit-integrity, db-roles, pii-export, outbox-reliability, security-probes) |
+| Unit + integration (Vitest, real embedded PostgreSQL 18) | `npm test` | **302 / 302 pass**, 29 files (28 Nov, after the Sign Out fix); earlier **296 / 296 pass**, 28 files (two consecutive clean runs on 28 Nov after fixing the parallel `traced_app` password race that caused the earlier intermittent failures) (27 Nov 2026: + oci-db-layout (9); Phase 7 added authz-matrix, auth-hardening, audit-integrity, db-roles, pii-export, outbox-reliability, security-probes) |
 | Portal shells + account-link patch | `npm run check:portal` | 86 portal shells up to date; all 56 TRACED pages patched (no public page changed) |
 | Dependencies | `npm audit` | 0 vulnerabilities |
 | Secrets / sensitive data in tracked files | `git grep` pattern scan + screenshot QR check | none found |
