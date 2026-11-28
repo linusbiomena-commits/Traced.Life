@@ -1,5 +1,10 @@
 # TRACED: Changelog
 
+## 2026-11-28: Phase 8D release preparation; homepage header video
+- `docs/deploy/production-release-readiness.md`: production DB inspection, consent/clinical status, identity-verification options, MFA, device checklist, email and DNS checks, audit protection proposal, production switch procedure, release gate, rollback and incident response.
+- `deploy/oci/vm/vm_20_prod_db_inspect.sh` (read-only).
+- Homepage header video replaced with the new cut (`55a17fa`), deployed.
+
 ## 2026-11-28: final user acceptance testing
 - Real-browser UAT on www.tracedmena.life for customer, collection staff, lab, admin, super admin and auditor, plus recollection, route inventory, gate, responsive and an X-Forwarded-For spoofing check: passed, no new bugs (`docs/deploy/final-user-acceptance-report.md`).
 - Sign Out fixed before the UAT (fddcc9c): a refused sign-out no longer pretends to succeed; regression tests for every role.

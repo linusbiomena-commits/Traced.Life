@@ -37,6 +37,7 @@ Last updated: 2026-11-26 (Phase 5 approved and implemented). Only **Approved** i
 | A31 | Launch target 1 Dec 2026 (owner); security not traded for the date; restricted pilot with synthetic data if real-patient approvals are outstanding. Oracle A1 server launched after the Pay As You Go upgrade; SCCC kept as an assessed (not opened) backup | Owner, 2026-11-27 |
 | A32 | Phase 8C approved: API at https://api.tracedmena.life; Resend with sender `TRACED <info@tracedmena.life>` and reply-to info@tracedmena.life (Tokyo sending region, privacy approval pending); restricted Vercel preview; monitoring alerts to info@karamaitco.com. Preview runs on a separate synthetic database `traced_preview` | Owner, 2026-11-27 |
 | A33 | Restricted pilot only: two-step verification optional for sign-in (`PILOT_MFA_OPTIONAL`, refused in production); fresh MFA kept for personal-data export and other sensitive operations; the MFA super admin UAT test skipped at the owner's request (28 Nov). The export step-up was **not** relaxed | Owner, 2026-11-28 |
+| A34 | Phase 8D: scope frozen; production switch, gate removal, real registration and collection only after explicit final approval. Proposals awaiting approval: consent release CLI (§4.3), identity-verification option (§5), TRACED-Audit compartment and lock timing (§9) | Owner, 2026-11-28 |
 | A19 | Client IP: count trusted proxy hops from the right (`TRUSTED_PROXY_HOPS`, optional CIDRs / proxy secret); production must set it explicitly | Phase 5 milestone 1 |
 
 ## Proposed / awaiting approval

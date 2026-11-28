@@ -1,6 +1,6 @@
 # TRACED: Continuation Checkpoint
 
-**Last updated:** 2026-11-28, final UAT of the restricted pilot on https://www.tracedmena.life passed (`docs/deploy/final-user-acceptance-report.md`).
+**Last updated:** 2026-11-28 (evening), Phase 8D release preparation done; release gate in `docs/deploy/production-release-readiness.md`. Pilot UAT passed (`docs/deploy/final-user-acceptance-report.md`).
 
 | Item | State |
 |---|---|
@@ -56,6 +56,8 @@ Before each push: GitHub API 0 deployments / 0 environments for `Traced.Life`; n
 - Enabled so far (free): Artifact Registry API plus the default APIs Google enables on new projects. No budget, service account, secret, database, bucket or repository exists yet.
 
 ## Exact next action
+**28 Nov (Phase 8D, release preparation):** `docs/deploy/production-release-readiness.md` is the release gate. Production DB `traced` inspected read-only (`vm_20_prod_db_inspect.sh`): migrations 0001–0011, roles least-privilege, 0 data rows, audit chain intact. Findings: (1) no upload path for approved consent texts (only the dev seed); proposed `publish-consent` CLI, about 4 h, awaiting approval; (2) alarm email subscription still PENDING (no alerts delivered) until the owner confirms the Oracle email at info@karamaitco.com; (3) DNS: root SPF and Google DKIM missing, DMARC p=none; (4) audit bucket retention 400 days unlocked, in the TRACED compartment (operators could remove it); proposal for TRACED-Audit in §9. Homepage header video replaced and deployed (`55a17fa`, `dpl_6X3UnK4K7FGhFG9CWBoAaHqmuJi9`). Nothing switched: gate on, API preview on `traced_preview`. Next: owner decisions in §11/§13.3; stop before the production switch.
+
 **28 Nov (final UAT):** real-browser UAT on www as one synthetic account per role (run `u1128`) passed: customer, collection staff, lab (rejection), recollection authorisation, admin, super admin, auditor, Sign Out for every role, 86-route inventory, gate on every host, 375 px, X-Forwarded-For spoofing check (counted under the real IP). No new bugs; observations and launch blockers in `docs/deploy/final-user-acceptance-report.md`. The MFA super admin export test was skipped at the owner's request (export still needs a fresh code from an enrolled authenticator). Tests 302/302. Helper scripts: `vm_17` (UAT accounts), `vm_18` (captured link for one synthetic address), `vm_19` (pilot rate-limit IPs). Next: owner reviews the report and decides on the open launch items (approved consents/instructions, real identity verification, devices, gate switch).
 
 **Fixed 28 Nov:** "Your session has changed" (CSRF_REJECTED) on every signed-in write through www. Vercel's `x-middleware-override-headers` is the complete list of forwarded headers; the middleware listed only the changed ones, so Origin, X-CSRF-Token and Content-Type were dropped. The middleware now re-lists every header (`apiRewrite` in `middleware.ts`; test asserts it). Found with the CSRF security log. Tests 296/296.

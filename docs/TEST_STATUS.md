@@ -2,7 +2,7 @@
 
 Last updated: **2026-11-28**, final pilot UAT, Windows 11, Node 22.
 
-**Final UAT (28 Nov, real browser on www.tracedmena.life, all six roles):** passed; details, observations and not-tested items in `docs/deploy/final-user-acceptance-report.md`. Deployed journey `vm_13`: 61/61.
+**Final UAT (28 Nov, real browser on www.tracedmena.life, all six roles):** passed; details, observations and not-tested items in `docs/deploy/final-user-acceptance-report.md`. Deployed journey `vm_13`: 61/61. Phase 8D (28 Nov): production DB read-only inspection passed (`vm_20`); physical devices still **not tested**.
 
 | Check | Command | Result |
 |---|---|---|
