@@ -1,6 +1,6 @@
 # TRACED: production release readiness (Phase 8D)
 
-**Prepared:** 28 Nov 2026 (Riyadh) · **Target commercial launch:** 1 Dec 2026 · **Branch:** `feature/traced-portal` (nothing merged into `main`)
+**Prepared:** 28 Nov 2026 (Riyadh); **updated for Phase 8E** the same evening (`phase-8e-launch-blockers.md`) · **Target commercial launch:** 1 Dec 2026 · **Branch:** `feature/traced-portal` (nothing merged into `main`)
 
 **Status:**
 - **Not yet ready for real patients.**
@@ -20,7 +20,7 @@
 | Git | `55a17fa` (homepage header video) on `a9246d8` (final UAT); this report is committed on top. Pushed to `origin/feature/traced-portal` |
 | Vercel production | `dpl_6X3UnK4K7FGhFG9CWBoAaHqmuJi9` (commit `55a17fa`) on www.tracedmena.life. Previous good deployment: `dpl_4i8NKsJdmxZMZU5Uc7A8WHFCKrze` (`fddcc9c`). Public-only checkpoint: `dpl_9WTxpjM6hhSyzXJjHX8RKw8vpF9n` |
 | API (Oracle `traced-app-1`) | image `traced-api:15fb0fe` (the later commits only changed the website, middleware, tests and docs), `MODE=preview`, `DB=traced_preview`, `NODE_ENV=development`, `APP_ORIGIN=https://www.tracedmena.life` |
-| Tests | unit/integration **302/302**; deployed API journey **61/61**; real-browser UAT for all six roles passed |
+| Tests | unit/integration **314/314** (Phase 8E); deployed API journey **61/61**; real-browser UAT for all six roles passed |
 
 ## 1. Completed features (approved scope)
 
@@ -124,7 +124,9 @@ Claude does not write or approve clinical or legal wording.
 - **Collection instructions:** already supported. Admin portal → Instructions → New draft (EN + AR, steps, checklist) → submit → a super admin publishes with the **clinical approval reference** (for example a signed document number). Without a reference the version stays provisional and production will not use it. Versions are immutable.
 - **Consent documents:** **no upload path exists yet.** The table and the service function (`publishConsentDocument`, immutable, SHA-256 of the text, `approved_by`/`approved_at`) exist, but only the development seed calls them. See §4.3.
 
-### 4.3 Proposed release tool for consents (requires your approval; about 4 hours including tests)
+### 4.3 Consent release tool: **built in Phase 8E** (`docs/deploy/consent-publishing.md`; 12 tests; not yet on the server)
+
+Original proposal, kept for the record:
 
 The proposal:
 - a CLI `publish-consent` that reads the approved EN/AR text files, the version and the approval reference, and inserts them as `approved` through the existing service;
@@ -151,6 +153,8 @@ The tool adds no UI and changes no customer-facing behaviour. Alternative: a sup
 | **C. SMS one-time code to the verified mobile** | KSA SMS provider (for example Unifonic or Taqnyat), registered sender ID, provider contract and privacy review, code delivery, retry and expiry | **20–30 h** | sender-ID registration, typically days to weeks |
 | **D. Nafath** | National ID collection (currently deliberately not collected: new approval), government onboarding, integration | **40–60 h** | weeks to months |
 
+**Phase 8E:** the detailed staff-led proposal is in `docs/identity-verification-staff-led-proposal.md` (blind-match variant A, 33–41 h, or controlled-reveal variant B, 25–31 h); it supersedes the estimates above.
+
 **Recommendation:** A (with B for adults) as the first production method. Do not start without your written choice per scenario (adult, child with guardian, authorised dependent).
 
 ## 6. Authentication and MFA
@@ -158,7 +162,7 @@ The tool adds no UI and changes no customer-facing behaviour. Alternative: a sup
 | Control | Pilot (now) | Production |
 |---|---|---|
 | Customer, staff, lab and admin sign-in | unchanged | unchanged |
-| MFA for privileged roles (admin, super admin, auditor) | optional (`PILOT_MFA_OPTIONAL=true`, owner approval 28 Nov) | **mandatory**; `loadConfig` refuses `PILOT_MFA_OPTIONAL` in production |
+| MFA for privileged roles (lab operator, admin, super admin, auditor) | optional (`PILOT_MFA_OPTIONAL=true`, owner approval 28 Nov) | **mandatory**; `loadConfig` refuses `PILOT_MFA_OPTIONAL` in production |
 | Fresh MFA for personal-data export | **required** (unchanged) | required |
 | Role permissions, CSRF, session invalidation | unchanged; verified in UAT | unchanged |
 
@@ -319,19 +323,19 @@ Customer status notifications stay **off**.
 | 3 | Oracle hosting in Riyadh, private database, backups and restore test, audit checkpoints, pilot gate | **Completed** |
 | 4 | Production database clean and verified (read-only) | **Completed** |
 | 5 | Approved consent texts (4 × EN/AR) | **Awaiting clinical/legal approval** · **Blocks real-patient launch** (registration) |
-| 6 | Release tool to load approved consents (§4.3) | **Requires additional development** (about 4 h, needs approval) · **Blocks real-patient launch** |
+| 6 | Release tool to load approved consents (§4.3) | **Completed** (local, 28 Nov, tests 314/314); server image + migration 0012 need your authorisation |
 | 7 | Approved collection instructions | **Awaiting clinical approval** · **Blocks real-patient launch** (collection) |
-| 8 | Identity-verification method (§5) | **Awaiting your decision** + **Requires additional development** · **Blocks real-patient launch** (collection) |
+| 8 | Identity-verification method (§5) | Proposal ready (`identity-verification-staff-led-proposal.md`) · **Awaiting your decision** + **Requires additional development** · **Blocks real-patient launch** (collection) |
 | 9 | Resend PDPL / cross-border approval, DPA, privacy notice wording | **Awaiting privacy approval** · **Blocks real-patient launch** |
 | 10 | Approved Wareed branch list | **Awaiting your decision** (data) · **Blocks real-patient launch** |
-| 11 | Laboratory locations (single lab vs several) | **Awaiting your decision**; single lab needs nothing; several labs = development |
+| 11 | Laboratory locations | One designated laboratory is sufficient (no change); several labs = 16–24 h development (`phase-8e-launch-blockers.md` §7) · **Awaiting your confirmation** |
 | 12 | Production super admins named; MFA enrolled at first sign-in | **Awaiting your decision** · **Blocks real-patient launch** |
 | 13 | Android, iPhone, USB scanner, camera, thermal printer, label tests | **Requires physical testing** · **Blocks real-patient launch** (collection) |
-| 14 | Alarm email subscription confirmation (currently PENDING: no alerts delivered) | **Awaiting your action** (click the Oracle email at info@karamaitco.com) · blocks a safe launch |
-| 15 | MFA super admin export seen in the browser | Can be deferred safely (automated coverage); 15-minute check recommended |
+| 14 | Alarm email subscription confirmation (PENDING; confirmation re-sent 28 Nov 18:28 Riyadh, no duplicate) | **Awaiting your action** (click the Oracle email at info@karamaitco.com), then a test message · blocks a safe launch |
+| 15 | MFA super admin export seen in the browser | Test prepared (`phase-8e-launch-blockers.md` §8, about 20 min with you); can be deferred safely |
 | 16 | Email delivery checks E1–E5 with header verification | **Requires testing** (you read the inbox) |
-| 17 | DNS: root SPF, Google DKIM, DMARC reporting then quarantine | **Awaiting your action**; can be done shortly after launch, but recommended before |
-| 18 | Independent audit protection (compartment, IAM, lock) | **Awaiting your decision** · can be deferred safely (claim "independent audit evidence" only after it is done) |
+| 17 | DNS: root SPF, Google DKIM, DMARC reporting (enforcement later) | Exact records ready (`phase-8e-launch-blockers.md` §5) · **Awaiting your action** at Squarespace |
+| 18 | Independent audit protection (compartment, IAM, lock) | Plan ready (`phase-8e-launch-blockers.md` §6) · **Awaiting your separate approval** · can be deferred safely (claim "independent audit evidence" only after it is done) |
 | 19 | Professional Arabic review | **Awaiting approval** · can be deferred safely for a soft launch, recommended before marketing |
 | 20 | Medical report delivery | **Not implemented**: only the report-availability status exists. Can be deferred (results delivered outside the system) |
 | 21 | Customer status emails | Off; can be deferred safely |

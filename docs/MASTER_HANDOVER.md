@@ -18,6 +18,8 @@ Customer registration, secure QR and chain-of-custody platform for TRACED (Linus
 | 5 | Trusted-proxy fix; admin portal (MFA, dashboard, audited search/records, transfers, cancellation, corrections, customer lock, QR, staff, branches, instruction drafts/publish, email monitor, audit viewer, operational CSV); migration 0008 | `phase-5-report.md` |
 
 ## 3. Current phase
+**Phase 8E (28 Nov):** consent publishing tool built and tested (not deployed); proposals for identity verification and audit protection, DNS and alert steps in `docs/deploy/phase-8e-launch-blockers.md`.
+
 **Phase 8D (28 Nov):** release preparation complete; `docs/deploy/production-release-readiness.md` lists every outstanding requirement. Not ready for real patients until approved consents (plus a small upload tool), approved instructions, an identity-verification method, the Resend privacy approval, the branch list, named admins, device tests and the alarm subscription are done.
 
 **28 Nov 2026:** restricted pilot live on https://www.tracedmena.life (preview DB, captured mail, pilot gate, optional MFA in pilot only). Final real-browser UAT for all six roles passed; Sign Out bug fixed (fddcc9c). Launch blockers: approved consents and instructions, a real identity-verification method, device tests, owner release decision.

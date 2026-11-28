@@ -1,5 +1,11 @@
 # TRACED: Changelog
 
+## 2026-11-28 (night): Phase 8E consent publishing tool
+- `publish-consent` command (`server/src/cli/publish-consent.ts`, `server/src/modules/consents/publish.ts`): approved EN/AR consent releases with version, approval reference, effective date, publisher, checksum, dry run, one transaction, audit `consent.published`; never overwrites; refuses provisional/placeholder/synthetic-in-production text and incomplete sets.
+- Migration `0012_consent_publishing.sql` (additive): `approval_reference`, `published_by`; approved rows need both; approval fields immutable; provisional can never become approved.
+- `deploy/oci/vm/vm_21_publish_consent.sh`, `deploy/oci/upload-consent-release.sh`, `docs/deploy/consent-publishing.md`.
+- Proposals: `docs/identity-verification-staff-led-proposal.md`, `docs/deploy/phase-8e-launch-blockers.md`. Tests 314/314.
+
 ## 2026-11-28: Phase 8D release preparation; homepage header video
 - `docs/deploy/production-release-readiness.md`: production DB inspection, consent/clinical status, identity-verification options, MFA, device checklist, email and DNS checks, audit protection proposal, production switch procedure, release gate, rollback and incident response.
 - `deploy/oci/vm/vm_20_prod_db_inspect.sh` (read-only).

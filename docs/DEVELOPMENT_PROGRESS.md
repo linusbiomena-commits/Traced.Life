@@ -16,6 +16,8 @@ Last updated: 2026-11-28 (Phase 8: restricted pilot live; final UAT passed).
 | 8 | Production infrastructure and deployment | Oracle server + DB (8A/8B) done; **8C restricted preview live**: HTTPS API, Resend, jobs, monitoring, Vercel preview (proxy secret pending); production switch after the release gate | `docs/deploy/phase-8c-report.md`, `oci-hosting-report.md` |
 
 ## Current phase
+**Phase 8E (28 Nov):** consent publishing tool (migration 0012) built, 314/314 tests; server deployment awaits authorisation. Details: `docs/deploy/phase-8e-launch-blockers.md`.
+
 **Phase 8D (28 Nov):** release preparation done (`docs/deploy/production-release-readiness.md`); production switch awaits owner approval.
 
 **28 Nov:** restricted pilot live on www.tracedmena.life; final real-browser UAT passed for every role (`docs/deploy/final-user-acceptance-report.md`); Sign Out fixed (fddcc9c); tests 302/302. Remaining before real patients: approved consents/instructions, real identity verification, device tests, owner release decision.

@@ -3,6 +3,7 @@
 **What:** TRACED customer registration and chain-of-custody platform for LinusBio MENA in Saudi Arabia (collection partner: Wareed). Customers register patients for a hair-sample test, receive a tracking ID and a secure QR code, collection staff scan the QR at a branch and confirm collection, admins manage operations, and (Phase 6) the physical sample is tracked to the lab.
 
 **Where:**
+- Phase 8E launch blockers: `docs/deploy/phase-8e-launch-blockers.md`; consent loading guide: `docs/deploy/consent-publishing.md`.
 - Release gate and production procedure: `docs/deploy/production-release-readiness.md`.
 - Restricted pilot (28 Nov 2026): https://www.tracedmena.life; portals and `/api/v1` behind the pilot gate, API on Oracle Cloud Riyadh in preview mode (`traced_preview`). UAT: `docs/deploy/final-user-acceptance-report.md`.
 - Public site: https://linusbiomena.vercel.app/traced/ (the existing static site; its pages must be preserved)
